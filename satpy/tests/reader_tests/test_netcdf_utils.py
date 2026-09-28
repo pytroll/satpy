@@ -347,6 +347,19 @@ class TestNetCDF4FileHandler:
         np.testing.assert_array_equal(data.values, expected)
         assert var_name in file_handler.cached_variables
 
+    @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
+    def test_get_and_cache_npxr_for_other_keys(self, netcdf_file, strategy):
+        """Test that get_and_cache_npxr() gives the same as the file handler for keys that aren't variables."""
+        import xarray as xr
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy)
+
+        assert file_handler.get_and_cache_npxr("ds2_f/attr/test_attr_str") == "test_string"
+        group = file_handler.get_and_cache_npxr("test_group")
+        assert isinstance(group, xr.Dataset)
+        assert group["ds1_i"].shape == (10, 100)
+        assert not file_handler.cached_variables
+
     def test_file_opened_once(self, netcdf_file, monkeypatch):
         """Test that reading many variables only opens the file once and decodes each group once.
 

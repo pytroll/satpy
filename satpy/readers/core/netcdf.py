@@ -168,11 +168,15 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __getitem__(self, key):
         """Get item for given key."""
+        return self._get_item(key, always_cache=False)
+
+    def _get_item(self, key, always_cache):
+        """Get item for given key, reading a variable into memory and keeping it if it is small or ``always_cache``."""
         if key in self.cached_variables:
             return self.cached_variables[key]
         val = self.file_content[key]
         if self.accessor.is_variable(val):
-            if self._is_small_variable(val):
+            if always_cache or self._is_small_variable(val):
                 return self._cache_variable(key)
             return self._opener.read_variable(key)
         if self.accessor.is_group(val):
@@ -204,12 +208,7 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def get_and_cache_npxr(self, var_name):
         """Get and cache variable as DataArray[numpy]."""
-        if var_name in self.cached_variables:
-            return self.cached_variables[var_name]
-        val = self.file_content[var_name]
-        if self.accessor.is_variable(val):
-            return self._cache_variable(var_name)
-        return val
+        return self._get_item(var_name, always_cache=True)
 
 
 def _resolve_open_strategy(strategy, cache_handle):
@@ -541,9 +540,8 @@ class NetCDF4FileContent(Mapping):
         """Get the value of ``key``, reading it from the file if needed."""
         if key in self._cache:
             return self._cache[key]
-        value, cacheable = self._read(key)
-        if cacheable:
-            self._cache[key] = value
+        value = self._read(key)
+        self._remember(key, value)
         return value
 
     def __iter__(self):
@@ -558,23 +556,27 @@ class NetCDF4FileContent(Mapping):
         if self._file_keys is None:
             items = self._walk_listed_keys() if self._listed_keys is not None else self._walk_file()
             file_keys = {}
-            for key, value, cacheable in items:
+            for key, value in items:
                 file_keys[key] = None
-                if cacheable:
-                    self._cache.setdefault(key, value)
+                self._remember(key, value)
             self._file_keys = file_keys
         return self._file_keys
 
+    def _remember(self, key, value):
+        """Remember ``value`` for the next lookups of ``key``, unless it is a group or variable object."""
+        if not (self._accessor.is_variable(value) or self._accessor.is_group(value)):
+            self._cache.setdefault(key, value)
+
     def _read(self, key):
-        """Read the value of ``key`` from the file and tell if it can be remembered."""
+        """Read the value of ``key`` from the file."""
         root = self._opener.get_metadata_root()
         if key == "/attrs":
-            return self._get_attrs(root), True
+            return self._get_attrs(root)
         for prefix in ("/attr/", "attr/"):
             if key.startswith(prefix):
-                return self._get_attr(root, key[len(prefix):], key), True
+                return self._get_attr(root, key[len(prefix):], key)
         if key.startswith("/dimension/"):
-            return self._get_dimension(root, key[len("/dimension/"):], key), True
+            return self._get_dimension(root, key[len("/dimension/"):], key)
         parts = key.split("/")
         obj = root
         for index, part in enumerate(parts):
@@ -582,8 +584,8 @@ class NetCDF4FileContent(Mapping):
             if child is not None:
                 obj = child
                 continue
-            return self._read_from_object(obj, part, parts[index + 1:], key), True
-        return obj, False
+            return self._read_from_object(obj, part, parts[index + 1:], key)
+        return obj
 
     def _read_from_object(self, obj, part, rest, key):
         """Read the attribute, dimension or variable property of ``obj`` that the rest of ``key`` refers to."""
@@ -624,50 +626,50 @@ class NetCDF4FileContent(Mapping):
         return obj.dimensions[name].size
 
     def _walk_file(self):
-        """Walk through the whole file, yielding every key, its value and if the value can be remembered."""
+        """Walk through the whole file, yielding every key and its value."""
         root = self._opener.get_metadata_root()
         yield from self._walk_group("", root)
         global_attrs = self._get_attrs(root)
         for name, value in global_attrs.items():
-            yield f"/attr/{name}", value, True
-        yield "/attrs", global_attrs, True
+            yield f"/attr/{name}", value
+        yield "/attrs", global_attrs
         yield from self._walk_dimensions("", root)
 
     def _walk_group(self, name, group):
         prefix = name + "/" if name else ""
         for group_name, subgroup in group.groups.items():
             full_name = prefix + group_name
-            yield full_name, subgroup, False
+            yield full_name, subgroup
             yield from self._walk_attrs(full_name, subgroup)
             yield from self._walk_group(full_name, subgroup)
             yield from self._walk_dimensions(full_name, subgroup)
         for var_name, var in group.variables.items():
             full_name = prefix + var_name
-            yield full_name, var, False
+            yield full_name, var
             yield from self._walk_variable_properties(full_name, var)
             yield from self._walk_attrs(full_name, var)
 
     def _walk_variable_properties(self, name, var):
         for prop in self._VARIABLE_PROPERTIES:
-            yield f"{name}/{prop}", getattr(var, prop), True
+            yield f"{name}/{prop}", getattr(var, prop)
 
     def _walk_attrs(self, name, obj):
         for attr_name, value in self._get_attrs(obj).items():
-            yield f"{name}/attr/{attr_name}", value, True
+            yield f"{name}/attr/{attr_name}", value
 
     @staticmethod
     def _walk_dimensions(name, group):
         for dim_name, dim in group.dimensions.items():
-            yield f"{name}/dimension/{dim_name}", dim.size, True
+            yield f"{name}/dimension/{dim_name}", dim.size
 
     def _walk_listed_keys(self):
         """Yield the listed keys that exist in the file, with the properties and attributes of listed variables."""
         for key in self._listed_keys:
             try:
-                value, cacheable = self._read(key)
+                value = self._read(key)
             except KeyError:
                 continue
-            yield key, value, cacheable
+            yield key, value
             if self._accessor.is_variable(value):
                 yield from self._walk_variable_properties(key, value)
                 yield from self._walk_attrs(key, value)
