@@ -325,6 +325,36 @@ class TestNetCDF4FileHandler:
         assert not file_handler._opener._datasets
         assert file_handler._opener._root_store is None
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_file_handle_strategy_closes_group_store(self, netcdf_file, engine):
+        """Test that close() releases the file handle and the backend store used to read groups with "file_handle"."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        num_cached_before = len(FILE_CACHE)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="file_handle")
+        file_handle = file_handler._opener.file_handle
+        group = file_handler["test_group"]
+        np.testing.assert_array_equal(group["ds1_i"], np.arange(10 * 100).reshape((10, 100)))
+        # groups are read with xarray, from a backend store opened besides the file handle
+        assert len(FILE_CACHE) == num_cached_before + 1
+
+        file_handler.close()
+        assert len(FILE_CACHE) == num_cached_before
+        assert not _is_open(file_handle)
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_scalar_read_after_close_does_not_reopen_file(self, netcdf_file, engine):
+        """Test that scalar variables are in memory, so reading them after close() doesn't reopen the file."""
+        from xarray.backends.file_manager import FILE_CACHE
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
+        scalar = file_handler["ds2_sc"]
+        file_handler.close()
+        num_cached_after_close = len(FILE_CACHE)
+
+        assert scalar.values == 42
+        assert len(FILE_CACHE) == num_cached_after_close
+
     def test_invalid_open_strategy(self, netcdf_file):
         """Test that unknown open strategies are rejected."""
         with pytest.raises(ValueError, match="Unknown open_strategy"):
