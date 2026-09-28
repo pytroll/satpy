@@ -675,16 +675,6 @@ def _decode_attr(value):
     return value
 
 
-def get_data_as_xarray(variable):
-    """Get data in variable as xr.DataArray."""
-    try:
-        attrs = variable.attrs
-    except AttributeError:
-        # netCDF4 backend requires usage of __dict__ to get the attributes
-        attrs = variable.__dict__
-    return xr.DataArray(_read_data(variable), dims=variable.dimensions, attrs=attrs, name=variable.name)
-
-
 def _read_data(variable):
     """Read all the data of a netCDF4/h5netcdf variable."""
     try:
