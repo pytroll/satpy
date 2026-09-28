@@ -595,6 +595,38 @@ class TestNetCDF4FileContent:
                                           "test_attr_float": 1.2, "test_attr_str_arr": "test_string2"}
         assert file_content["/dimension/cols"] == 100
 
+    def test_walked_attribute_values(self, netcdf_file, strategy, engine):
+        """Test that walking through the file gives the attributes of the root, groups, and variables."""
+        attrs = {"test_attr_str": "test_string", "test_attr_int": 0, "test_attr_float": 1.2}
+        # "" is the root group
+        expected = {f"{name}/attr/{attr}": value
+                    for name in ("test_group", "test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "")
+                    for attr, value in attrs.items()}
+        expected["/attr/test_attr_str_arr"] = "test_string2"
+
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
+        walked = {key: val for key, val in file_handler.file_content.items() if "/attr/" in key}
+        assert walked == expected
+        # the same as looking them up one by one
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
+        assert {key: file_handler[key] for key in expected} == expected
+
+    def test_attributes_named_like_python_attributes(self, tmp_path, strategy, engine):
+        """Test that attributes named like python attributes of the netCDF4 objects are read from the file."""
+        from netCDF4 import Dataset
+        filename = tmp_path / "test_attr_names.nc"
+        with Dataset(filename, "w") as nc:
+            nc.createDimension("x", 3)
+            var = nc.createVariable("var", np.float32, ("x",))
+            var.setncatts({"name": "var_long_name", "shape": "flat"})
+            nc.setncattr("path", "/some/path")
+        expected = {"var/attr/name": "var_long_name", "var/attr/shape": "flat", "/attr/path": "/some/path"}
+
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        assert {key: file_handler[key] for key in expected} == expected
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        assert {key: val for key, val in file_handler.file_content.items() if "/attr/" in key} == expected
+
     @pytest.mark.parametrize("key", [
         "fake_ds",
         "",
@@ -899,6 +931,21 @@ def test_get_data_as_xarray_h5netcdf(tmp_path):
     assert res.attrs == NC_ATTRS
 
 
+def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
+    """Test getting xr.DataArray from h5netcdf variable."""
+    import numpy as np
+
+    from satpy.readers.core.netcdf import get_data_as_xarray
+
+    data = 1
+    fname = tmp_path / "test.nc"
+    fid = _write_test_h5netcdf(fname, data)
+
+    res = get_data_as_xarray(fid["test_data"])
+    np.testing.assert_equal(res.data, np.array(data))
+    assert res.attrs == NC_ATTRS
+
+
 def _write_test_h5netcdf(fname, data):
     import h5netcdf
 
@@ -913,18 +960,3 @@ def _write_test_h5netcdf(fname, data):
         var.attrs[key] = NC_ATTRS[key]
 
     return fid
-
-
-def test_get_data_as_xarray_scalar_h5netcdf(tmp_path):
-    """Test getting xr.DataArray from h5netcdf variable."""
-    import numpy as np
-
-    from satpy.readers.core.netcdf import get_data_as_xarray
-
-    data = 1
-    fname = tmp_path / "test.nc"
-    fid = _write_test_h5netcdf(fname, data)
-
-    res = get_data_as_xarray(fid["test_data"])
-    np.testing.assert_equal(res.data, np.array(data))
-    assert res.attrs == NC_ATTRS
