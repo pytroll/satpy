@@ -275,8 +275,8 @@ class TestNetCDF4FileHandler:
         file_handler = NetCDF4FileHandler(cf_netcdf_file, {}, {}, engine=engine, xarray_kwargs=xarray_kwargs)
 
         assert file_handler._opener._store_open_kwargs == {"phony_dims": "sort", "lock": False}
-        assert "phony_dims" not in file_handler._open_dataset_kwargs
-        assert "backend_kwargs" not in file_handler._open_dataset_kwargs
+        assert "phony_dims" not in file_handler._opener.open_dataset_kwargs
+        assert "backend_kwargs" not in file_handler._opener.open_dataset_kwargs
         assert file_handler["time"].dtype == np.float64
         # the given kwargs are not modified
         assert xarray_kwargs == {"phony_dims": "sort", "decode_times": False, "backend_kwargs": {"lock": False}}
