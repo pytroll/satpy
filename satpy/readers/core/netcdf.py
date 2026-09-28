@@ -424,7 +424,8 @@ class _SharedStoreOpener(_NetCDF4Opener):
         # uses dask.arrays only for data variables that have at least
         # one dimension; for zero-dimensional data variables (scalar),
         # it uses its own lazy loading for scalars.  Loading them now keeps
-        # them usable once the file handler and its datasets are gone.
+        # xarray from reopening the file (and keeping it open) when they are
+        # read after the file handler was closed.
         if not val.chunks:
             val.load()
         # Copied so callers can modify metadata without touching the shared dataset.
