@@ -6,6 +6,17 @@ Note that METimage is the official name of the instrument, while VII is the old 
 The name VII is currently still used in the filenames as well as in official system documentation
 (e.g. the format specs).
 
+.. note::
+
+   The orthorectification (terrain) correction is activated by default.
+   If you do not want to have it applied to the data (e.g. because you are interested in matching it with L2 data that
+   is not corrected),
+   you need to deactivate it explicitly by setting the ``orthorect`` keyword argument to ``False``, e.g.:
+      .. code-block:: python
+
+      scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
+
+
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
 """
@@ -26,7 +37,8 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Read the calibration data and prepare the class for dataset reading."""
-        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        orthorect = kwargs.pop("orthorect", True)
+        super().__init__(filename, filename_info, filetype_info, orthorect=orthorect, **kwargs)
 
         # Read the variables which are required for the calibration
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
