@@ -28,25 +28,14 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
 import h5py
-import h5netcdf
 import netCDF4
-
 import numpy as np
 import xarray as xr
-import dask.array as da
-import satpy
-from xarray.backends.h5netcdf_ import H5NetCDFArrayWrapper
-
-from satpy.readers.core.netcdf import NetCDF4FileHandler
-from satpy.readers.core.netcdf import H5NetcdfAccessor
-
 from pyresample.geometry import SwathDefinition
-from ._h5netcdf_vlen_patch import apply_h5netcdf_vlen_patch
 
+from satpy.readers.core.netcdf import H5NetcdfAccessor, NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
-
-apply_h5netcdf_vlen_patch()
 
 DIMENSION_RENAMES = {
     "scanline": "y",
@@ -86,12 +75,33 @@ _DTYPE_TO_FILL_KEY = {
     np.dtype("float64"): "f8",
 }
 
+#
+# Variables below this threshold are opened eagerly.
+#
+# A value of 1 effectively disables size-based eager loading
+# while preserving VLEN special handling.
+#
 LAZY_LIMIT = 1
-
 
 @dataclass(frozen=True)
 class VariableRecord:
-    """Structural and metadata description of one file variable."""
+    """Immutable description of a discovered file variable.
+
+    VariableRecord instances form the reader's internal metadata index.
+
+    Records contain:
+
+    * canonical internal path
+    * original variable name
+    * generated dataset name
+    * dimensions
+    * shape
+    * dtype
+    * normalised attributes
+    * VLEN metadata
+
+    Records contain metadata only and never hold variable data.
+    """
 
     path: str
     name: str
@@ -101,7 +111,6 @@ class VariableRecord:
     dtype: str
     attrs: Mapping[str, Any]
     is_vlen_string: bool = False
-
 
 class AttributeNormalizer:
     """Normalise backend-dependent NetCDF and HDF5 attribute values."""
@@ -154,7 +163,13 @@ class AttributeNormalizer:
 
 
 class DatasetNameRegistry:
-    """Map complete internal variable paths to unique Satpy dataset names."""
+    """Generate deterministic Satpy dataset names.
+
+    Unique basenames are preserved.
+
+    Duplicate basenames are disambiguated using the shortest
+    unique path suffix.
+    """
 
     def __init__(self, variable_paths: Iterable[str]):
         """Create a registry for the supplied internal paths."""
@@ -251,7 +266,13 @@ class DatasetNameRegistry:
 
 
 class CoordinateResolver:
-    """Resolve explicit geographic coordinate references."""
+    """Resolve explicit geographic coordinate relationships.
+
+    Only coordinate variables explicitly referenced through the
+    NetCDF ``coordinates`` attribute are considered.
+
+    No file-wide search, shape heuristics or name guessing are used.
+    """
 
     def __init__(
         self,
@@ -461,8 +482,7 @@ class CoordinateResolver:
         reference: str,
         source_record: VariableRecord,
     ) -> VariableRecord | None:
-        """
-        Resolve a coordinate reference.
+        """Resolve a coordinate reference.
 
         Resolution order:
 
@@ -551,6 +571,277 @@ class CoordinateResolver:
 
         return None
 
+class BackendCompatibility:
+    """Backend interoperability helpers.
+
+    Encapsulates known behavioural differences between h5netcdf,
+    netCDF4, h5py and xarray.
+
+    This class contains backend-specific compatibility logic and is
+    intentionally independent of UVNS dataset discovery, coordinate
+    handling and Satpy metadata construction.
+    """
+
+    def __init__(self, filename):
+        """Create backend compatibility helpers for a file."""
+        self.filename = filename
+
+        self._h5netcdf_accessor = None
+        self._h5netcdf_file_handle = None
+
+    def get_h5netcdf_handle(self):
+        """Return an h5netcdf handle for backend inspection.
+
+        This handle is used only for backend compatibility checks.
+        It is not part of the normal dataset loading path.
+        """
+        if self._h5netcdf_file_handle is None:
+
+            self._h5netcdf_accessor = H5NetcdfAccessor()
+
+            self._h5netcdf_file_handle = (
+                self._h5netcdf_accessor.create_file_handle(
+                    self.filename
+                )
+            )
+
+        return self._h5netcdf_file_handle
+
+    def requires_compound_fallback(
+        self,
+        group,
+        key,
+    ):
+        """Determine whether h5netcdf generated an incompatible dtype_view.
+
+        Certain HDF5 compound datatypes are exposed by h5netcdf through a
+        NumPy dtype_view whose structure differs from the underlying HDF5
+        datatype.
+
+        For example:
+
+            dtype.itemsize      = 8
+            dtype_view.itemsize = 6
+
+        h5netcdf later attempts:
+
+            h5ds[key].view(dtype_view)
+
+        which raises:
+
+            ValueError:
+                When changing to a smaller dtype, its size must be a
+                divisor of the size of original dtype.
+
+        When such a mismatch is detected, the variable should be loaded
+        through the netCDF4 fallback path instead.
+        """
+        fh = self.get_h5netcdf_handle()
+
+        grp = fh if group is None else fh[group]
+
+        var = grp.variables[key]
+
+        dtype = var._h5ds.dtype
+
+        if dtype.fields is None:
+            return False
+
+        view = getattr(
+            var.datatype,
+            "dtype_view",
+            None,
+        )
+
+        if view is None:
+            return False
+
+        if dtype.names != view.names:
+
+            logger.warning(
+                "Compound dtype/view field mismatch for %s: "
+                "%r != %r",
+                key,
+                dtype.names,
+                view.names,
+            )
+
+            return True
+
+        if dtype.itemsize != view.itemsize:
+
+            logger.warning(
+                "Compound dtype/view size mismatch for %s: "
+                "dtype.itemsize=%s view.itemsize=%s",
+                key,
+                dtype.itemsize,
+                view.itemsize,
+            )
+
+            return True
+
+        return False
+
+    def read_compound_via_netcdf4(
+        self,
+        group,
+        key,
+    ):
+        """Read a compound variable directly using netCDF4.
+
+        This bypasses the standard h5netcdf/xarray loading path for
+        compound datatypes that cannot be loaded reliably through the
+        normal backend stack.
+
+        Attributes are also read via netCDF4. This preserves NetCDF's
+        interpretation of attribute datatypes, including numeric array
+        attributes that may otherwise appear as generic object arrays
+        through lower-level HDF5 interfaces.
+        """
+        ds = netCDF4.Dataset(self.filename)
+
+        try:
+
+            grp = ds if group is None else ds[group]
+
+            var = grp.variables[key]
+
+            data = var[...]
+
+            attrs = {}
+
+            for attr_name in var.ncattrs():
+
+                try:
+
+                    #
+                    # Read attributes through netCDF4 rather than directly
+                    # from the underlying HDF5 layer.
+                    #
+                    # Several UVNS products were observed to expose some
+                    # array-valued metadata differently depending on the
+                    # backend used. netCDF4 generally provides the most
+                    # faithful interpretation of NetCDF attribute types.
+                    #
+                    attrs[attr_name] = var.getncattr(
+                        attr_name
+                    )
+
+                except Exception:
+
+                    #
+                    # Preserve recovery of the compound variable even if
+                    # an individual attribute cannot be decoded.
+                    #
+                    logger.warning(
+                        "Skipping unreadable attribute %r on %r",
+                        attr_name,
+                        key,
+                    )
+
+            logger.warning(
+                "Loaded compound variable via netCDF4 fallback: %s "
+                "(dtype=%s)",
+                key,
+                data.dtype,
+            )
+
+            return xr.DataArray(
+                data=data,
+                dims=var.dimensions,
+                attrs=attrs,
+                name=key,
+            )
+
+        finally:
+            ds.close()
+
+#################################################
+class DatasetDerivations:
+    """Utilities for generating derived datasets."""
+
+    @staticmethod
+    def expand_wavelengths(
+        coefficients,
+        num_channels,
+    ):
+        """Expand Chebyshev wavelength coefficients.
+
+        Input shape::
+
+            (
+                scanline,
+                ground_pixel,
+                wavelength_coefficients,
+            )
+
+        Output shape::
+
+            (
+                spectral_channel,
+                scanline,
+                ground_pixel,
+            )
+        """
+        if coefficients.ndim != 3:
+            raise ValueError(
+                "Expected wavelength coefficients with shape "
+                "(scanline, ground_pixel, wavelength_coefficients), "
+                f"got {coefficients.shape!r}"
+            )
+
+        coeffs = np.moveaxis(
+            coefficients,
+            -1,
+            0,
+        )
+
+        x = np.linspace(
+            -1.0,
+            1.0,
+            num_channels,
+        )
+
+        wavelengths = np.polynomial.chebyshev.chebval(
+            x,
+            coeffs,
+        )
+
+        return np.moveaxis(
+            wavelengths,
+            -1,
+            0,
+        )
+
+    def _coefficients_have_data(
+        self,
+        band_path,
+        coefficient_name,
+    ):
+        da = self[
+            f"{band_path}/instrument_data/"
+            f"{coefficient_name}"
+        ]
+
+        fill_value = da.attrs.get("_FillValue")
+
+        data = da.data
+
+        valid = np.isfinite(data)
+
+        if fill_value is not None:
+            valid &= (data != fill_value)
+
+        valid_min = da.attrs.get("valid_min")
+        valid_max = da.attrs.get("valid_max")
+
+        if valid_min is not None:
+            valid &= (data >= valid_min)
+
+        if valid_max is not None:
+            valid &= (data <= valid_max)
+
+        return bool(valid.any().compute())
 
 class UVNSFileHandler(NetCDF4FileHandler):
     """Dynamically discover and load UVNS-family file variables."""
@@ -560,12 +851,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
         filename,
         filename_info,
         filetype_info,
-        engine="netcdf4",
+        engine="h5netcdf",
     ):
         """Initialise the file handler and build the dynamic registry."""
-
-        engine="h5netcdf"
-        xarray_kwargs={'chunks':None}
         super().__init__(
             filename,
             filename_info,
@@ -573,38 +861,50 @@ class UVNSFileHandler(NetCDF4FileHandler):
             engine=engine,
         )
 
-        print(f'Filename: {filename}')
+        logger.info(
+            "Opening UVNS file: %s",
+            filename,
+        )
+
+        self._backend = BackendCompatibility(
+            self.filename,
+        )
+
         self._records = self._build_variable_records()
         self._name_registry = DatasetNameRegistry(self._records)
         self._records = self._assign_dataset_names(self._records)
-
-        for path, rec in self._records.items():
-            if rec.is_vlen_string:
-                print("VLEN RECORD:", path)
 
         self._coordinate_resolver = CoordinateResolver(
             self._records,
             self._name_registry,
         )
         self._dataset_infos = self._build_dataset_infos()
+        self._derived_dataset_infos = (
+            self._discover_wavelength_derivations()
+        )
 
     # Inherited
-    def _collect_variable_info(self, var_name, var_obj):
-
-        super()._collect_variable_info(var_name, var_obj)
+    def _collect_variable_info(
+        self,
+        var_name,
+        var_obj,
+    ):
+        NetCDF4FileHandler._collect_variable_info(
+            self,
+            var_name,
+            var_obj,
+        )
 
         if self.accessor.engine == "h5netcdf":
             try:
-
-                info = h5py.check_string_dtype(var_obj._h5ds.dtype)
-
-                is_vlen_string = (
-                    info is not None and
-                    info.length is None
+                info = h5py.check_string_dtype(
+                    var_obj._h5ds.dtype
                 )
 
-                if is_vlen_string:
-                    print(f'VLEN STRING == True')
+                is_vlen_string = (
+                    info is not None
+                    and info.length is None
+                )
 
                 self.file_content[
                     var_name + "/is_vlen_string"
@@ -614,16 +914,26 @@ class UVNSFileHandler(NetCDF4FileHandler):
                 self.file_content[
                     var_name + "/is_vlen_string"
                 ] = False
-            else:
-                print('PASS VLEN STRING')
 
-    def _get_fallback_handle(self):
-        if not hasattr(self, "_fallback_file_handle"):
-            self._fallback_accessor = H5NetcdfAccessor()
-            self._fallback_file_handle = (
-                self._fallback_accessor.create_file_handle(self.filename)
+    def _get_h5netcdf_handle(self):
+        """Return a handle used to inspect h5netcdf datatype mappings.
+
+        This handle is used only to compare the original HDF5 compound
+        datatype against the dtype_view generated by h5netcdf.
+
+        It is not part of the netCDF4 fallback path.
+        """
+        if not hasattr(self, "_h5netcdf_file_handle"):
+
+            self._h5netcdf_accessor = H5NetcdfAccessor()
+
+            self._h5netcdf_file_handle = (
+                self._h5netcdf_accessor.create_file_handle(
+                    self.filename
+                )
             )
-        return self._fallback_file_handle
+
+        return self._h5netcdf_file_handle
 
     @property
     def start_time(self):
@@ -784,149 +1094,173 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return dataset_infos
 
-    def _read_aligned_compound(self, group, key):
-        """Read a compound variable directly when h5netcdf's dtype_view
-        does not match the underlying HDF5 datatype.
-        """
-
-        ds = netCDF4.Dataset(self.filename)
-
-        try:
-            grp = ds if group is None else ds[group]
-
-            var = grp.variables[key]
-
-            data = var[...]
-
-            attrs = {}
-
-            for attr_name in var.ncattrs():
-                try:
-                    attrs[attr_name] = var.getncattr(attr_name)
-                except Exception:
-                    logger.warning(
-                        "Skipping unreadable attribute %r on %r",
-                        attr_name,
-                        key,
-                    )
-
-            logger.warning(
-                "Compound repair path used for %s "
-                "(dtype=%s)",
-                key,
-                data.dtype,
-            )
-
-            return xr.DataArray(
-                data=data,
-                dims=var.dimensions,
-                attrs=attrs,
-                name=key,
-            )
-
-        finally:
-            ds.close()
-
-    ###### Overrideen inheritance methods. #######
     ######
-    ######
-    def _get_var_from_xr(self, group, key, **kwargs_override):
-
+    def _build_xarray_kwargs(
+        self,
+        kwargs_override,
+    ):
+        """Build xarray open_dataset keyword arguments."""
         kwargs = dict(self._xarray_kwargs)
-        print(kwargs)
-        kwargs.update(kwargs_override)
-        print("OPENING XARRAY")
-        print(kwargs)
-        print("GROUP:", group)
-        print("KEY:", key)
-        print("ENGINE:", kwargs.get("engine"))
-        #if group == "status/instrument":
-        #    kwargs["chunks"] = None
-        #    kwargs["decode_vlen_strings"] = False
 
-        print("CHUNKS:", kwargs.get("chunks"))
+        kwargs.update(
+            kwargs_override
+        )
 
-        file_key = key if group is None else f"{group}/{key}"
+        return kwargs
 
+    def _apply_vlen_rules(
+        self,
+        file_key,
+        kwargs,
+    ):
+        """Apply VLEN-string compatibility handling.
+
+        Dask-backed lazy access to some HDF5 VLEN string variables has
+        been observed to trigger backend crashes. Open these variables
+        eagerly by disabling chunked loading.
+        """
         record = self._records[file_key]
 
-        size = np.prod(record.shape)
-
-        if record.is_vlen_string  or  size < LAZY_LIMIT:
-            kwargs["chunks"] = None
-
-        engine = kwargs.get("engine")
-
         if (
-            engine == "h5netcdf"
-            and self._has_h5netcdf_dtype_view_bug(
-                group,
-                key,
-            )
+            record.is_vlen_string
+            and kwargs.get("chunks") is not None
         ):
-            logger.warning(
-                "Detected mismatched h5netcdf dtype_view "
-                "for %s, using direct compound reader",
+            logger.info(
+                "Opening VLEN string variable eagerly: %s",
                 file_key,
             )
 
-            return self._read_aligned_compound(
-                group,
-                key,
-            )
+            kwargs = kwargs.copy()
 
-        print("BEFORE XR.OPEN_DATASET")
+            kwargs["chunks"] = None
+
+        return kwargs
+
+    def _maybe_use_compound_fallback(
+        self,
+        group,
+        key,
+        kwargs,
+    ):
+        """Return a backend fallback result if required.
+
+        Returns
+        -------
+        xarray.DataArray | None
+            Loaded variable when a fallback path is required,
+            otherwise None.
+        """
+        engine = kwargs.get(
+            "engine"
+        )
+
+        if engine != "h5netcdf":
+            return None
+
+        if not self._backend.requires_compound_fallback(
+            group,
+            key,
+        ):
+            return None
+
+        file_key = (
+            key
+            if group is None
+            else f"{group}/{key}"
+        )
+
+        logger.warning(
+            "Compound variable uses incompatible h5netcdf dtype_view; "
+            "loading via netCDF4 instead: %s",
+            file_key,
+        )
+
+        return self._backend.read_compound_via_netcdf4(
+            group,
+            key,
+        )
+
+    def _open_xarray_variable(
+        self,
+        group,
+        key,
+        kwargs,
+    ):
+        """Open a variable through xarray."""
+        file_key = (
+            key
+            if group is None
+            else f"{group}/{key}"
+        )
 
         try:
 
-            nc = xr.open_dataset(
+            with xr.open_dataset(
                 self.filename,
                 group=group,
                 **kwargs,
+            ) as nc:
+
+                val = nc[key]
+
+        except Exception:
+
+            logger.exception(
+                "xarray backend failed opening %s",
+                file_key,
             )
-
-            print("XR.OPEN_DATASET OK")
-
-        except Exception as e:
-
-            print("XR.OPEN_DATASET FAILED")
-            print(type(e))
-            print(repr(e))
             raise
 
-        with xr.open_dataset(
-            self.filename,
-            group=group,
-            **kwargs,
-        ) as nc:
-
-
-            print("VARIABLES")
-            print(list(nc.variables))
-
-            print("DATA_VARS")
-            print(list(nc.data_vars))
-
-            print("KEY", key)
-            print("KEY EXISTS", key in nc.variables)
-
-            val = nc[key]
-
-            print("VAL:", val)
-            print("DATA:", type(val.data))
-            print("DATA DTYPE:", val.data.dtype)
-
-            if hasattr(val.data, "_meta"):
-                print("META:", val.data._meta)
-                print("META DTYPE:", val.data._meta.dtype)
-        print("RETURNING", key)
-        print(type(val))
-        print(val)
         return val
+
+    ######Overrideen inheritance methods. #######
+    ######
+    ######
+    ######
+    def _get_var_from_xr(
+        self,
+        group,
+        key,
+        **kwargs_override,
+    ):
+        """Load a variable through xarray or a compatible fallback."""
+        kwargs = self._build_xarray_kwargs(
+            kwargs_override
+        )
+
+        file_key = (
+            key
+            if group is None
+            else f"{group}/{key}"
+        )
+
+        kwargs = self._apply_vlen_rules(
+            file_key,
+            kwargs,
+        )
+
+        fallback = self._maybe_use_compound_fallback(
+            group,
+            key,
+            kwargs,
+        )
+
+        if fallback is not None:
+            return fallback
+
+        return self._open_xarray_variable(
+            group,
+            key,
+            kwargs,
+        )
+
 
     def _get_var_from_netcdf4(self, group, key):
 
-        print("NETCDF4 FALLBACK", group, key)
+        logger.warning(
+            "Falling back to netCDF4 backend for %s",
+            key if group is None else f"{group}/{key}",
+        )
 
         result = self._get_var_from_xr(
             group,
@@ -934,90 +1268,76 @@ class UVNSFileHandler(NetCDF4FileHandler):
             engine="netcdf4",
         )
 
-        print("NETCDF4 RESULT", type(result))
-
         return result
 
-    def _check_var_validity(self, key):
-        v = self.file_content[key]
+    def _repair_handlers(self):
+        """Return registered metadata repair paths."""
+        return (
+            (
+                self._is_time_decode_error,
+                self._get_var_from_cf_time_repair,
+                "CF time repair",
+            ),
+            (
+                self._is_dimension_scalar_error,
+                self._get_var_from_dimension_repair,
+                "Dimension repair",
+            ),
+        )
 
-        print("VAR TYPE:", type(v))
+    def _recover_variable(
+        self,
+        key,
+        group,
+        key_name,
+        exc,
+    ):
+        """Attempt registered repair paths after a load failure."""
+        logger.warning(
+            "Primary load failed for %s: %s",
+            key,
+            exc,
+        )
 
-        try:
-            print("VAR NAME:", v.name)
-            print("NAME OK")
-        except Exception as e:
-            print("NAME FAILED:", e)
+        for detector, repair, description in self._repair_handlers():
 
-        try:
-            print("VAR SHAPE:", v.shape)
-            print("SHAPE OK")
-        except Exception as e:
-            print("SHAPE FAILED:", e)
+            if not detector(exc):
+                continue
 
-        try:
-            print("VAR DTYPE:", v.dtype)
-            print("DTYPE OK")
-        except Exception as e:
-            print("DTYPE FAILED:", e)
-
-        try:
-            print("VAR DIMENSIONS:", v.dimensions)
-            print("DIMS OK")
-        except Exception as e:
-            print("DIMS FAILED:", e)
-
-            print("GROUP:", v.group())
-
-        print("GROUP PATH:", v.group().path)
-
-        try:
-            print("FILEPATH:", v.group().filepath())
-        except Exception as e:
-            print("FILEPATH FAILED:", e)
-
-
-        grp = v.group()
-
-        print(type(grp))
-
-        try:
-            print(grp.variables.keys())
-            print("GROUP LIVE")
-        except Exception as e:
-            print("GROUP DEAD", e)
-
-        try:
-            print(v[:5])
-            print("READ OK")
-        except Exception as e:
-            print("READ FAIL", e)
-
-    def _get_var_from_netcdf4_direct(self, group, key):
-
-        ds = netCDF4.Dataset(self.filename)
-
-        try:
-
-            grp = ds if group is None else ds[group]
-
-            var = grp.variables[key]
-
-            data = var[...]
-
-            return xr.DataArray(
-                data=data,
-                dims=var.dimensions,
-                name=key,
+            logger.warning(
+                "Attempting %s for %s",
+                description,
+                key,
             )
 
-        finally:
-            ds.close()
+            try:
 
+                return repair(
+                    group,
+                    key_name,
+                )
+
+            except Exception as repair_exc:
+
+                logger.warning(
+                    "%s failed for %s: %s",
+                    description,
+                    key,
+                    repair_exc,
+                )
+
+        logger.warning(
+            "Attempting netCDF4 backend fallback for %s",
+            key,
+        )
+
+        return self._get_var_from_netcdf4(
+            group,
+            key_name,
+        )
 
     def _get_variable(self, key, val):
         """Get a variable from the file."""
-
         if key in self.cached_file_content:
             return self.cached_file_content[key]
 
@@ -1029,134 +1349,33 @@ class UVNSFileHandler(NetCDF4FileHandler):
             group = None
             key_name = key
 
-        file_key = (
-            f"{group}/{key_name}"
-            if group is not None
-            else key_name
-        )
+        try:
 
-        if self._is_compound_record(file_key):
-
-            logger.warning(
-                "Loading compound variable via netCDF4: %s",
-                file_key,
-            )
-
-            result = self._get_var_from_netcdf4(
-                group,
-                key_name,
-            )
-
-        else:
-
-            try:
-
-                if self.file_handle is not None:
-                    result = self._get_var_from_filehandle(
-                        group,
-                        key_name,
-                    )
-                else:
-                    result = self._get_var_from_xr(
-                        group,
-                        key_name,
-                    )
-
-            except Exception as exc:
-
-                logger.warning(
-                    "Primary load failed for %s: %s",
-                    key,
-                    exc,
+            if self.file_handle is not None:
+                result = self._get_var_from_filehandle(
+                    group,
+                    key_name,
+                )
+            else:
+                result = self._get_var_from_xr(
+                    group,
+                    key_name,
                 )
 
-                #
-                # First attempt: CF time repair.
-                #
-                if self._is_time_decode_error(exc):
+        except Exception as exc:
 
-                    logger.warning(
-                        "Attempting CF time repair for %s",
-                        key,
-                    )
-
-                    try:
-
-                        result = self._get_var_from_cf_time_repair(
-                            group,
-                            key_name,
-                        )
-
-                    except Exception as repair_exc:
-
-                        logger.warning(
-                            "CF time repair failed for %s: %s",
-                            key,
-                            repair_exc,
-                        )
-
-                    else:
-
-                        self.cached_file_content[key] = result
-                        return result
-
-                #
-                # Second attempt: dimension/scalar collision repair.
-                #
-                elif self._is_dimension_scalar_error(exc):
-
-                    logger.warning(
-                        "Attempting dimension repair for %s",
-                        key,
-                    )
-
-                    try:
-
-                        result = self._get_var_from_dimension_repair(
-                            group,
-                            key_name,
-                        )
-
-                    except Exception as repair_exc:
-
-                        logger.warning(
-                            "Dimension repair failed for %s: %s",
-                            key,
-                            repair_exc,
-                        )
-
-                    else:
-
-                        self.cached_file_content[key] = result
-                        return result
-
-                #
-                # Third attempt: netCDF4 backend.
-                #
-                try:
-
-                    result = self._get_var_from_netcdf4(
-                        group,
-                        key_name,
-                    )
-
-                except Exception as exc2:
-
-                    logger.warning(
-                        "netCDF4 retry failed for %s: %s",
-                        key,
-                        exc2,
-                    )
-
-                    raise
-
+            result = self._recover_variable(
+                key,
+                group,
+                key_name,
+                exc,
+            )
 
         self.cached_file_content[key] = result
 
         return result
 
     ##############################################
-
 
     def available_datasets(self, configured_datasets=None):
         """Report configured and dynamically discovered datasets."""
@@ -1207,89 +1426,56 @@ class UVNSFileHandler(NetCDF4FileHandler):
                 record.dataset_name
             ].copy()
 
+        for ds_info in self._derived_dataset_infos.values():
+            yield True, ds_info.copy()
+
     def get_dataset(self, ds_id, ds_info):
-        file_key = DatasetNameRegistry.normalise_path(
-            ds_info.get("file_key", ds_id["name"])
+        """Load and normalise a dataset by its identifier and metadata configuration.
+
+        This method extracts the target dataset from the file handler, standardises
+        its dimensions, cleans up metadata attributes, and applies the expected
+        Satpy dataset name.
+        """
+
+        derived_type = ds_info.get(
+            "derived_type"
         )
 
-        print("GET_DATASET START", ds_id["name"])
-        print("FILE KEY", file_key)
-
-        print("BEFORE self[file_key]")
-        data = self[file_key]
-        print("RETURN TYPE", type(data))
-        print("RETURN DTYPE", getattr(data, "dtype", None))
-        print("RETURN NAME", getattr(data, "name", None))
-        if data is None:
-            raise RuntimeError(
-                f"{file_key} returned None"
+        if derived_type is not None:
+            return self._get_derived_dataset(
+                ds_info
             )
-        print("AFTER self[file_key]")
 
-        print("BEFORE _normalise_dimensions")
-        data = self._normalise_dimensions(data)
-        print("AFTER _normalise_dimensions")
-
-        print("BEFORE attr normalisation")
-        attrs = AttributeNormalizer.normalise_attrs(data.attrs)
-        print("AFTER attr normalisation")
-
-        attrs.update(
-            self._public_dataset_metadata(ds_info)
-        )
-
-        print("BEFORE assign attrs")
-        data.attrs = attrs
-        print("AFTER assign attrs")
-
-        if data.name != ds_id["name"]:
-            print("BEFORE rename")
-            data = data.rename(ds_id["name"])
-            print("AFTER rename")
-
-        print("GET_DATASET END", ds_id["name"])
-
-        return data
-
-    '''
-    def get_dataset(self, ds_id, ds_info):
-        """Load one previously discovered dataset."""
         file_key = DatasetNameRegistry.normalise_path(
             ds_info.get("file_key", ds_id["name"])
         )
 
         logger.debug(
-            "Loading UVNS dataset %r from %r",
+            "Loading dataset %s",
             ds_id["name"],
-            file_key,
         )
-
         data = self[file_key]
+
+        if data is None:
+            raise RuntimeError(
+                f"{file_key} returned None"
+            )
 
         data = self._normalise_dimensions(data)
 
-        attrs = AttributeNormalizer.normalise_attrs(
-            data.attrs
-        )
+        attrs = AttributeNormalizer.normalise_attrs(data.attrs)
+
         attrs.update(
             self._public_dataset_metadata(ds_info)
         )
 
-        if (
-            file_key
-            in self._coordinate_resolver.referenced_coordinate_paths
-        ):
-            attrs = self._complete_coordinate_standard_name(
-                attrs
-            )
-
         data.attrs = attrs
 
         if data.name != ds_id["name"]:
+
             data = data.rename(ds_id["name"])
 
         return data
-    '''
 
     def _get_indexed_variable_attrs(
         self,
@@ -1312,32 +1498,33 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, dsid):
         """Create a SwathDefinition for datasets with lon/lat coordinates."""
-        print("GET_AREA_DEF CALLED")
-        print(dsid)
-
         ds_name = dsid["name"]
+
+        if ds_name in self._derived_dataset_infos:
+            return None
 
         record = self._records[
             self._name_registry.variable_path(ds_name)
         ]
 
-
+        #
+        # Geographic coordinate datasets do not themselves
+        # have area definitions.
+        #
         if (
-                self._coordinate_resolver.geographic_role(record.attrs)
-                is not None
+            self._coordinate_resolver.geographic_role(record.attrs)
+            is not None
         ):
-            print("GEOGRAPHIC COORDINATE -> NO AREA")
-            print("RETURNING NONE AREA FOR", ds_name)
             return None
 
         ds_info = self._dataset_infos.get(ds_name)
+
         if ds_info is None:
-            print("RETURNING NONE AREA FOR DS_INFO", ds_name)
             return None
 
         coordinates = ds_info.get("coordinates")
+
         if not coordinates:
-            print("RETURNING NONE AREA FOR COORDINATES", ds_name)
             return None
 
         lon_name, lat_name = coordinates
@@ -1346,14 +1533,27 @@ class UVNSFileHandler(NetCDF4FileHandler):
         lat_info = self._dataset_infos.get(lat_name)
 
         if lon_info is None or lat_info is None:
-            print("RETURNING NONE AREA FOR LON/LAT INFO", ds_name)
+            logger.warning(
+                "Missing coordinate dataset metadata for %s "
+                "(lon=%s, lat=%s)",
+                ds_name,
+                lon_name,
+                lat_name,
+            )
             return None
 
         lon_dsid = {"name": lon_name}
         lat_dsid = {"name": lat_name}
 
-        lons = self.get_dataset(lon_dsid, lon_info)
-        lats = self.get_dataset(lat_dsid, lat_info)
+        lons = self.get_dataset(
+            lon_dsid,
+            lon_info,
+        )
+
+        lats = self.get_dataset(
+            lat_dsid,
+            lat_info,
+        )
 
         #
         # TROPOMI-style coordinates:
@@ -1392,10 +1592,11 @@ class UVNSFileHandler(NetCDF4FileHandler):
             lats=lats,
         )
 
+
+
     @staticmethod
     def _normalise_dimensions(data):
         """Rename dimensions to Satpy/xarray conventions."""
-
         rename_mapping = {
             old_name: new_name
             for old_name, new_name in DIMENSION_RENAMES.items()
@@ -1495,8 +1696,20 @@ class UVNSFileHandler(NetCDF4FileHandler):
             if key not in internal_keys
         }
 
-    ### Specific Modifications and Repairs
-    ###
+    ####
+    # Generic Metadata Repair Framework
+    # ---------------------------------
+    #
+    # These repair paths address metadata and backend
+    # interoperability issues observed across UVNS products.
+    #
+    # Existing repair paths:
+    #
+    # * CF time repair
+    # * Dimension/scalar collision repair
+    # * VLEN handling
+    # * Compound dtype repair
+    #
     def _is_time_decode_error(self, exc):
         msg = str(exc)
 
@@ -1513,62 +1726,16 @@ class UVNSFileHandler(NetCDF4FileHandler):
             in str(exc)
         )
 
-    def _is_compound_record(self, file_key):
-
-        return False
-
-        record = self._records.get(file_key)
-
-        print("COMPOUND CHECK", file_key)
-
-        print("DTYPE:", record.dtype)
-
-        if record is None:
-            return False
-
-        dtype = record.dtype
-
-        return (
-            "names" in dtype
-            and "formats" in dtype
-        )
-
-    def _has_h5netcdf_dtype_view_bug(self, group, key):
-
-        fh = self._get_fallback_handle()
-
-        grp = fh if group is None else fh[group]
-
-        var = grp.variables[key]
-
-        dtype = var._h5ds.dtype
-
-        if dtype.fields is None:
-            return False
-
-        view = var.datatype.dtype_view
-
-        if view is None:
-            return False
-
-        if dtype.names != view.names:
-            return True
-
-        if dtype.itemsize != view.itemsize:
-            return True
-
-        return False
-
     def _get_var_from_cf_time_repair(
         self,
         group,
         key,
         **kwargs_override,
     ):
-        """Recover from CF time decoding failures caused by
-        undeclared default NetCDF fill values.
-        """
+        """Recover from CF time decoding failures caused by default fill values.
 
+        This handles errors caused by undeclared default NetCDF fill values.
+        """
         kwargs = dict(self._xarray_kwargs)
         kwargs.update(kwargs_override)
 
@@ -1576,7 +1743,11 @@ class UVNSFileHandler(NetCDF4FileHandler):
         # Open raw.
         #
         kwargs["decode_times"] = False
-        print('IN _get_var_from_cf_time_repair')
+        logger.warning(
+            "Applying CF time repair for %s",
+            key,
+        )
+
         with xr.open_dataset(
             self.filename,
             group=group,
@@ -1605,7 +1776,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
         This is only intended as preparation for CF decoding when
         decode_times=True has failed.
         """
-
         ds = ds.copy()
 
         for name in ds.data_vars:
@@ -1665,7 +1835,11 @@ class UVNSFileHandler(NetCDF4FileHandler):
         kwargs = dict(self._xarray_kwargs)
         kwargs.update(kwargs_override)
 
-        print('IN  _get_var_from_dimension_repair')
+        logger.warning(
+            "Applying dimension repair for %s",
+            key,
+        )
+
         with xr.open_dataset(
             self.filename,
             group=group,
@@ -1685,7 +1859,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
     def _remove_dimension_size_scalars(self, group):
         """Identify scalar variables that duplicate dimension sizes."""
-
         ds = netCDF4.Dataset(self.filename)
 
         try:
@@ -1723,3 +1896,312 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         finally:
             ds.close()
+
+    def _discover_wavelength_derivations(self):
+        """Discover wavelength datasets."""
+
+        derived = {}
+        processed_bands = set()
+
+        file_type = self.filetype_info["file_type"]
+
+        for path, record in self._records.items():
+
+            if record.name not in (
+                "nominal_wavelength_coefficients",
+                "calibrated_wavelength_coefficients",
+            ):
+                continue
+
+            band_path = path.rsplit(
+                "/instrument_data/",
+                1,
+            )[0]
+
+            if band_path in processed_bands:
+                continue
+
+            processed_bands.add(band_path)
+
+            prefix = band_path.replace("/", "__")
+
+            nominal_path = (
+                f"{band_path}/instrument_data/"
+                "nominal_wavelength_coefficients"
+            )
+
+            calibrated_path = (
+                f"{band_path}/instrument_data/"
+                "calibrated_wavelength_coefficients"
+            )
+
+            nominal_valid = False
+            calibrated_valid = False
+
+            if nominal_path in self._records:
+                nominal_valid = self._coefficients_have_data(
+                    band_path,
+                    "nominal_wavelength_coefficients",
+                )
+
+            if calibrated_path in self._records:
+                calibrated_valid = self._coefficients_have_data(
+                    band_path,
+                    "calibrated_wavelength_coefficients",
+                )
+
+            if nominal_valid or calibrated_valid:
+                derived[f"{prefix}__wavelength"] = {
+                    "name": f"{prefix}__wavelength",
+                    "file_type": file_type,
+                    "derived_type": "best",
+                    "band_path": band_path,
+                }
+
+            if nominal_valid:
+                derived[f"{prefix}__nominal_wavelength"] = {
+                    "name": f"{prefix}__nominal_wavelength",
+                    "file_type": file_type,
+                    "derived_type": "nominal",
+                    "band_path": band_path,
+                }
+
+            if calibrated_valid:
+                derived[f"{prefix}__calibrated_wavelength"] = {
+                    "name": f"{prefix}__calibrated_wavelength",
+                    "file_type": file_type,
+                    "derived_type": "calibrated",
+                    "band_path": band_path,
+                }
+
+        return derived
+
+    def _spectral_channel_count(
+        self,
+        band_path,
+    ):
+        """Return spectral channel count for a band."""
+        return self[
+            f"{band_path}/spectral_channel"
+        ].size
+
+    def _coefficients_have_data(
+        self,
+        band_path,
+        coefficient_name,
+    ):
+        """Return True if coefficient data contains valid values."""
+
+        da = self[
+            f"{band_path}/instrument_data/"
+            f"{coefficient_name}"
+        ]
+
+        fill_value = da.attrs.get("_FillValue")
+        valid_min = da.attrs.get("valid_min")
+        valid_max = da.attrs.get("valid_max")
+
+        data = da.data
+
+        valid = np.isfinite(data)
+
+        if fill_value is not None:
+            valid &= (data != fill_value)
+
+        if valid_min is not None:
+            valid &= (data >= valid_min)
+
+        if valid_max is not None:
+            valid &= (data <= valid_max)
+
+        return bool(valid.any().compute())
+
+    def _get_coefficients(
+        self,
+        band_path,
+        coefficient_name,
+    ):
+        """Load a coefficient variable."""
+        data = self[
+            f"{band_path}/instrument_data/"
+            f"{coefficient_name}"
+        ]
+
+        if isinstance(data, xr.DataArray):
+            return data.data
+
+        return data
+
+    def _select_wavelength_coefficients(
+        self,
+        band_path,
+    ):
+        """Select best available wavelength coefficients."""
+
+        if self._coefficients_have_data(
+            band_path,
+            "calibrated_wavelength_coefficients",
+        ):
+            logger.info(
+                "Using calibrated wavelength coefficients."
+            )
+
+            return (
+                "calibrated_wavelength_coefficients",
+                "calibrated",
+            )
+
+        logger.info(
+            "Calibrated wavelength coefficients unavailable; "
+            "using nominal wavelength coefficients."
+        )
+
+        return (
+            "nominal_wavelength_coefficients",
+            "nominal",
+        )
+
+
+    def _create_wavelength_dataset(
+        self,
+        *,
+        band_path,
+        coefficient_name,
+        dataset_name,
+        long_name,
+        source,
+    ):
+        """Create a wavelength DataArray."""
+
+        coeffs = self._get_coefficients(
+            band_path,
+            coefficient_name,
+        )
+
+        wavelengths = (
+            DatasetDerivations.expand_wavelengths(
+                coeffs,
+                self._spectral_channel_count(
+                    band_path
+                ),
+            )
+        )
+
+        return xr.DataArray(
+            wavelengths,
+            dims=(
+                "spectral_channel",
+                "y",
+                "x",
+            ),
+            name=dataset_name,
+            attrs = {
+                "long_name": long_name,
+                "wavelength_source": source,
+                "derived_from": coefficient_name,
+            },
+        )
+
+    def _get_nominal_wavelength(
+        self,
+        band_path,
+        dataset_name,
+    ):
+        """Generate wavelengths from nominal coefficients."""
+
+        return self._create_wavelength_dataset(
+            band_path=band_path,
+            coefficient_name="nominal_wavelength_coefficients",
+            dataset_name=dataset_name,
+            long_name="Nominal wavelength",
+            source="nominal",
+        )
+
+
+    def _get_calibrated_wavelength(
+        self,
+        band_path,
+        dataset_name,
+    ):
+        """Generate wavelengths from calibrated coefficients."""
+
+        coeffs = self._get_coefficients(
+            band_path,
+            "calibrated_wavelength_coefficients",
+        )
+
+        if not self._coefficients_have_data(
+                band_path,
+                "calibrated_wavelength_coefficients",
+        ):
+
+            raise KeyError(
+                "No calibrated wavelength coefficients available."
+            )
+
+        return self._create_wavelength_dataset(
+            band_path=band_path,
+            coefficient_name="calibrated_wavelength_coefficients",
+            dataset_name=dataset_name,
+            long_name="Calibrated wavelength",
+            source="calibrated",
+        )
+
+
+    def _get_best_wavelength(
+        self,
+        band_path,
+        dataset_name,
+    ):
+        """Generate wavelengths using the preferred solution."""
+
+        coefficient_name, source = (
+            self._select_wavelength_coefficients(
+                band_path
+            )
+        )
+
+        return self._create_wavelength_dataset(
+            band_path=band_path,
+            coefficient_name=coefficient_name,
+            dataset_name=dataset_name,
+            long_name="Wavelength",
+            source=source,
+        )
+
+
+    def _get_derived_dataset(
+        self,
+        ds_info,
+    ):
+        """Load a derived dataset."""
+
+        band_path = ds_info["band_path"]
+        dataset_name = ds_info["name"]
+
+        match ds_info["derived_type"]:
+
+            case "best":
+                return self._get_best_wavelength(
+                    band_path,
+                    dataset_name,
+                )
+
+            case "nominal":
+                return self._get_nominal_wavelength(
+                    band_path,
+                    dataset_name,
+                )
+
+            case "calibrated":
+                return self._get_calibrated_wavelength(
+                    band_path,
+                    dataset_name,
+                )
+
+        raise KeyError(
+            ds_info["derived_type"]
+        )
+
+
+#################################################
