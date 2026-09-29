@@ -29,12 +29,12 @@ class TestMETimageL2NCFileHandler(unittest.TestCase):
             # Create data group
             g1 = nc.createGroup("data")
 
-            # Add dimensions to data group
-            g1.createDimension("num_pixels", 100)
-            g1.createDimension("num_lines", 10)
-
             # Create measurement_data group
             g1_2 = g1.createGroup("measurement_data")
+
+            # Add dimensions to data/measurement_data group, where the real L2 products define them
+            g1_2.createDimension("num_pixels", 100)
+            g1_2.createDimension("num_lines", 10)
 
             # Add variables to data/measurement_data group
             delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_lines", "num_pixels"))
