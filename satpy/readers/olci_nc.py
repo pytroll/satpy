@@ -63,6 +63,8 @@ CHUNK_SIZE = get_legacy_chunk_size()
 
 PLATFORM_NAMES = {"S3A": "Sentinel-3A",
                   "S3B": "Sentinel-3B",
+                  "S3C": "Sentinel-3C",
+                  "S3D": "Sentinel-3D",
                   "ENV": "Environmental Satellite"}
 
 
