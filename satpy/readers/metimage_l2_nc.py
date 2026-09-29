@@ -7,7 +7,7 @@
    you need to activate it explicitly by setting the ``orthorect`` keyword argument to ``True``, e.g.:
       .. code-block:: python
 
-      scn = Scene(filenames=filenames, reader='metimage_l2_nc', reader_kwargs={'orthorect': True})
+        scn = Scene(filenames=filenames, reader='metimage_l2_nc', reader_kwargs={'orthorect': True})
 
     Note that the correction is not available for the CLD, WVV and WVI products.
 """

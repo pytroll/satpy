@@ -14,7 +14,7 @@ The name VII is currently still used in the filenames as well as in official sys
    you need to deactivate it explicitly by setting the ``orthorect`` keyword argument to ``False``, e.g.:
       .. code-block:: python
 
-      scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
+        scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
 
 
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
