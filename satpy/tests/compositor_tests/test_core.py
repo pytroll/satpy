@@ -105,6 +105,49 @@ class TestMatchDataArrays:
         ret_datasets = comp.match_data_arrays([ds, ds])
         assert "acq_time" not in ret_datasets[0].coords
 
+    @pytest.mark.parametrize(
+        ("data_dims", "data_shape", "coord_dims", "keep_coord"),
+        [
+            pytest.param(("y", "x"), (3, 4), ("y",), False, id="foreign-dim-no-time-dim"),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("y",),
+                False,
+                id="foreign-dim-with-time-dim",
+            ),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("time",),
+                True,
+                id="matching-dimension-coordinate",
+            ),
+        ],
+    )
+    def test_drop_coordinates_handles_time_coordinate_dimensions(
+        self, data_dims, data_shape, coord_dims, keep_coord
+    ):
+        """Keep only a true dimension coordinate among negligible coordinates."""
+        from satpy.composites.core import CompositeBase
+
+        coord_size = data_shape[data_dims.index(coord_dims[0])]
+        coord_values = np.arange(coord_size)
+        data = xr.DataArray(
+            np.arange(np.prod(data_shape)).reshape(data_shape),
+            dims=data_dims,
+            coords={"time": xr.DataArray(coord_values, dims=coord_dims)},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert result.dims == data_dims
+        assert result.shape == data_shape
+        assert ("time" in result.coords) is keep_coord
+        if keep_coord:
+            assert result.coords["time"].dims == ("time",)
+            np.testing.assert_array_equal(result.coords["time"], coord_values)
+
     def test_almost_equal_geo_coordinates(self):
         """Test that coordinates that are almost-equal still match.
 
@@ -383,6 +426,7 @@ def test_add_bands_sequence():
     with assert_maximum_dask_computes(0):
         res = add_bands(data_arr, new_bands)
     _check_add_band_results(res, exp_bands, np.float32)
+
 
 def test_add_bands_p_l():
     """Test failing P to L case."""

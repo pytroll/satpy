@@ -6,6 +6,7 @@ import datetime as dt
 import logging
 import os
 from contextlib import suppress
+from types import MappingProxyType
 
 import numpy as np
 import xarray as xr
@@ -63,6 +64,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             filename = self._unzipped
         kwargs.pop("auto_maskandscale", None)
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
+        self._global_attributes = None
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
         # on-disk chunks and to the scans of the instrument.
@@ -309,7 +311,18 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         raise NotImplementedError
 
     def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets."""
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        The attributes only depend on the file, so they are collected once and
+        cached on the instance; ``get_dataset`` calls this for every dataset.
+        A read-only view of the cached dictionary is returned.
+
+        """
+        if self._global_attributes is None:
+            self._global_attributes = MappingProxyType(self._collect_global_attributes())
+        return self._global_attributes
+
+    def _collect_global_attributes(self):
         attributes = {
             "filename": self._original_filename,
             "start_time": self.start_time,
