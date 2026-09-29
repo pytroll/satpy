@@ -26,8 +26,8 @@ class METimageL2NCFileHandler(METimageNCBaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Prepare the class for dataset reading."""
-        orthorect = kwargs.pop("orthorect", False)
-        super().__init__(filename, filename_info, filetype_info, orthorect=orthorect, **kwargs)
+        kwargs.setdefault("orthorect", False)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.

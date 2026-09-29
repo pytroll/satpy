@@ -37,8 +37,8 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Read the calibration data and prepare the class for dataset reading."""
-        orthorect = kwargs.pop("orthorect", True)
-        super().__init__(filename, filename_info, filetype_info, orthorect=orthorect, **kwargs)
+        kwargs.setdefault("orthorect", True)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
 
         # Read the variables which are required for the calibration
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values

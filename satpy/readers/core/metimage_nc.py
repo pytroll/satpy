@@ -62,8 +62,10 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         self._unzipped = unzip_file(filename)
         if self._unzipped:
             filename = self._unzipped
+
         kwargs.pop("auto_maskandscale", None)
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
+
         self._global_attributes = None
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
