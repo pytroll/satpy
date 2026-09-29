@@ -8,11 +8,11 @@ The name VII is currently still used in the filenames as well as in official sys
 
 .. note::
 
-   The orthorectification (terrain) correction is activated by default.
-   If you do not want to have it applied to the data (e.g. because you are interested in matching it with L2 data that
-   is not corrected),
-   you need to deactivate it explicitly by setting the ``orthorect`` keyword argument to ``False``, e.g.:
-      .. code-block:: python
+    The orthorectification (terrain) correction is activated by default.
+    If you do not want to have it applied to the data (e.g. because you are interested in matching it with L2 data that
+    is not corrected),
+    you need to deactivate it explicitly by setting the ``orthorect`` keyword argument to ``False``, e.g.:
+    .. code-block:: python
 
         scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
 

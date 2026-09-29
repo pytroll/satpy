@@ -3,9 +3,9 @@
 
 .. note::
 
-   The orthorectification + clouds parallax correction is deactivated by default. If you want to use it,
-   you need to activate it explicitly by setting the ``orthorect`` keyword argument to ``True``, e.g.:
-      .. code-block:: python
+    The orthorectification + clouds parallax correction is deactivated by default. If you want to use it,
+    you need to activate it explicitly by setting the ``orthorect`` keyword argument to ``True``, e.g.:
+    .. code-block:: python
 
         scn = Scene(filenames=filenames, reader='metimage_l2_nc', reader_kwargs={'orthorect': True})
 
