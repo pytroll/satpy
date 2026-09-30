@@ -122,13 +122,14 @@ def generate_l1b_filename(chan_name: str) -> str:
 
 @pytest.fixture
 def c01_refl(tmp_path) -> xr.DataArray:
-    """Load c01 unnormalized_reflectance."""
+    """Load c01 with the default visible calibration."""
     with _apply_dask_chunk_size():
         reader = _create_reader_for_data(tmp_path, "C01", None, 1000)
         # 8< v1.0
         with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
-        # >8 v1.0
             return reader.load(["C01"])["C01"]
+        # >8 v1.0
+        # return reader.load(["C01"])["C01"]
 
 
 @pytest.fixture
@@ -429,8 +430,14 @@ def test_vis_calibrate(c01_refl):
     np.testing.assert_allclose(data_np[0, :10], expected, equal_nan=True)
     assert "scale_factor" not in res.attrs
     assert "_FillValue" not in res.attrs
-    assert res.attrs["standard_name"] == "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"  # noqa
-    assert res.attrs["long_name"] == "Product of cosine of solar zenith angle and TOA bidirectional reflectance" # noqa
+    # 8< v1.0
+    assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+    # >8 v1.0
+    # assert res.attrs["standard_name"] == "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"
+    # 8< v1.0
+    assert res.attrs["long_name"] == "Bidirectional Reflectance"
+    # >8 v1.0
+    # assert res.attrs["long_name"] == "Product of cosine of solar zenith angle and TOA bidirectional reflectance"
 
 
 def test_raw_calibrate(c01_counts):
