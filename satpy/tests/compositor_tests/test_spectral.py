@@ -72,14 +72,13 @@ class TestNdviHybridGreenCompositor:
         self.c03 = xr.DataArray(
             da.from_array(np.array([[0.35, 0.35], [0.28, 0.65], [0.0, 0.0]], dtype=np.float32), chunks=25),
             dims=("y", "x"), coords=[y_coord_val, x_coord_val], attrs={"name": "C04"})
+        self.expected = np.array([[0.2717, 0.3138], [0.2221, 0.3479], [0.0, 0.2172]])
 
     def test_ndvi_hybrid_green(self):
-        """Test General functionality with linear scaling from ndvi to blend fraction."""
+        """Test General functionality of NDVI hybrid green correction."""
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+            comp = NDVIHybridGreen("ndvi_hybrid_green", prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
-
-            # Test General functionality with linear strength (=1.0)
             res = comp((self.c01, self.c02, self.c03))
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
@@ -88,37 +87,27 @@ class TestNdviHybridGreenCompositor:
         data = res.values
         np.testing.assert_array_almost_equal(
             data,
-            np.array([[0.2633, 0.3071], [0.2115, 0.3420], [0.0, 0.255]]),
+            self.expected,
             decimal=4)
 
     def test_ndvi_hybrid_green_dtype(self):
         """Test that the datatype is not altered by the compositor."""
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+            comp = NDVIHybridGreen("ndvi_hybrid_green", prerequisites=(0.51, 0.65, 0.85),
                                    standard_name="toa_bidirectional_reflectance")
             res = comp((self.c01, self.c02, self.c03))
         assert res.data.dtype == np.float32
 
-    def test_nonlinear_scaling(self):
-        """Test non-linear scaling using `strength` term."""
-        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), strength=2.0,
-                                   prerequisites=(0.51, 0.65, 0.85),
-                                   standard_name="toa_bidirectional_reflectance")
-            res = comp((self.c01, self.c02, self.c03))
-        res_np = res.data.compute()
-        assert res.dtype == res_np.dtype
-        assert res.dtype == np.float32
+    def test_deprecated_arguments(self):
+        """Test using deprecated arguments used for the previous implementation."""
+        with pytest.warns(UserWarning, match="deprecated"):
+            comp = NDVIHybridGreen("ndvi_hybrid_green", strength=3.0, limits=(0.15, 0.05),
+                                   prerequisites=(0.51, 0.65, 0.85), standard_name="toa_bidirectional_reflectance")
+        res = comp((self.c01, self.c02, self.c03))
         np.testing.assert_array_almost_equal(
-            res.data,
-            np.array([[0.2646, 0.3075], [0.2120, 0.3471], [0.0, 0.255]]),
+            res.values,
+            self.expected,
             decimal=4)
-
-    def test_invalid_strength(self):
-        """Test using invalid `strength` term for non-linear scaling."""
-        with pytest.raises(ValueError, match="Expected strength greater than 0.0, got 0.0."):
-            _ = NDVIHybridGreen("ndvi_hybrid_green", strength=0.0, prerequisites=(0.51, 0.65, 0.85),
-                                standard_name="toa_bidirectional_reflectance")
 
     def test_with_slightly_mismatching_coord_input(self):
         """Test the case where an input (typically the red band) has a slightly different coordinate.
@@ -126,7 +115,7 @@ class TestNdviHybridGreenCompositor:
         If match_data_arrays is called correctly, the coords will be aligned and the array will have the expected shape.
 
         """
-        comp = NDVIHybridGreen("ndvi_hybrid_green", limits=(0.15, 0.05), prerequisites=(0.51, 0.65, 0.85),
+        comp = NDVIHybridGreen("ndvi_hybrid_green", prerequisites=(0.51, 0.65, 0.85),
                                standard_name="toa_bidirectional_reflectance")
 
         c02_bad_shape = self.c02.copy()
