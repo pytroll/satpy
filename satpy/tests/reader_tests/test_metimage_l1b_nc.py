@@ -86,8 +86,19 @@ def _create_l1b_file(path, with_tie_points=True,
                                             chunksizes=(1, NUM_PIXELS))
         counts.scale_factor = COUNTS_SCALE
         counts.add_offset = COUNTS_OFFSET
+        counts.valid_min = np.uint16(0)
+        counts.valid_max = np.uint16(8189)
         counts.set_auto_maskandscale(False)
         counts[:] = _counts_raw()
+        # Same packing, but flagging missing pixels with missing_value instead of _FillValue.
+        counts_mv = measurement.createVariable("vii_3959", np.uint16,
+                                               dimensions=("num_lines", "num_pixels"),
+                                               chunksizes=(1, NUM_PIXELS))
+        counts_mv.scale_factor = COUNTS_SCALE
+        counts_mv.add_offset = COUNTS_OFFSET
+        counts_mv.missing_value = COUNTS_FILL
+        counts_mv.set_auto_maskandscale(False)
+        counts_mv[:] = _counts_raw()
         delta_lat = measurement.createVariable("delta_lat_N_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
                                                chunksizes=(1, NUM_PIXELS))
@@ -249,23 +260,19 @@ def test_reflectance_calibration(reader):
     np.testing.assert_allclose(calibrated_variable.values, expected_values)
 
 
-def test_counts_calibration_returns_stored_integers(reader):
-    """Test that the counts calibration recovers the on-disk digital numbers exactly."""
-    variable = reader["data/measurement_data/vii_3740"]
+@pytest.mark.parametrize("file_key", ["data/measurement_data/vii_3740", "data/measurement_data/vii_3959"],
+                         ids=["_FillValue", "missing_value"])
+def test_counts_calibration_returns_stored_integers(reader, file_key):
+    """Test that the counts calibration recovers the on-disk digital numbers, fill pixels included."""
+    variable = reader[file_key]
 
     calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
 
     assert calibrated_variable.dtype == np.uint16
     np.testing.assert_array_equal(calibrated_variable.values, _counts_raw())
-
-
-def test_counts_calibration_restores_fill_values(reader):
-    """Test that pixels masked by _FillValue come back as the fill value, not zero."""
-    variable = reader["data/measurement_data/vii_3740"]
-
-    calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
-
     assert (calibrated_variable.values[3, ::5] == COUNTS_FILL).all()
+    assert calibrated_variable.attrs["_FillValue"] == COUNTS_FILL
+    assert calibrated_variable.attrs["_FillValue"].dtype == np.uint16
 
 
 def test_counts_calibration_of_unscaled_variable(reader):
@@ -276,6 +283,22 @@ def test_counts_calibration_of_unscaled_variable(reader):
 
     np.testing.assert_array_equal(calibrated_variable.values,
                                   np.ones((NUM_LINES, NUM_PIXELS)))
+    assert "_FillValue" not in calibrated_variable.attrs
+
+
+@pytest.mark.parametrize(("calibration", "keeps_valid_range"),
+                         [("counts", True), ("radiance", False), ("brightness_temperature", False)])
+def test_valid_range_is_only_kept_for_counts(reader, calibration, keeps_valid_range):
+    """Test that the packed valid range is kept for counts and dropped for calibrated values."""
+    dataset_info = {"name": "vii_3740", "file_key": "data/measurement_data/vii_3740",
+                    "calibration": calibration, "chan_thermal_index": 0}
+
+    variable = reader.get_dataset(None, dataset_info)
+
+    assert ("valid_min" in variable.attrs) is keeps_valid_range
+    assert ("valid_max" in variable.attrs) is keeps_valid_range
+    if keeps_valid_range:
+        assert (variable.attrs["valid_min"], variable.attrs["valid_max"]) == (0, 8189)
 
 
 def test_capitalized_solar_irradiance_fallback(tmp_path):

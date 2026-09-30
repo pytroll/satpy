@@ -227,14 +227,24 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
-        # Remove possibly incorrect attributes
-        for possible_invalid_attr in ("valid_min", "valid_max"):
-            variable.attrs.pop(possible_invalid_attr, None)
+        self._remove_invalid_valid_range(variable, dataset_info)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    @staticmethod
+    def _remove_invalid_valid_range(variable, dataset_info):
+        """Remove the possibly incorrect valid range attributes.
+
+        The file's valid range applies to the packed integers on disk, so it is only kept
+        for the counts calibration.
+        """
+        if dataset_info.get("calibration") == "counts":
+            return
+        for possible_invalid_attr in ("valid_min", "valid_max"):
+            variable.attrs.pop(possible_invalid_attr, None)
 
     def __del__(self):
         """Remove the decompressed temp file, if one was created."""

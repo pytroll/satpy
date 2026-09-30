@@ -82,23 +82,7 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         elif calibration_name == "radiance":
             calibrated_variable = variable
         elif calibration_name == "counts":
-            # xarray automatically applies scale_factor and add_offset when reading the netCDF,
-            # masking _FillValue pixels to NaN. To get raw counts, reverse the scaling using the
-            # original parameters and restore the original fill value at masked pixels.
-            scale_factor = variable.encoding.get("scale_factor", variable.attrs.get("scale_factor", 1.0))
-            add_offset = variable.encoding.get("add_offset", variable.attrs.get("add_offset", 0.0))
-
-            calibrated_variable = ((variable - add_offset) / scale_factor).round()
-
-            fill_value = variable.encoding.get("_FillValue", variable.attrs.get("_FillValue"))
-            if fill_value is not None:
-                calibrated_variable = calibrated_variable.fillna(fill_value)
-
-            # Cast back to the original integer datatype (e.g., uint16) for strict counts
-            original_dtype = variable.encoding.get("dtype", variable.dtype)
-            calibrated_variable = calibrated_variable.astype(original_dtype)
-
-            calibrated_variable.attrs = variable.attrs
+            calibrated_variable = self._calibrate_counts(variable)
         else:
             raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))
 
@@ -127,6 +111,42 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable
+
+    @staticmethod
+    def _calibrate_counts(variable: xr.DataArray) -> xr.DataArray:
+        """Recover the digital numbers stored in the file.
+
+        xarray applies scale_factor and add_offset when reading the netCDF and masks the
+        pixels matching _FillValue (or missing_value) to NaN. Reverse the scaling, restore
+        the original fill value at the masked pixels and cast back to the stored integer type.
+
+        Args:
+            variable: xarray DataArray containing the scaled (radiance) values.
+
+        Returns:
+            array containing the counts, with ``_FillValue`` in its attributes when the file defines one.
+
+        """
+        scale_factor = variable.encoding.get("scale_factor", variable.attrs.get("scale_factor", 1.0))
+        add_offset = variable.encoding.get("add_offset", variable.attrs.get("add_offset", 0.0))
+        original_dtype = variable.encoding.get("dtype", variable.dtype)
+
+        counts = ((variable - add_offset) / scale_factor).round()
+
+        fill_value = None
+        for fill_attr in ("_FillValue", "missing_value"):
+            fill_value = variable.encoding.get(fill_attr, variable.attrs.get(fill_attr))
+            if fill_value is not None:
+                break
+        if fill_value is not None:
+            fill_value = np.dtype(original_dtype).type(fill_value)
+            counts = counts.fillna(fill_value)
+
+        counts = counts.astype(original_dtype)
+        counts.attrs = variable.attrs
+        if fill_value is not None:
+            counts.attrs["_FillValue"] = fill_value
+        return counts
 
     @staticmethod
     def _calibrate_bt(radiance: np.ndarray, cw: float, a: float, b: float) -> np.ndarray:
