@@ -63,7 +63,10 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         if self._unzipped:
             filename = self._unzipped
 
+        if kwargs.get("auto_maskandscale") is not None:
+            logger.warning("auto_maskandscale was given as a reader kwarg but is hardcoded to True.")
         kwargs.pop("auto_maskandscale", None)
+
         super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
 
         self._global_attributes = None
