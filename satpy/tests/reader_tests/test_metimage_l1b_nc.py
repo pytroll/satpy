@@ -41,6 +41,28 @@ def _counts_raw():
     return raw
 
 
+def _add_counts_variables(measurement):
+    """Add channels stored as scaled integers, like the real products, for the counts calibration tests.
+
+    ``vii_3740`` flags missing pixels with _FillValue (and has a packed valid range), ``vii_3959``
+    with missing_value instead.
+    """
+    for name, fill_attr in (("vii_3740", "_FillValue"), ("vii_3959", "missing_value")):
+        counts = measurement.createVariable(name, np.uint16,
+                                            dimensions=("num_lines", "num_pixels"),
+                                            fill_value=COUNTS_FILL if fill_attr == "_FillValue" else None,
+                                            chunksizes=(1, NUM_PIXELS))
+        counts.scale_factor = COUNTS_SCALE
+        counts.add_offset = COUNTS_OFFSET
+        if fill_attr == "_FillValue":
+            counts.valid_min = np.uint16(0)
+            counts.valid_max = np.uint16(8189)
+        else:
+            counts.missing_value = COUNTS_FILL
+        counts.set_auto_maskandscale(False)
+        counts[:] = _counts_raw()
+
+
 def _create_l1b_file(path, with_tie_points=True,
                      solar_irradiance_name="band_averaged_solar_irradiance"):
     """Write a small METimage L1B file with realistic dimensions and on-disk chunking."""
@@ -78,27 +100,7 @@ def _create_l1b_file(path, with_tie_points=True,
                                               dimensions=("num_lines", "num_pixels"),
                                               chunksizes=(1, NUM_PIXELS))
         radiance[:] = np.arange(NUM_LINES * NUM_PIXELS).reshape(NUM_LINES, NUM_PIXELS)
-        # Stored as scaled integers with a fill value, like the real products;
-        # used by the counts calibration tests.
-        counts = measurement.createVariable("vii_3740", np.uint16,
-                                            dimensions=("num_lines", "num_pixels"),
-                                            fill_value=COUNTS_FILL,
-                                            chunksizes=(1, NUM_PIXELS))
-        counts.scale_factor = COUNTS_SCALE
-        counts.add_offset = COUNTS_OFFSET
-        counts.valid_min = np.uint16(0)
-        counts.valid_max = np.uint16(8189)
-        counts.set_auto_maskandscale(False)
-        counts[:] = _counts_raw()
-        # Same packing, but flagging missing pixels with missing_value instead of _FillValue.
-        counts_mv = measurement.createVariable("vii_3959", np.uint16,
-                                               dimensions=("num_lines", "num_pixels"),
-                                               chunksizes=(1, NUM_PIXELS))
-        counts_mv.scale_factor = COUNTS_SCALE
-        counts_mv.add_offset = COUNTS_OFFSET
-        counts_mv.missing_value = COUNTS_FILL
-        counts_mv.set_auto_maskandscale(False)
-        counts_mv[:] = _counts_raw()
+        _add_counts_variables(measurement)
         delta_lat = measurement.createVariable("delta_lat_N_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
                                                chunksizes=(1, NUM_PIXELS))
