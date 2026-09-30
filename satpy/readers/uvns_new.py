@@ -879,8 +879,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
             self._name_registry,
         )
         self._dataset_infos = self._build_dataset_infos()
+
+        self._wavelength_handler = (
+            Sentinel5WavelengthHandler(self)
+        )
+
         self._derived_dataset_infos = (
-            self._discover_wavelength_derivations()
+            self._wavelength_handler.discover()
         )
 
     # Inherited
@@ -1442,8 +1447,10 @@ class UVNSFileHandler(NetCDF4FileHandler):
         )
 
         if derived_type is not None:
-            return self._get_derived_dataset(
-                ds_info
+            return (
+                self._wavelength_handler.get_dataset(
+                    ds_info
+                )
             )
 
         file_key = DatasetNameRegistry.normalise_path(
@@ -1897,15 +1904,31 @@ class UVNSFileHandler(NetCDF4FileHandler):
         finally:
             ds.close()
 
-    def _discover_wavelength_derivations(self):
+
+
+#################################################
+
+class WavelengthHandler:
+    """Base class for wavelength dataset generation."""
+
+    def __init__(self, file_handler):
+        self.fh = file_handler
+
+
+class Sentinel5WavelengthHandler(
+    WavelengthHandler
+):
+    """Sentinel-5 wavelength generation."""
+
+    def discover(self):
         """Discover wavelength datasets."""
 
         derived = {}
         processed_bands = set()
 
-        file_type = self.filetype_info["file_type"]
+        file_type = self.fh.filetype_info["file_type"]
 
-        for path, record in self._records.items():
+        for path, record in self.fh._records.items():
 
             if record.name not in (
                 "nominal_wavelength_coefficients",
@@ -1938,13 +1961,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
             nominal_valid = False
             calibrated_valid = False
 
-            if nominal_path in self._records:
+            if nominal_path in self.fh._records:
                 nominal_valid = self._coefficients_have_data(
                     band_path,
                     "nominal_wavelength_coefficients",
                 )
 
-            if calibrated_path in self._records:
+            if calibrated_path in self.fh._records:
                 calibrated_valid = self._coefficients_have_data(
                     band_path,
                     "calibrated_wavelength_coefficients",
@@ -1981,7 +2004,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         band_path,
     ):
         """Return spectral channel count for a band."""
-        return self[
+        return self.fh[
             f"{band_path}/spectral_channel"
         ].size
 
@@ -1992,7 +2015,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
     ):
         """Return True if coefficient data contains valid values."""
 
-        da = self[
+        da = self.fh[
             f"{band_path}/instrument_data/"
             f"{coefficient_name}"
         ]
@@ -2022,7 +2045,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         coefficient_name,
     ):
         """Load a coefficient variable."""
-        data = self[
+        data = self.fh[
             f"{band_path}/instrument_data/"
             f"{coefficient_name}"
         ]
@@ -2170,7 +2193,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         )
 
 
-    def _get_derived_dataset(
+    def get_dataset(
         self,
         ds_info,
     ):
@@ -2202,6 +2225,3 @@ class UVNSFileHandler(NetCDF4FileHandler):
         raise KeyError(
             ds_info["derived_type"]
         )
-
-
-#################################################
