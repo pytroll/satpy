@@ -88,10 +88,14 @@ def _create_l1b_file(path, with_tie_points=True,
         counts.add_offset = COUNTS_OFFSET
         counts.set_auto_maskandscale(False)
         counts[:] = _counts_raw()
-        delta_lat = measurement.createVariable("delta_lat", np.float32,
+        delta_lat = measurement.createVariable("delta_lat_N_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
                                                chunksizes=(1, NUM_PIXELS))
         delta_lat[:] = 1.0
+        delta_lon = measurement.createVariable("delta_lon_E_dem", np.float32,
+                                               dimensions=("num_lines", "num_pixels"),
+                                               chunksizes=(1, NUM_PIXELS))
+        delta_lon[:] = 2.0
 
         if not with_tie_points:
             return
@@ -180,13 +184,25 @@ def test_calibrate_refl():
     np.testing.assert_allclose(refl, expected_refl)
 
 
-def test_perform_orthorectification(reader):
-    """Test that the orthorectification offsets the variable by the delta in degrees."""
+def test_perform_orthorectification_lat(reader):
+    """Test that the latitude orthorectification offsets the variable by the delta in degrees."""
     variable = _make_variable()
 
-    orthorect_variable = reader._perform_orthorectification(variable, "data/measurement_data/delta_lat")
+    orthorect_variable = reader._perform_orthorectification(variable, "data/measurement_data/delta_lat_N_dem")
 
     expected_values = (np.degrees(np.ones((NUM_LINES, NUM_PIXELS)) / MEAN_EARTH_RADIUS)
+                       + np.ones((NUM_LINES, NUM_PIXELS)))
+    np.testing.assert_allclose(orthorect_variable.values, expected_values)
+
+
+def test_perform_orthorectification_lon(reader):
+    """Test that the longitude orthorectification offsets the variable by the delta in degrees."""
+    variable = _make_variable()
+
+    orthorect_variable = reader._perform_orthorectification(variable, "data/measurement_data/delta_lon_E_dem")
+
+    expected_values = (np.degrees(np.ones((NUM_LINES, NUM_PIXELS))*2 /
+                                  (MEAN_EARTH_RADIUS*np.cos(np.radians(reader.latitude))))
                        + np.ones((NUM_LINES, NUM_PIXELS)))
     np.testing.assert_allclose(orthorect_variable.values, expected_values)
 

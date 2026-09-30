@@ -190,7 +190,11 @@ class NCSLSTR1B(BaseFileHandler):
         else:
             radiances = variable
         units = variable.attrs["units"]
-        if key["calibration"] == "reflectance":
+        if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub("_[^_]*$", "", key["name"]) + "_solar_irradiances"]
             d_index = self.indices["detector_{}{}".format(self.stripe, self.view[0])]
@@ -199,6 +203,16 @@ class NCSLSTR1B(BaseFileHandler):
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
             radiances *= np.pi * 100
             units = "%"
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for SLSTR L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
 
         info = info.copy()
         info.update(radiances.attrs)
