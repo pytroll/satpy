@@ -1075,15 +1075,28 @@ enhancements:
         kwargs:
           weight: 1.0
 
-  geo_color_high_clouds:
-    standard_name: geo_color_high_clouds
+  geo_color_black:
+    standard_name: geo_color_black
     operations:
-      - name: stretch
-        method: !!python/name:satpy.enhancements.contrast.stretch
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
         kwargs:
-          stretch: crude
-          min_stretch: [310, 0]
-          max_stretch: [190, 1]
+          palettes:
+            - {colors: [[0, 0, 0]]}
+
+  geo_color_city_lights:
+    standard_name: geo_color_city_lights
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.contrast.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [340, 340, 340]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.contrast.gamma
+      kwargs:
+        gamma: [0.5, 0.5, 0.5]
 
   geo_color_low_clouds:
     standard_name: geo_color_low_clouds
@@ -1093,6 +1106,15 @@ enhancements:
         kwargs:
           palettes:
             - {colors: [[140.25, 191.25, 249.9]]}
+
+  geo_color_high_clouds:
+    standard_name: geo_color_high_clouds
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colormap.colorize
+        kwargs:
+          palettes:
+            - {colors: [[255, 255, 255]]}
 
   geo_color_day_night_blend:
     standard_name: geo_color_day_night_blend
