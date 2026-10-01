@@ -81,7 +81,7 @@ class AWS_EPS_Sterna_BaseFileHandler(NetCDF4FileHandler):
         """Initialize the handler."""
         super().__init__(filename, filename_info, filetype_info,
                          cache_var_size=10000,
-                         cache_handle=True)
+                         open_strategy="file_handle")
         self.filename_info = filename_info
 
     @property
