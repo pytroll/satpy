@@ -72,6 +72,19 @@ class TestCFWriter:
                 expected_prereq = ("DataQuery(name='hej')")
                 assert f["test-array"].attrs["prerequisites"] == expected_prereq
 
+    def test_save_array_fmt_nc_alias(self):
+        """Test that the ``fmt`` alias for ``format`` works when saving (#2685)."""
+        scn = Scene()
+        start_time = dt.datetime(2018, 5, 30, 10, 0)
+        end_time = dt.datetime(2018, 5, 30, 10, 15)
+        scn["test-array"] = xr.DataArray(da.from_array([1.0, 2.0, 3.0]),
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer="cf", fmt="nc")
+            with xr.open_dataset(filename) as f:
+                np.testing.assert_array_equal(f["test-array"][:], [1, 2, 3])
+
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
         scn = Scene()
