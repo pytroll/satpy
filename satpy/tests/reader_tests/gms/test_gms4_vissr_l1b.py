@@ -8,6 +8,8 @@ import pytest
 
 import satpy.readers.gms.gms4_vissr_format as fmt
 import satpy.readers.gms.gms4_vissr_l1b as vissr
+import satpy.readers.gms.gms_vissr_navigation as nav
+import satpy.tests.reader_tests.gms.test_gms4_vissr_data as real_world
 from satpy.tests.utils import make_dataid
 
 IR_BLOCK_LEN = fmt.IR_BLOCK_LEN
@@ -123,7 +125,9 @@ class VissrFileWriter:
         """Write mode/coordinate-conversion/calibration blocks and image data lines to *filename*.
 
         *contents* is a dict with keys "mode", "coordinate_conversion",
-        "calibration", "image_data" -- see the file_contents fixture.
+        "calibration", "image_data" -- see the file_contents fixture -- and
+        optionally "attitude_prediction", "orbit_prediction_1" and
+        "orbit_prediction_2" (all zero in the file otherwise).
         """
         # Written in ascending-offset order (NOT a "logical" order): the
         # calibration block's real offset sits before
@@ -133,6 +137,9 @@ class VissrFileWriter:
             cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
             self._write_at(fd, self.params[cal_key]["offset"], contents["calibration"])
             self._write_at(fd, self.params["coordinate_conversion"]["offset"], contents["coordinate_conversion"])
+            for key in ("attitude_prediction", "orbit_prediction_1", "orbit_prediction_2"):
+                if key in contents:
+                    self._write_at(fd, self.params[key]["offset"], contents[key])
             self._write_at(fd, self.image_data_offset, contents["image_data"])
 
     @staticmethod
@@ -372,6 +379,84 @@ class TestSpinRateFallback:
         handler = vissr.GmsVissrFileHandler(no_spin_rate_vissr_file, {}, {})
         with pytest.raises(ValueError, match="spin rate"):
             handler.get_dataset(dataset_id, {"name": dataset_id["name"]})
+
+
+class TestRealWorldNavigation:
+    """Test navigation with the real attitude/orbit predictions and geometry of a GMS archive file.
+
+    The expected lon/lat values are a snapshot of what this reader computed
+    for the real file the test data was extracted from (see
+    test_gms4_vissr_data.py). The navigation was verified once by resampling
+    that scene and overlaying coastlines, but the numbers are NOT an
+    independent reference such as JMA's Msial, so this guards the navigation
+    logic (parameter mapping, units, matrix order, orbit table assembly, spin
+    rate handling) against regressions.
+
+    It does not verify the header offsets in gms4_vissr_format: the test file
+    is written at the same offsets the reader reads from. Those were checked
+    against real GMS-1/GMS-3 files when the format was written.
+    """
+
+    @pytest.fixture
+    def mode_block(self):
+        """Get a mode block with the real spin rate, position and satellite name."""
+        mode = np.zeros(1, dtype=fmt.MODE_BLOCK)
+        mode["satellite_name"] = real_world.SATELLITE_NAME.encode()
+        for name, value in real_world.MODE.items():
+            mode[name] = value
+        return mode
+
+    @pytest.fixture
+    def coord_block(self):
+        """Get a coordinate conversion block with the real scanning geometry."""
+        coord = np.zeros(1, dtype=fmt.COORDINATE_CONVERSION_PARAMETERS)
+        for name, value in real_world.COORDINATE_CONVERSION.items():
+            coord[name] = value
+        return coord
+
+    @pytest.fixture
+    def file_contents(self, mode_block, coord_block, cal_block, image_lines):
+        """Bundle the file contents, including the real attitude and orbit predictions."""
+        attitude = np.zeros(1, dtype=fmt.ATTITUDE_PREDICTION)
+        attitude["data"] = real_world.ATTITUDE_PREDICTION
+        orbit_1 = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
+        orbit_1["data"] = real_world.ORBIT_PREDICTION_1
+        orbit_2 = np.zeros(1, dtype=fmt.ORBIT_PREDICTION)
+        orbit_2["data"] = real_world.ORBIT_PREDICTION_2
+        return {
+            "mode": mode_block,
+            "coordinate_conversion": coord_block,
+            "calibration": cal_block,
+            "image_data": image_lines,
+            "attitude_prediction": attitude,
+            "orbit_prediction_1": orbit_1,
+            "orbit_prediction_2": orbit_2,
+        }
+
+    def test_navigation_matches_snapshot(self, vissr_file, channel):
+        """Test that lon/lat of the snapshot pixels are reproduced."""
+        l1b = vissr.GmsVissrL1bFile(vissr_file)
+        nav_params = l1b._build_navigation_parameters()
+        snapshot = real_world.NAVIGATION_SNAPSHOT[channel]
+
+        lons, lats = [], []
+        for line, pixel, _, _ in snapshot:
+            lon, lat = nav.get_lons_lats(np.array([float(line)]), np.array([float(pixel)]), nav_params)
+            lons.append(float(np.asarray(lon)[0, 0]))
+            lats.append(float(np.asarray(lat)[0, 0]))
+
+        np.testing.assert_allclose(lons, [row[2] for row in snapshot], atol=1e-4)
+        np.testing.assert_allclose(lats, [row[3] for row in snapshot], atol=1e-4)
+
+    def test_orbit_prediction_assembly(self, vissr_file):
+        """Test that the orbit table is the first 8 entries of block 1 followed by block 2."""
+        l1b = vissr.GmsVissrL1bFile(vissr_file)
+        nav_params = l1b._build_navigation_parameters()
+        expected_times = np.concatenate([
+            real_world.ORBIT_PREDICTION_1["prediction_time_mjd"][:8],
+            real_world.ORBIT_PREDICTION_2["prediction_time_mjd"],
+        ])
+        np.testing.assert_array_equal(nav_params.predicted.orbit.prediction_times, expected_times)
 
 
 class TestChannelDetection:

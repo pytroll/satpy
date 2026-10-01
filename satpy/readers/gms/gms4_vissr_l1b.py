@@ -162,9 +162,9 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms4_vissr_format as fmt
-import satpy.readers.gms.gms_vissr_navigation as nav_shared
+import satpy.readers.gms.gms_vissr_common as common
+import satpy.readers.gms.gms_vissr_navigation as nav
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
@@ -242,52 +242,30 @@ class GmsVissrFileHandler(BaseFileHandler):
         return data_array
 
     def _get_area_def_uniform_sampling(self, dataset_id):
-        estimator = AreaDefEstimator(self._l1b, self._platform_name())
-        return estimator.get_area_def_uniform_sampling(dataset_id)
+        size = self._l1b.n_lines
+        if size <= 1:
+            raise ValueError(
+                f"Implausible dataset shape (n_lines={size}) -- can't "
+                f"build a uniform-sampling area definition from this."
+            )
+        suffix = "ir" if self._l1b.channel == "IR" else "vis"
+        estimator = common.AreaDefEstimator(
+            platform_name=self._platform_name(),
+            sensor_name="VISSR",
+            ssp_lon=float(self._l1b.mode["ssp_longitude"]),
+            satellite_height=float(self._l1b.mode["satellite_height"]),
+        )
+        return estimator.get_area_def_uniform_sampling(
+            dataset_id,
+            size=size,
+            stepping_angle=float(self._l1b.coord[f"stepping_angle_{suffix}"]),
+        )
 
     def _platform_name(self):
         name = bytes(self._l1b.mode["satellite_name"]).split(b"\x00")[0].decode("ascii", "replace").strip()
         if name:
             return name
         return "GMS (satellite unknown -- mode block unavailable/unparsed)"
-
-
-def _lookup_calibration_value(block, lut, mask):
-    """Look up calibrated values for a raw-counts block via the file's own calibration LUT."""
-    return lut[block.astype(np.int64) & mask]
-
-
-class Calibrator:
-    """Calibrate GMS-1..4 VISSR counts to unnormalized reflectance (%) or brightness temperature (K)."""
-
-    def __init__(self, calib_table, channel):
-        """Store the file's own calibration LUT and the channel it applies to."""
-        self._calib_table = calib_table
-        self._channel = channel
-        self._mask = 0xFF if channel == fmt.IR_CHANNEL else 0x3F
-
-    def calibrate(self, counts, calibration):
-        """Transform counts (a dask array of raw pixel values) to the given calibration level."""
-        if calibration == "counts":
-            return counts
-        res = self._calibrate(counts)
-        res = self._postproc(res, calibration)
-        return res
-
-    def _calibrate(self, counts):
-        return counts.map_blocks(
-            _lookup_calibration_value,
-            lut=self._calib_table,
-            mask=self._mask,
-            dtype=np.float32,
-            meta=np.array((), dtype=np.float32),
-        )
-
-    def _postproc(self, res, calibration):
-        if calibration == "unnormalized_reflectance":
-            # convert to percent
-            return res * 100
-        return res
 
 
 def _read_struct(raw, offset, dtype):
@@ -368,31 +346,21 @@ class GmsVissrL1bFile:
             return self.calibration["vis1_calibration_table"]["brightness_albedo_conversion_table"]
 
     def get_earth_mask(self):
-        """Return a boolean mask, True = earth disk, False = space, per scan line."""
-        fill_value = -1
-        west, east = self._earth_edges_for_mask(fill_value)
+        """Return a boolean mask, True = earth disk, False = space."""
+        return common.get_earth_mask((self.n_lines, self.n_pixels), self._earth_edges_for_mask())
 
-        valid = (west != fill_value) & (east != fill_value)
-        w = np.maximum(west, 0)
-        e = np.minimum(east, self.n_pixels - 1)
-        valid &= (w <= e)
-
-        pixel_idx = np.arange(self.n_pixels)
-        return valid[:, None] & (pixel_idx[None, :] >= w[:, None]) & (pixel_idx[None, :] <= e[:, None])
-
-    def _earth_edges_for_mask(self, fill_value):
+    def _earth_edges_for_mask(self):
         """Return west/east earth-edge arrays, oversampling-corrected for VIS."""
         west = self.west_earth_edges.copy()
         east = self.east_earth_edges.copy()
         if self.channel != fmt.VIS_CHANNEL:
             return west, east
 
+        # VIS data contains earth edges of the IR channel.
         sampling_angle_ir = float(self.coord["sampling_angle_ir"])
         sampling_angle_vis = float(self.coord["sampling_angle_vis"])
         ratio = sampling_angle_ir / sampling_angle_vis if sampling_angle_vis > 0 else 2.0
-        west = np.where(west != fill_value, (west * ratio).astype(np.int32), west)
-        east = np.where(east != fill_value, (east * ratio).astype(np.int32), east)
-        return west, east
+        return common.scale_earth_edges(west, ratio), common.scale_earth_edges(east, ratio)
 
     def calibrated_dask(self):
         """Return calibrated physical values as a lazy dask array.
@@ -400,7 +368,8 @@ class GmsVissrL1bFile:
         Kelvin for IR, albedo % 0-100 for VIS, via the Calibrator class
         above.
         """
-        calibrator = Calibrator(self.calibration_lut(), self.channel)
+        mask = 0xFF if self.channel == fmt.IR_CHANNEL else 0x3F
+        calibrator = common.Calibrator(self.calibration_lut(), mask=mask)
         counts = self.pixel_counts_dask()
         calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "unnormalized_reflectance"
         return calibrator.calibrate(counts, calibration_level)
@@ -422,7 +391,7 @@ class GmsVissrL1bFile:
                 "spin rate."
             )
 
-        scan_params = nav_shared.ScanningParameters(
+        scan_params = nav.ScanningParameters(
             start_time_of_scan=float(self.coord["scheduled_observation_time"]),
             spinning_rate=spinning_rate,
             num_sensors=float(self.coord[f"num_sensors_{suffix}"]),
@@ -433,40 +402,40 @@ class GmsVissrL1bFile:
             np.asarray(self.coord["matrix_of_misalignment"], dtype=np.float64)
             .reshape(3, 3, order="F")
         )
-        scanning_angles = nav_shared.ScanningAngles(
+        scanning_angles = nav.ScanningAngles(
             stepping_angle=float(self.coord[f"stepping_angle_{suffix}"]),
             sampling_angle=float(self.coord[f"sampling_angle_{suffix}"]),
             misalignment=misalignment,
         )
 
-        image_offset = nav_shared.ImageOffset(
+        image_offset = nav.ImageOffset(
             line_offset=float(self.coord[f"central_line_{suffix}"]),
             pixel_offset=float(self.coord[f"central_pixel_{suffix}"]),
         )
 
-        earth_ellipsoid = nav_shared.EarthEllipsoid(
-            flattening=nav_shared.EARTH_FLATTENING,
-            equatorial_radius=nav_shared.EARTH_EQUATORIAL_RADIUS,
+        earth_ellipsoid = nav.EarthEllipsoid(
+            flattening=nav.EARTH_FLATTENING,
+            equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS,
         )
 
-        proj_params = nav_shared.ProjectionParameters(
+        proj_params = nav.ProjectionParameters(
             image_offset=image_offset,
             scanning_angles=scanning_angles,
             earth_ellipsoid=earth_ellipsoid,
         )
 
-        static = nav_shared.StaticNavigationParameters(proj_params=proj_params, scan_params=scan_params)
+        static = nav.StaticNavigationParameters(proj_params=proj_params, scan_params=scan_params)
         predicted = self._build_predicted_navigation_params()
-        return nav_shared.ImageNavigationParameters(static=static, predicted=predicted)
+        return nav.ImageNavigationParameters(static=static, predicted=predicted)
 
     def _build_predicted_navigation_params(self):
         at = self.attitude["data"]
-        attitudes = nav_shared.Attitude(
+        attitudes = nav.Attitude(
             angle_between_earth_and_sun=at["beta_angle"].astype(np.float64),
             angle_between_sat_spin_and_z_axis=at["angle_between_z_axis_and_spin_axis"].astype(np.float64),
             angle_between_sat_spin_and_yz_plane=at["angle_between_spin_axis_and_yz_plane"].astype(np.float64),
         )
-        attitude_prediction = nav_shared.AttitudePrediction(
+        attitude_prediction = nav.AttitudePrediction(
             prediction_times=at["prediction_time_mjd"].astype(np.float64),
             attitude=attitudes,
         )
@@ -474,32 +443,32 @@ class GmsVissrL1bFile:
         o1, o2 = self.orbit1["data"], self.orbit2["data"]
         combined = np.concatenate([o1[:8], o2])
 
-        orbit_angles = nav_shared.OrbitAngles(
+        orbit_angles = nav.OrbitAngles(
             greenwich_sidereal_time=np.deg2rad(combined["greenwich_sidereal_time"].astype(np.float64)),
             declination_from_sat_to_sun=np.deg2rad(combined["declination_sat_to_sun"].astype(np.float64)),
             right_ascension_from_sat_to_sun=np.deg2rad(combined["right_ascension_sat_to_sun"].astype(np.float64)),
         )
         sat_pos_arr = combined["satellite_position_earth_fixed"]
-        sat_position = nav_shared.Satpos(
+        sat_position = nav.Satpos(
             x=sat_pos_arr[:, 0].astype(np.float64),
             y=sat_pos_arr[:, 1].astype(np.float64),
             z=sat_pos_arr[:, 2].astype(np.float64),
         )
         npa = combined["npa_matrix"].reshape(-1, 3, 3).transpose(0, 2, 1)
-        orbit_prediction = nav_shared.OrbitPrediction(
+        orbit_prediction = nav.OrbitPrediction(
             prediction_times=combined["prediction_time_mjd"].astype(np.float64),
             angles=orbit_angles,
             sat_position=sat_position,
             nutation_precession=np.ascontiguousarray(npa),
         )
-        return nav_shared.PredictedNavigationParameters(attitude=attitude_prediction, orbit=orbit_prediction)
+        return nav.PredictedNavigationParameters(attitude=attitude_prediction, orbit=orbit_prediction)
 
     def navigate_dask(self):
         """Return lat/lon as dask arrays, via the navigation module."""
         nav_params = self._build_navigation_parameters()
         lines = self.line_numbers.astype(np.float64) - 1.0  # see _build_navigation_parameters note on +1 convention
         pixels = np.arange(self.n_pixels, dtype=np.float64)
-        lons, lats = nav_shared.get_lons_lats(lines, pixels, nav_params)
+        lons, lats = nav.get_lons_lats(lines, pixels, nav_params)
 
         chunks = (self._line_chunks, self.n_pixels)
         lats = lats.rechunk(chunks) if hasattr(lats, "rechunk") else da.from_array(lats, chunks=chunks)
@@ -528,74 +497,3 @@ class GmsVissrL1bFile:
             },
         )
         return da_out
-
-
-class AreaDefEstimator:
-    """Estimate a uniform-sampling AreaDefinition for GMS-1..4 VISSR images."""
-
-    def __init__(self, l1b_file, platform_name):
-        """Store the parsed L1b file and platform name used for area naming."""
-        self.l1b = l1b_file
-        self.platform_name = platform_name
-
-    def get_area_def_uniform_sampling(self, dataset_id):
-        """Build and return the uniform-sampling AreaDefinition for *dataset_id*."""
-        proj_dict = self._get_proj_dict(dataset_id)
-        extent = geos_area.get_area_extent(proj_dict)
-        return geos_area.get_area_definition(proj_dict, extent)
-
-    def _get_proj_dict(self, dataset_id):
-        proj_dict = {}
-        proj_dict.update(self._get_name_dict(dataset_id))
-        proj_dict.update(self._get_proj4_dict())
-        proj_dict.update(self._get_shape_dict(dataset_id))
-        return proj_dict
-
-    def _get_name_dict(self, dataset_id):
-        if hasattr(dataset_id, "get"):
-            resolution = dataset_id.get("resolution")
-        else:
-            resolution = getattr(dataset_id, "resolution", None)
-        name_dict = geos_area.get_geos_area_naming({
-            "platform_name": self.platform_name,
-            "instrument_name": "VISSR",
-            "service_name": "western-pacific",
-            "service_desc": "Western Pacific",
-            "resolution": resolution,
-        })
-        return {
-            "a_name": name_dict["area_id"],
-            "p_id": name_dict["area_id"],
-            "a_desc": name_dict["description"],
-        }
-
-    def _get_proj4_dict(self):
-        return {
-            "ssp_lon": float(self.l1b.mode["ssp_longitude"]),
-            "a": nav_shared.EARTH_EQUATORIAL_RADIUS,
-            "b": nav_shared.EARTH_POLAR_RADIUS,
-            "h": float(self.l1b.mode["satellite_height"]),
-        }
-
-    def _get_shape_dict(self, dataset_id):
-        size = self.l1b.n_lines
-        if size <= 1:
-            raise ValueError(
-                f"Implausible dataset shape (n_lines={size}) -- can't "
-                f"build a uniform-sampling area definition from this."
-            )
-
-        suffix = "ir" if self.l1b.channel == "IR" else "vis"
-        stepping_angle = float(self.l1b.coord[f"stepping_angle_{suffix}"])
-
-        line_pixel_offset = 0.5 * size
-        lfac_cfac = geos_area.sampling_to_lfac_cfac(stepping_angle)
-        return {
-            "nlines": size,
-            "ncols": size,
-            "lfac": lfac_cfac,
-            "cfac": lfac_cfac,
-            "coff": line_pixel_offset,
-            "loff": line_pixel_offset,
-            "scandir": "N2S",
-        }

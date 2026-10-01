@@ -2,6 +2,7 @@
 
 import datetime as dt
 import gzip
+import io
 
 import fsspec
 import numpy as np
@@ -10,7 +11,6 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 import satpy.tests.reader_tests.gms.test_gms5_vissr_data as real_world
-from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
 
 try:
@@ -23,34 +23,23 @@ except ImportError as err:
     raise
 
 
-@pytest.fixture(params=[False, True], autouse=True)
-def _disable_jit(request, monkeypatch):
-    """Run tests with jit enabled and disabled.
+class TestReadFromFileObj:
+    """Test reading structured data from a file object."""
 
-    Reason: Coverage report is only accurate with jit disabled.
-    """
-    if request.param:
-        jit_methods = get_jit_methods(vissr)
-        for name, method in jit_methods.items():
-            monkeypatch.setattr(name, method.py_func)
+    def test_read_with_offset(self):
+        """Test reading at a byte offset."""
+        dtype = np.dtype([("a", ">i2")])
+        data = np.arange(4, dtype=">i2").tobytes()
+        res = vissr.read_from_file_obj(io.BytesIO(data), dtype=dtype, count=2, offset=2)
+        np.testing.assert_array_equal(res["a"], [1, 2])
 
-
-class TestEarthMask:
-    """Test getting the earth mask."""
-
-    def test_get_earth_mask(self):
-        """Test getting the earth mask."""
-        first_earth_pixels = np.array([-1, 1, 0, -1])
-        last_earth_pixels = np.array([-1, 3, 2, -1])
-        edges = first_earth_pixels, last_earth_pixels
-        mask_exp = np.array(
-            [[0, 0, 0, 0],
-             [0, 1, 1, 1],
-             [1, 1, 1, 0],
-             [0, 0, 0, 0]]
-        )
-        mask = vissr.get_earth_mask(mask_exp.shape, edges)
-        np.testing.assert_equal(mask, mask_exp)
+    def test_no_overflow_for_narrow_integer_count(self):
+        """Test that a count stored as int16 in the file header doesn't overflow."""
+        dtype = np.dtype([("a", "u1", (8,))])
+        count = np.int16(5000)  # 5000 * 8 bytes > int16 max
+        file_obj = io.BytesIO(bytes(40000))
+        res = vissr.read_from_file_obj(file_obj, dtype=dtype, count=count)
+        assert res.shape == (5000,)
 
 
 class TestFileHandler:
@@ -607,6 +596,7 @@ class VissrFileWriter:
         Args:
             ch_type: Channel type (VIS or IR)
             open_function: Open function to be used (e.g. open or gzip.open)
+
         """
         self.ch_type = ch_type
         self.open_function = open_function

@@ -149,24 +149,40 @@ Partial Scans
 Between 2001 and 2003 VISSR also recorded partial scans of the northern
 hemisphere. On demand a special Typhoon schedule would be activated between
 03:00 and 05:00 UTC.
+
 """
 
 import datetime as dt
 
 import dask.array as da
-import numba
 import numpy as np
 import xarray as xr
 
-import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms5_vissr_format as fmt
 import satpy.readers.gms.gms_vissr_navigation as nav
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
+from satpy.readers.gms.gms_vissr_common import (
+    FILL_VALUE,
+    AreaDefEstimator,
+    Calibrator,
+    get_earth_mask,
+    scale_earth_edges,
+)
 from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
+FULL_DISK_SIZE = {
+    "IR": 2366,
+    "VIS": 9464,
+}
+PERCENT_CALIBRATIONS = (
+    # 8< v1.0
+    "reflectance",
+    # >8 v1.0
+    "unnormalized_reflectance",
+)
 
 
 def _recarr2dict(arr, preserve=None):
@@ -380,8 +396,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _calibrate(self, counts, dataset_id):
         table = self._get_calibration_table(dataset_id)
-        cal = Calibrator(table)
-        return cal.calibrate(counts, dataset_id["calibration"])
+        cal = Calibrator(table, percent_calibrations=PERCENT_CALIBRATIONS)
+        res = cal.calibrate(counts.data, dataset_id["calibration"])
+        return xr.DataArray(res, dims=counts.dims, coords=counts.coords)
 
     def _get_calibration_table(self, dataset_id):
         tables = {
@@ -401,11 +418,20 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return tables[dataset_id["name"]]
 
     def _get_area_def_uniform_sampling(self, dataset_id):
-        a = AreaDefEstimator(
-            coord_conv_params=self._header["image_parameters"]["coordinate_conversion"],
-            metadata=self._mda,
+        coord_conv = self._header["image_parameters"]["coordinate_conversion"]
+        orbital_parameters = self._mda["orbital_parameters"]
+        estimator = AreaDefEstimator(
+            platform_name=self._mda["platform"],
+            sensor_name=self._mda["sensor"],
+            # Use nominal parameters to make the area def as constant as possible
+            ssp_lon=orbital_parameters["satellite_nominal_longitude"],
+            satellite_height=orbital_parameters["satellite_nominal_altitude"],
         )
-        return a.get_area_def_uniform_sampling(dataset_id)
+        return estimator.get_area_def_uniform_sampling(
+            dataset_id,
+            size=FULL_DISK_SIZE[fmt.CHANNEL_TYPES[dataset_id["name"]]],
+            stepping_angle=coord_conv["stepping_angle_along_line"][_get_alternative_channel_name(dataset_id)],
+        )
 
     def _mask_space_pixels(self, dataset, space_masker):
         if self._mask_space:
@@ -601,77 +627,8 @@ def _get_alternative_channel_name(dataset_id):
     return fmt.ALT_CHANNEL_NAMES[dataset_id["name"]]
 
 
-def read_from_file_obj(file_obj, dtype, count, offset=0):
-    """Read data from file object.
-
-    Args:
-        file_obj: An open file object.
-        dtype: Data type to be read.
-        count: Number of elements to be read.
-        offset: Byte offset where to start reading.
-    """
-    file_obj.seek(offset)
-    data = file_obj.read(dtype.itemsize * count)
-    return np.frombuffer(data, dtype=dtype, count=count)
-
-
-class Calibrator:
-    """Calibrate VISSR data to unnormalized_reflectance or brightness temperature.
-
-    Reference: Section 2.2 in the VISSR User Guide.
-    """
-
-    def __init__(self, calib_table):
-        """Initialize the calibrator.
-
-        Args:
-            calib_table: Calibration table
-        """
-        self._calib_table = calib_table
-
-    def calibrate(self, counts, calibration):
-        """Transform counts to given calibration level."""
-        if calibration == "counts":
-            return counts
-        res = self._calibrate(counts)
-        res = self._postproc(res, calibration)
-        return self._make_data_array(res, counts)
-
-    def _calibrate(self, counts):
-        return da.map_blocks(
-            self._lookup_calib_table,
-            counts.data,
-            calib_table=self._calib_table,
-            dtype=np.float32,
-        )
-
-    def _postproc(self, res, calibration):
-        if calibration in [
-                # 8< v1.0
-                "reflectance",
-                # >8 v1.0
-                "unnormalized_reflectance"]:
-            res = self._convert_to_percent(res)
-        return res
-
-    def _convert_to_percent(self, res):
-        return res * 100
-
-    def _make_data_array(self, interp, counts):
-        return xr.DataArray(
-            interp,
-            dims=counts.dims,
-            coords=counts.coords,
-        )
-
-    def _lookup_calib_table(self, counts, calib_table):
-        return calib_table[counts]
-
-
 class SpaceMasker:
     """Mask pixels outside the earth disk."""
-
-    _fill_value = -1  # scanline not intersecting the earth
 
     def __init__(self, image_data, channel):
         """Initialize the space masker.
@@ -691,7 +648,7 @@ class SpaceMasker:
 
     def _get_earth_mask(self):
         earth_edges = self._get_earth_edges()
-        return get_earth_mask(self._shape, earth_edges, self._fill_value)
+        return get_earth_mask(self._shape, earth_edges, FILL_VALUE)
 
     def _get_earth_edges(self):
         west_edges = self._get_earth_edges_per_scan_line("west_side_earth_edge")
@@ -710,113 +667,26 @@ class SpaceMasker:
         VIS data contains earth edges of IR channel. Compensate for that
         by scaling with a factor of 4 (1 IR pixel ~ 4 VIS pixels).
         """
-        return np.where(edges != self._fill_value, edges * 4, edges)
+        return scale_earth_edges(edges, 4, FILL_VALUE)
 
 
-@numba.njit
-def get_earth_mask(shape, earth_edges, fill_value=-1):
-    """Get binary mask where 1/0 indicates earth/space.
+def read_from_file_obj(file_obj, dtype, count, offset=0):
+    """Read data from file object.
 
     Args:
-        shape: Image shape
-        earth_edges: First and last earth pixel in each scanline
-        fill_value: Fill value for scanlines not intersecting the earth.
+        file_obj: An open file object.
+        dtype: Data type to be read.
+        count: Number of elements to be read.
+        offset: Byte offset where to start reading.
     """
-    first_earth_pixels, last_earth_pixels = earth_edges
-    mask = np.zeros(shape, dtype=np.int8)
-    for line in range(shape[0]):
-        first = first_earth_pixels[line]
-        last = last_earth_pixels[line]
-        if first == fill_value or last == fill_value:
-            continue
-        mask[line, first:last+1] = 1
-    return mask
+    # Cast to plain ints: ``count`` often comes from a narrow numpy integer
+    # (e.g. int16) in the file header and the product would silently overflow.
+    count = int(count)
+    file_obj.seek(offset)
+    data = file_obj.read(int(dtype.itemsize) * count)
+    return np.frombuffer(data, dtype=dtype, count=count)
 
 
 def is_vis_channel(channel_name):
     """Check if it's the visible channel."""
     return channel_name == "VIS"
-
-
-class AreaDefEstimator:
-    """Estimate area definition for VISSR images."""
-
-    full_disk_size = {
-        "IR": 2366,
-        "VIS": 9464,
-    }
-
-    def __init__(self, coord_conv_params, metadata):
-        """Initialize the area definition estimator.
-
-        Args:
-            coord_conv_params: Coordinate conversion parameters
-            metadata: VISSR file metadata
-        """
-        self.coord_conv = coord_conv_params
-        self.metadata = metadata
-
-    def get_area_def_uniform_sampling(self, dataset_id):
-        """Get full disk area definition with uniform sampling.
-
-        Args:
-            dataset_id: ID of the corresponding dataset.
-        """
-        proj_dict = self._get_proj_dict(dataset_id)
-        extent = geos_area.get_area_extent(proj_dict)
-        return geos_area.get_area_definition(proj_dict, extent)
-
-    def _get_proj_dict(self, dataset_id):
-        proj_dict = {}
-        proj_dict.update(self._get_name_dict(dataset_id))
-        proj_dict.update(self._get_proj4_dict())
-        proj_dict.update(self._get_shape_dict(dataset_id))
-        return proj_dict
-
-    def _get_name_dict(self, dataset_id):
-        name_dict = geos_area.get_geos_area_naming(
-            {
-                "platform_name": self.metadata["platform"],
-                "instrument_name": self.metadata["sensor"],
-                "service_name": "western-pacific",
-                "service_desc": "Western Pacific",
-                "resolution": dataset_id["resolution"],
-            }
-        )
-        return {
-            "a_name": name_dict["area_id"],
-            "p_id": name_dict["area_id"],
-            "a_desc": name_dict["description"],
-        }
-
-    def _get_proj4_dict(
-        self,
-    ):
-        # Use nominal parameters to make the area def as constant as possible
-        return {
-            "ssp_lon": self.metadata["orbital_parameters"][
-                "satellite_nominal_longitude"
-            ],
-            "a": nav.EARTH_EQUATORIAL_RADIUS,
-            "b": nav.EARTH_POLAR_RADIUS,
-            "h": self.metadata["orbital_parameters"]["satellite_nominal_altitude"],
-        }
-
-    def _get_shape_dict(self, dataset_id):
-        # Apply sampling from the vertical dimension to the horizontal
-        # dimension to obtain a square area definition with uniform sampling.
-        ch_type = fmt.CHANNEL_TYPES[dataset_id["name"]]
-        alt_ch_name = _get_alternative_channel_name(dataset_id)
-        stepping_angle = self.coord_conv["stepping_angle_along_line"][alt_ch_name]
-        size = self.full_disk_size[ch_type]
-        line_pixel_offset = 0.5 * size
-        lfac_cfac = geos_area.sampling_to_lfac_cfac(stepping_angle)
-        return {
-            "nlines": size,
-            "ncols": size,
-            "lfac": lfac_cfac,
-            "cfac": lfac_cfac,
-            "coff": line_pixel_offset,
-            "loff": line_pixel_offset,
-            "scandir": "N2S",
-        }
