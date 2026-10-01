@@ -532,9 +532,9 @@ class TestIASINGL2NCReader:
             "seconds_since_epoch": "2000-01-01 00:00:00",
         }
         twv_handler.variable_path_exists = lambda _arg: True
-        twv_handler.file_content["test_var"] = xr.DataArray(
+        twv_handler.file_content = {"test_var": xr.DataArray(
             np.array([[0, 86400]]), dims=("x", "y")
-        )
+        )}
 
         twv_handler.dimensions_desc = {"n_fov": 2}
 

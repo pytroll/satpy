@@ -3,6 +3,7 @@
 
 
 import datetime as dt
+import itertools
 import logging
 import os
 from contextlib import suppress
@@ -28,6 +29,10 @@ logger = logging.getLogger(__name__)
 # equivalent renaming is done by ``METimageNCBaseFileHandler._standardize_dims``.
 PIXEL_DIMS = (("num_lines", "num_pixels"), ("num_points_alt", "num_points_act"))
 TIE_POINT_DIMS = ("num_tie_points_alt", "num_tie_points_act")
+# The group of the pixel and tie point variables, followed by its parent groups.
+# A netCDF variable may use a dimension of any parent group, the nearest group
+# defining it wins.
+DIMENSION_SCOPES = ("data/measurement_data/", "data/", "/")
 
 
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
@@ -76,7 +81,7 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Hold on to row_chunks so we can use it for rechunking interpolated arrays later
         self._row_chunks, chunks = self._chunks_for_file()
         if chunks:
-            self._xarray_kwargs["chunks"] = chunks
+            self._opener.open_dataset_kwargs["chunks"] = chunks
 
         # Saves the orthorectification flag
         filetype_orthorect = filetype_info.get("orthorect", True)
@@ -149,21 +154,20 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         return row_chunks, chunks
 
     def _collect_dim_sizes(self) -> dict[str, int]:
-        """Map dimension name to size for every dimension used by a variable.
+        """Map the pixel and tie point dimension names found in the file to their sizes.
 
-        ``NetCDF4FileHandler.collect_dimensions`` does not recurse into groups,
-        so the dimensions of a grouped product are not in ``file_content``.
-        The per-variable shape and dimension entries always are.
+        Each dimension is looked up in the groups of ``DIMENSION_SCOPES`` in order,
+        as the variables using it may take it from a parent group. Iterating
+        ``file_content`` instead would walk through the whole file.
 
         """
-        suffix = "/dimensions"
         dim_sizes: dict[str, int] = {}
-        for key, dim_names in self.file_content.items():
-            if not key.endswith(suffix):
-                continue
-            shape = self.file_content.get(key[:-len(suffix)] + "/shape")
-            if shape is not None and len(shape) == len(dim_names):
-                dim_sizes.update(zip(dim_names, shape))
+        for dim in itertools.chain(*PIXEL_DIMS, TIE_POINT_DIMS):
+            for scope in DIMENSION_SCOPES:
+                size = self.file_content.get(f"{scope}dimension/{dim}")
+                if size is not None:
+                    dim_sizes[dim] = size
+                    break
         return dim_sizes
 
     def _rechunk_to_pixel_grid(self, variable):
