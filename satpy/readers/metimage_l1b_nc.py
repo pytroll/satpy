@@ -117,8 +117,8 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
         """Recover the digital numbers stored in the file.
 
         xarray applies scale_factor and add_offset when reading the netCDF and masks the
-        pixels matching _FillValue (or missing_value) to NaN. Reverse the scaling, restore
-        the original fill value at the masked pixels and cast back to the stored integer type.
+        pixels matching _FillValue to NaN. Reverse the scaling, restore the original fill
+        value at the masked pixels and cast back to the stored integer type.
 
         Args:
             variable: xarray DataArray containing the scaled (radiance) values.
@@ -133,19 +133,14 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
 
         counts = ((variable - add_offset) / scale_factor).round()
 
-        fill_value = None
-        for fill_attr in ("_FillValue", "missing_value"):
-            fill_value = variable.encoding.get(fill_attr, variable.attrs.get(fill_attr))
-            if fill_value is not None:
-                break
+        fill_value = variable.encoding.get("_FillValue", variable.attrs.get("_FillValue"))
         if fill_value is not None:
-            fill_value = np.dtype(original_dtype).type(fill_value)
-            counts = counts.fillna(fill_value)
+            counts = counts.fillna(np.dtype(original_dtype).type(fill_value))
 
         counts = counts.astype(original_dtype)
         counts.attrs = variable.attrs
         if fill_value is not None:
-            counts.attrs["_FillValue"] = fill_value
+            counts.attrs["_FillValue"] = int(fill_value)
         return counts
 
     @staticmethod

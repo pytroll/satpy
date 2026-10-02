@@ -41,26 +41,18 @@ def _counts_raw():
     return raw
 
 
-def _add_counts_variables(measurement):
-    """Add channels stored as scaled integers, like the real products, for the counts calibration tests.
-
-    ``vii_3740`` flags missing pixels with _FillValue (and has a packed valid range), ``vii_3959``
-    with missing_value instead.
-    """
-    for name, fill_attr in (("vii_3740", "_FillValue"), ("vii_3959", "missing_value")):
-        counts = measurement.createVariable(name, np.uint16,
-                                            dimensions=("num_lines", "num_pixels"),
-                                            fill_value=COUNTS_FILL if fill_attr == "_FillValue" else None,
-                                            chunksizes=(1, NUM_PIXELS))
-        counts.scale_factor = COUNTS_SCALE
-        counts.add_offset = COUNTS_OFFSET
-        if fill_attr == "_FillValue":
-            counts.valid_min = np.uint16(0)
-            counts.valid_max = np.uint16(8189)
-        else:
-            counts.missing_value = COUNTS_FILL
-        counts.set_auto_maskandscale(False)
-        counts[:] = _counts_raw()
+def _add_counts_variable(measurement):
+    """Add a channel stored as scaled integers with a fill value, like the real products."""
+    counts = measurement.createVariable("vii_3740", np.uint16,
+                                        dimensions=("num_lines", "num_pixels"),
+                                        fill_value=COUNTS_FILL,
+                                        chunksizes=(1, NUM_PIXELS))
+    counts.scale_factor = COUNTS_SCALE
+    counts.add_offset = COUNTS_OFFSET
+    counts.valid_min = np.uint16(0)
+    counts.valid_max = np.uint16(8189)
+    counts.set_auto_maskandscale(False)
+    counts[:] = _counts_raw()
 
 
 def _create_l1b_file(path, with_tie_points=True,
@@ -100,7 +92,7 @@ def _create_l1b_file(path, with_tie_points=True,
                                               dimensions=("num_lines", "num_pixels"),
                                               chunksizes=(1, NUM_PIXELS))
         radiance[:] = np.arange(NUM_LINES * NUM_PIXELS).reshape(NUM_LINES, NUM_PIXELS)
-        _add_counts_variables(measurement)
+        _add_counts_variable(measurement)
         delta_lat = measurement.createVariable("delta_lat_N_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
                                                chunksizes=(1, NUM_PIXELS))
@@ -262,11 +254,9 @@ def test_reflectance_calibration(reader):
     np.testing.assert_allclose(calibrated_variable.values, expected_values)
 
 
-@pytest.mark.parametrize("file_key", ["data/measurement_data/vii_3740", "data/measurement_data/vii_3959"],
-                         ids=["_FillValue", "missing_value"])
-def test_counts_calibration_returns_stored_integers(reader, file_key):
+def test_counts_calibration_returns_stored_integers(reader):
     """Test that the counts calibration recovers the on-disk digital numbers, fill pixels included."""
-    variable = reader[file_key]
+    variable = reader["data/measurement_data/vii_3740"]
 
     calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
 
@@ -274,7 +264,7 @@ def test_counts_calibration_returns_stored_integers(reader, file_key):
     np.testing.assert_array_equal(calibrated_variable.values, _counts_raw())
     assert (calibrated_variable.values[3, ::5] == COUNTS_FILL).all()
     assert calibrated_variable.attrs["_FillValue"] == COUNTS_FILL
-    assert calibrated_variable.attrs["_FillValue"].dtype == np.uint16
+    assert type(calibrated_variable.attrs["_FillValue"]) is int
 
 
 def test_counts_calibration_of_unscaled_variable(reader):
