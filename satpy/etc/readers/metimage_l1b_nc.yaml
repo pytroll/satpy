@@ -53,6 +53,9 @@ datasets:
     file_key: data/measurement_data/vii_443
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -69,6 +72,9 @@ datasets:
     file_key: data/measurement_data/vii_555
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -85,6 +91,9 @@ datasets:
     file_key: data/measurement_data/vii_668
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -101,6 +110,9 @@ datasets:
     file_key: data/measurement_data/vii_752
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -117,6 +129,9 @@ datasets:
     file_key: data/measurement_data/vii_763
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -133,6 +148,9 @@ datasets:
     file_key: data/measurement_data/vii_865
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -149,6 +167,9 @@ datasets:
     file_key: data/measurement_data/vii_914
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -165,6 +186,9 @@ datasets:
     file_key: data/measurement_data/vii_1240
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -181,6 +205,9 @@ datasets:
     file_key: data/measurement_data/vii_1375
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -197,6 +224,9 @@ datasets:
     file_key: data/measurement_data/vii_1630
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -213,6 +243,9 @@ datasets:
     file_key: data/measurement_data/vii_2250
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -229,6 +262,9 @@ datasets:
     file_key: data/measurement_data/vii_3740
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -245,6 +281,9 @@ datasets:
     file_key: data/measurement_data/vii_3959
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -261,6 +300,9 @@ datasets:
     file_key: data/measurement_data/vii_4050
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -277,6 +319,9 @@ datasets:
     file_key: data/measurement_data/vii_6725
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -293,6 +338,9 @@ datasets:
     file_key: data/measurement_data/vii_7325
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -309,6 +357,9 @@ datasets:
     file_key: data/measurement_data/vii_8540
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -325,6 +376,9 @@ datasets:
     file_key: data/measurement_data/vii_10690
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -341,6 +395,9 @@ datasets:
     file_key: data/measurement_data/vii_12020
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -357,6 +414,9 @@ datasets:
     file_key: data/measurement_data/vii_13345
     coordinates: [lat_pixels, lon_pixels]
     calibration:
+      counts:
+        standard_name: counts
+        units: "1"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
