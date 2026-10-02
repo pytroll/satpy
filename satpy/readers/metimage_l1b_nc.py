@@ -116,31 +116,26 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
     def _calibrate_counts(variable: xr.DataArray) -> xr.DataArray:
         """Recover the digital numbers stored in the file.
 
-        xarray applies scale_factor and add_offset when reading the netCDF and masks the
-        pixels matching _FillValue to NaN. Reverse the scaling, restore the original fill
-        value at the masked pixels and cast back to the stored integer type.
+        The channels are stored as scaled integers with a _FillValue. xarray applies
+        scale_factor and add_offset when reading the netCDF and masks the fill pixels
+        to NaN, so reverse the scaling, restore the fill value at the masked pixels and
+        cast back to the stored integer type.
 
         Args:
             variable: xarray DataArray containing the scaled (radiance) values.
 
         Returns:
-            array containing the counts, with ``_FillValue`` in its attributes when the file defines one.
+            array containing the counts, with ``_FillValue`` in its attributes.
 
         """
-        scale_factor = variable.encoding.get("scale_factor", variable.attrs.get("scale_factor", 1.0))
-        add_offset = variable.encoding.get("add_offset", variable.attrs.get("add_offset", 0.0))
-        original_dtype = variable.encoding.get("dtype", variable.dtype)
+        encoding = variable.encoding
+        original_dtype = encoding["dtype"]
+        fill_value = encoding["_FillValue"]
 
-        counts = ((variable - add_offset) / scale_factor).round()
-
-        fill_value = variable.encoding.get("_FillValue", variable.attrs.get("_FillValue"))
-        if fill_value is not None:
-            counts = counts.fillna(np.dtype(original_dtype).type(fill_value))
-
-        counts = counts.astype(original_dtype)
+        counts = ((variable - encoding["add_offset"]) / encoding["scale_factor"]).round()
+        counts = counts.fillna(np.dtype(original_dtype).type(fill_value)).astype(original_dtype)
         counts.attrs = variable.attrs
-        if fill_value is not None:
-            counts.attrs["_FillValue"] = int(fill_value)
+        counts.attrs["_FillValue"] = int(fill_value)
         return counts
 
     @staticmethod

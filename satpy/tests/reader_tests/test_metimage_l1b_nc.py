@@ -267,17 +267,6 @@ def test_counts_calibration_returns_stored_integers(reader):
     assert type(calibrated_variable.attrs["_FillValue"]) is int
 
 
-def test_counts_calibration_of_unscaled_variable(reader):
-    """Test counts calibration of a variable stored without scaling or a fill value."""
-    variable = _make_variable()
-
-    calibrated_variable = reader._perform_calibration(variable, {"calibration": "counts"})
-
-    np.testing.assert_array_equal(calibrated_variable.values,
-                                  np.ones((NUM_LINES, NUM_PIXELS)))
-    assert "_FillValue" not in calibrated_variable.attrs
-
-
 @pytest.mark.parametrize(("calibration", "keeps_valid_range"),
                          [("counts", True), ("radiance", False), ("brightness_temperature", False)])
 def test_valid_range_is_only_kept_for_counts(reader, calibration, keeps_valid_range):
