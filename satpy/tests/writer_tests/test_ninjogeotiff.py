@@ -13,7 +13,6 @@ from pyresample import create_area_def
 from trollimage.xrimage import XRImage
 
 from satpy import Scene
-from satpy.enhancements.enhancer import get_enhanced_image
 
 try:
     from math import prod
@@ -30,6 +29,19 @@ except ImportError:  # Remove when dropping Python < 3.8
 # - tmp_path
 # - monkeypatch
 # - caplog
+
+
+def _get_linear_stretched_image(data_arr):
+    """Create an image with a dynamic linear stretch applied.
+
+    The data is marked as ``image_ready`` so that the writer doesn't enhance
+    it a second time.
+
+    """
+    data_arr.attrs["standard_name"] = "image_ready"
+    img = XRImage(data_arr)
+    img.stretch("linear")
+    return img
 
 
 def _get_fake_da(lo, hi, shp, dtype="f4"):
@@ -173,7 +185,7 @@ def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
             "area": test_area_tiny_eqc_sphere},
         coords={"bands": ["L"]},
     )
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -189,7 +201,7 @@ def test_image_small_mid_atlantic_K_L(test_area_tiny_eqc_sphere):
             "units": "K"},
         coords={"bands": ["L"]},
     )
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -207,7 +219,7 @@ def test_image_small_mid_atlantic_L_no_quantity(test_area_tiny_eqc_sphere):
             "start_time": datetime.datetime(1985, 8, 13, 13, 0),
             "area": test_area_tiny_eqc_sphere,
             "units": "N/A"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -222,7 +234,7 @@ def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
             "start_time": datetime.datetime(2015, 10, 21, 20, 25, 0),
             "area": test_area_small_eqc_wgs84,
             "mode": "RGB"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -258,7 +270,7 @@ def test_image_northpole(test_area_northpole):
             "start_time": datetime.datetime(1926, 5, 12, 0),
             "area": test_area_northpole,
             "mode": "L"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -273,7 +285,7 @@ def test_image_weird(test_area_weird):
             "start_time": datetime.datetime(1970, 1, 1),
             "area": test_area_weird,
             "mode": "LA"})
-    return get_enhanced_image(da)
+    return _get_linear_stretched_image(da)
 
 
 @pytest.fixture(scope="module")
@@ -288,7 +300,7 @@ def test_image_rgba_merc(test_area_merc):
             "start_time": datetime.datetime(2013, 2, 22, 12, 0),
             "area": test_area_merc,
             "mode": "RGBA"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -303,7 +315,7 @@ def test_image_cmyk_antarctic(test_area_tiny_antarctic):
             "start_time": datetime.datetime(2065, 11, 22, 11),
             "area": test_area_tiny_antarctic,
             "mode": "CMYK"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
@@ -318,7 +330,7 @@ def test_image_latlon(test_area_epsg4326):
             "start_time": datetime.datetime(2001, 1, 1, 0),
             "area": test_area_epsg4326,
             "mode": "L"})
-    return get_enhanced_image(arr)
+    return _get_linear_stretched_image(arr)
 
 
 @pytest.fixture(scope="module")
