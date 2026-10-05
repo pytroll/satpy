@@ -56,13 +56,19 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
 
     _unzipped = None
 
-    def __init__(self, filename, filename_info, filetype_info, orthorect=False):
+    def __init__(self, filename, filename_info, filetype_info, orthorect=None, **kwargs):
         """Prepare the class for dataset reading."""
         self._original_filename = filename
         self._unzipped = unzip_file(filename)
         if self._unzipped:
             filename = self._unzipped
-        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
+
+        if kwargs.get("auto_maskandscale") is not None:
+            logger.warning("auto_maskandscale was given as a reader kwarg but is hardcoded to True.")
+        kwargs.pop("auto_maskandscale", None)
+
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
+
         self._global_attributes = None
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
@@ -73,7 +79,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             self._xarray_kwargs["chunks"] = chunks
 
         # Saves the orthorectification flag
-        self.orthorect = orthorect and filetype_info.get("orthorect", True)
+        filetype_orthorect = filetype_info.get("orthorect", True)
+        self.orthorect = orthorect and filetype_orthorect
+        logger.debug(f"Orthorectification is set to {self.orthorect} as the reader kwarg is {orthorect} and "
+                     f"the filetype orthorect flag is {filetype_orthorect}")
+        if not filetype_orthorect and orthorect:
+            logger.warning("Orthorectification is not available for this filetype, so the correction is disabled"
+                           "despite the reader kwarg orthorect=True.")
 
         # Saves the interpolation flag
         self.interpolate = filetype_info.get("interpolate", True)
