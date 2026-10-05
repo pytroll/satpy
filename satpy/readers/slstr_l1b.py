@@ -8,6 +8,7 @@ import re
 import warnings
 
 import dask.array as da
+import netCDF4
 import numpy as np
 import xarray as xr
 
@@ -45,28 +46,37 @@ CHANCALIB_FACTORS = {"S1_nadir": 0.97,
                      "S8_oblique": 1.0,
                      "S9_oblique": 1.0, }
 
+def _open_dataset(filename, chunks):
+    return xr.open_dataset(filename, engine="netcdf4", decode_cf=True, mask_and_scale=True, chunks=chunks)
+
 
 class NCSLSTRGeo(BaseFileHandler):
     """Filehandler for geo info."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the geo filehandler."""
-        super(NCSLSTRGeo, self).__init__(filename, filename_info,
-                                         filetype_info)
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={"columns": CHUNK_SIZE,
-                                          "rows": CHUNK_SIZE})
-        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
-
+        super(NCSLSTRGeo, self).__init__(filename, filename_info, filetype_info)
+        self._nc = None
+        self.stripe = filename_info["stripe"]
+        self.view = filename_info["view"]
         self.cache = {}
+
+    @property
+    def nc(self):
+        """Helper function for loading netcdf dataset."""
+        if self._nc is None:
+            self._nc = _open_dataset(self.filename, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
+            self._nc = self._nc.rename({"columns": "x", "rows": "y"})
+        return self._nc
 
     def get_dataset(self, key, info):
         """Load a dataset."""
+        if self.stripe != key["stripe"].name or self.view != key["view"].name[0]:
+            return
+
         logger.debug("Reading %s.", key["name"])
-        file_key = info["file_key"].format(view=key["view"].name[0],
-                                           stripe=key["stripe"].name)
+        file_key = info["file_key"].format(view=key["view"].name[0], stripe=key["stripe"].name)
+
         try:
             variable = self.nc[file_key]
         except KeyError:
@@ -74,19 +84,20 @@ class NCSLSTRGeo(BaseFileHandler):
 
         info = info.copy()
         info.update(variable.attrs)
-
         variable.attrs = info
         return variable
 
     @property
     def start_time(self):
         """Get the start time."""
-        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("start_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("stop_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTR1B(BaseFileHandler):
@@ -109,43 +120,45 @@ class NCSLSTR1B(BaseFileHandler):
     Will multiply S1 nadir radiances by 1.12.
     """
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 user_calibration=None):
+    def __init__(self, filename, filename_info, filetype_info, user_calibration=None):
         """Initialize the SLSTR l1 data filehandler."""
-        super(NCSLSTR1B, self).__init__(filename, filename_info,
-                                        filetype_info)
-
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={"columns": CHUNK_SIZE,
-                                          "rows": CHUNK_SIZE})
-        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        super(NCSLSTR1B, self).__init__(filename, filename_info, filetype_info)
+        self._nc = None
+        self._cal = None
+        self._indices = None
         self.baseline = filename_info["baseline"]
         self.channel = filename_info["dataset_name"]
         self.stripe = filename_info["stripe"]
         views = {"n": "nadir", "o": "oblique"}
         self.view = views[filename_info["view"]]
-        cal_file = os.path.join(os.path.dirname(self.filename), "viscal.nc")
-        self.cal = xr.open_dataset(cal_file,
-                                   decode_cf=True,
-                                   mask_and_scale=True,
-                                   chunks={"views": CHUNK_SIZE})
-        indices_file = os.path.join(os.path.dirname(self.filename),
-                                    "indices_{}{}.nc".format(self.stripe, self.view[0]))
-        self.indices = xr.open_dataset(indices_file,
-                                       decode_cf=True,
-                                       mask_and_scale=True,
-                                       chunks={"columns": CHUNK_SIZE,
-                                               "rows": CHUNK_SIZE})
-        self.indices = self.indices.rename({"columns": "x", "rows": "y"})
-
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
         self.sensor = "slstr"
-        if isinstance(user_calibration, dict):
-            self.usercalib = user_calibration
-        else:
-            self.usercalib = None
+        self.usercalib = user_calibration if isinstance(user_calibration, dict) else None
+
+    @property
+    def nc(self):
+        """Helper function for loading netcdf dataset."""
+        if self._nc is None:
+            self._nc = _open_dataset(self.filename, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
+            self._nc = self._nc.rename({"columns": "x", "rows": "y"})
+        return self._nc
+
+    @property
+    def cal(self):
+        """Helper function for loading the calibration dataset."""
+        if self._cal is None:
+            filename = os.path.join(os.path.dirname(self.filename), "viscal.nc")
+            self._cal = _open_dataset(filename, {"views": CHUNK_SIZE})
+        return self._cal
+
+    @property
+    def indices(self):
+        """Helper function for loading the detector indices dataset."""
+        if self._indices is None:
+            filename = os.path.join(os.path.dirname(self.filename), "indices_{}{}.nc".format(self.stripe, self.view[0]))
+            self._indices = _open_dataset(filename, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
+            self._indices = self._indices.rename({"columns": "x", "rows": "y"})
+        return self._indices
 
     def _apply_radiance_adjustment(self, radiances):
         """Adjust SLSTR radiances with default or user supplied values."""
@@ -228,12 +241,14 @@ class NCSLSTR1B(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("start_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("stop_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRAngles(BaseFileHandler):
@@ -241,40 +256,51 @@ class NCSLSTRAngles(BaseFileHandler):
 
     def _loadcart(self, fname):
         """Load a cartesian file of appropriate type."""
-        cartf = xr.open_dataset(fname,
-                                decode_cf=True,
-                                mask_and_scale=True,
-                                chunks={"columns": CHUNK_SIZE,
-                                        "rows": CHUNK_SIZE})
-        return cartf
+        return _open_dataset(fname, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the angles reader."""
-        super(NCSLSTRAngles, self).__init__(filename, filename_info,
-                                            filetype_info)
-
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={"columns": CHUNK_SIZE,
-                                          "rows": CHUNK_SIZE})
-
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        super(NCSLSTRAngles, self).__init__(filename, filename_info, filetype_info)
+        self._nc = None
+        self._carta = None
+        self._carti = None
+        self._cartx = None
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
         self.sensor = "slstr"
         self.view = filename_info["view"]
         self._start_time = filename_info["start_time"]
         self._end_time = filename_info["end_time"]
+        self._carta_file = os.path.join(os.path.dirname(self.filename), "cartesian_a{}.nc".format(self.view[0]))
+        self._carti_file = os.path.join(os.path.dirname(self.filename), "cartesian_i{}.nc".format(self.view[0]))
+        self._cartx_file = os.path.join(os.path.dirname(self.filename), "cartesian_tx.nc")
 
-        carta_file = os.path.join(
-            os.path.dirname(self.filename), "cartesian_a{}.nc".format(self.view[0]))
-        carti_file = os.path.join(
-            os.path.dirname(self.filename), "cartesian_i{}.nc".format(self.view[0]))
-        cartx_file = os.path.join(
-            os.path.dirname(self.filename), "cartesian_tx.nc")
-        self.carta = self._loadcart(carta_file)
-        self.carti = self._loadcart(carti_file)
-        self.cartx = self._loadcart(cartx_file)
+    @property
+    def nc(self):
+        """Helper function for loading netcdf dataset."""
+        if self._nc is None:
+            self._nc = _open_dataset(self.filename, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
+        return self._nc
+
+    @property
+    def carta(self):
+        """Helper function for loading the cartesian_a dataset."""
+        if self._carta is None:
+            self._carta = self._loadcart(self._carta_file)
+        return self._carta
+
+    @property
+    def carti(self):
+        """Helper function for loading the cartesian_i dataset."""
+        if self._carti is None:
+            self._carti = self._loadcart(self._carti_file)
+        return self._carti
+
+    @property
+    def cartx(self):
+        """Helper function for loading the cartesian_tx dataset."""
+        if self._cartx is None:
+            self._cartx = self._loadcart(self._cartx_file)
+        return self._cartx
 
     @staticmethod
     def _interp_data(indata, full_grid, tie_grid, ds_name):
@@ -354,12 +380,14 @@ class NCSLSTRAngles(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("start_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("stop_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class NCSLSTRFlag(BaseFileHandler):
@@ -367,20 +395,21 @@ class NCSLSTRFlag(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the flag reader."""
-        super(NCSLSTRFlag, self).__init__(filename, filename_info,
-                                          filetype_info)
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={"columns": CHUNK_SIZE,
-                                          "rows": CHUNK_SIZE})
-        self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        super(NCSLSTRFlag, self).__init__(filename, filename_info, filetype_info)
+        self._nc = None
         self.stripe = filename_info["stripe"]
         views = {"n": "nadir", "o": "oblique"}
         self.view = views[filename_info["view"]]
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info["mission_id"]]
         self.sensor = "slstr"
+
+    @property
+    def nc(self):
+        """Helper function for loading netcdf dataset."""
+        if self._nc is None:
+            self._nc = _open_dataset(self.filename, {"columns": CHUNK_SIZE, "rows": CHUNK_SIZE})
+            self._nc = self._nc.rename({"columns": "x", "rows": "y"})
+        return self._nc
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -404,9 +433,11 @@ class NCSLSTRFlag(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        return dt.datetime.strptime(self.nc.attrs["start_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("start_time"), "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get the end time."""
-        return dt.datetime.strptime(self.nc.attrs["stop_time"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        with netCDF4.Dataset(self.filename) as nc:
+            return dt.datetime.strptime(nc.getncattr("stop_time"), "%Y-%m-%dT%H:%M:%S.%fZ")

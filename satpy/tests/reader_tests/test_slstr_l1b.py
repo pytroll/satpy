@@ -148,12 +148,19 @@ class TestSLSTRReader(TestSLSTRL1B):
             """Fake function to return interpolated data."""
             return np.zeros((3, 2))
 
+    @mock.patch("satpy.readers.slstr_l1b.netCDF4.Dataset")
     @mock.patch("satpy.readers.slstr_l1b.xr")
     @mock.patch("scipy.interpolate.RectBivariateSpline")
-    def test_instantiate(self, bvs_, xr_):
+    def test_instantiate(self, bvs_, xr_, nc_):
         """Test initialization of file handlers."""
         bvs_.return_value = self.FakeSpl
+
         xr_.open_dataset.return_value = self.fake_dataset
+        nc = nc_.return_value.__enter__.return_value
+        nc.getncattr.side_effect = lambda name: {
+            "start_time": self.start_time,
+            "stop_time": self.end_time,
+        }[name]
 
         good_start = dt.datetime.strptime(self.start_time,
                                           "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -186,7 +193,7 @@ class TestSLSTRReader(TestSLSTRL1B):
         test.get_dataset(ds_id, dict(filename_info, **{"file_key": "foo"}))
         assert test.start_time == good_start
         assert test.end_time == good_end
-        xr_.open_dataset.assert_called()
+        xr_.open_dataset.assert_not_called()
         xr_.open_dataset.reset_mock()
 
         filename_info = {"mission_id": "S3A", "dataset_name": "foo",
