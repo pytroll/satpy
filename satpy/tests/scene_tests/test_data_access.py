@@ -1,6 +1,6 @@
 """Unit tests for data access methods and properties of the Scene class."""
-import contextlib
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -24,6 +24,12 @@ def _scene_with_three_datasets():
     scene["2"] = xr.DataArray(np.arange(5))
     scene["3"] = xr.DataArray(np.arange(5))
     return scene
+
+
+def _assert_same_objects(objs, exp_objs, exp_type):
+    """Check that iteration produced exactly the expected objects of the expected type."""
+    assert [type(obj) for obj in objs] == [exp_type] * len(exp_objs)
+    assert all(obj is exp_obj for obj, exp_obj in zip(objs, exp_objs, strict=True))
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -65,25 +71,32 @@ class TestDataAccessMethods:
         scene["my_ds"] = xr.DataArray([], attrs={"sensor": added_sensor})
         assert scene.sensor_names == exp_sensors
 
-    @pytest.mark.parametrize(
-        ("iter_keys", "exp_type", "exp_deprecated"),
-        [
-            (None, xr.DataArray, True),
-            (False, xr.DataArray, False),
-            (True, DataID, False),
-        ]
-    )
-    def test_iter(self, iter_keys, exp_type, exp_deprecated):
-        """Test iteration over the scene for each 'scene_iter_keys' config value."""
+    def test_iter(self):
+        """Test iteration over the scene produces the DataID keys."""
         scene = _scene_with_three_datasets()
-        exp_objs = list(scene.keys()) if exp_type is DataID else list(scene.values())
-        exp_warning = contextlib.nullcontext()
-        if exp_deprecated:
-            exp_warning = pytest.warns(UserWarning, match="Satpy 1.0")
-        with satpy.config.set(scene_iter_keys=iter_keys), exp_warning:
+        # 8< v1.0
+        with satpy.config.set(scene_iter_keys=True):
             objs = list(scene)
-        assert [type(obj) for obj in objs] == [exp_type] * 3
-        assert all(obj is exp_obj for obj, exp_obj in zip(objs, exp_objs, strict=True))
+        # >8 v1.0
+        # objs = list(scene)
+        _assert_same_objects(objs, list(scene.keys()), DataID)
+
+    # 8< v1.0
+    def test_iter_default_deprecated(self):
+        """Test iteration over the scene by default produces the DataArrays with a warning."""
+        scene = _scene_with_three_datasets()
+        with pytest.warns(UserWarning, match="Satpy 1.0"):
+            objs = list(scene)
+        _assert_same_objects(objs, list(scene.values()), xr.DataArray)
+    # >8 v1.0
+
+    def test_iter_dataarrays_no_warning(self):
+        """Test iteration over the scene produces the DataArrays without a warning when requested."""
+        scene = _scene_with_three_datasets()
+        with satpy.config.set(scene_iter_keys=False), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            objs = list(scene)
+        _assert_same_objects(objs, list(scene.values()), xr.DataArray)
 
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""

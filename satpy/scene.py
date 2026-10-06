@@ -24,6 +24,7 @@ from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from
 
 LOG = logging.getLogger(__name__)
 
+# 8< v1.0
 _SCENE_ITER_WARNING = (
     "Iterating over a Scene currently produces the DataArrays it contains. In Satpy 1.0 this will "
     "change to produce the DataID keys instead, like a dictionary. Use 'Scene.values()' to keep the "
@@ -33,6 +34,7 @@ _SCENE_ITER_WARNING = (
     "at which point iteration will always produce DataID keys. See "
     "https://satpy.readthedocs.io/en/stable/config.html#scene-iteration-keys"
 )
+# >8 v1.0
 
 
 def _get_area_resolution(area):
@@ -557,9 +559,11 @@ class Scene:
 
         """
         iter_keys = satpy.config.get("scene_iter_keys")
+        # 8< v1.0
         if iter_keys is None:
             warnings.warn(_SCENE_ITER_WARNING, UserWarning, stacklevel=2)
             iter_keys = False
+        # >8 v1.0
         if iter_keys:
             return iter(self._datasets.keys())
         return iter(self._datasets.values())
