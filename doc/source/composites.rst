@@ -147,6 +147,8 @@ palette colors for continuous data. To save a palettized image with mode
 ``P``, pass ``keep_palette=True`` to
 :meth:`Scene.save_datasets <satpy.scene.Scene.save_datasets>`.
 
+.. 8< v1.0
+
 .. deprecated:: 0.39
 
    :class:`satpy.composites.lookup.ColorizeCompositor` and
@@ -155,6 +157,8 @@ palette colors for continuous data. To save a palettized image with mode
    :class:`~satpy.composites.core.SingleBandCompositor` with a
    :func:`~satpy.enhancements.colormap.colorize` or
    :func:`~satpy.enhancements.colormap.palettize` enhancement as shown above.
+
+.. >8 v1.0
 
 DifferenceCompositor
 --------------------

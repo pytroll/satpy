@@ -13,8 +13,10 @@ import pytest
         "CategoricalDataCompositor",
         "check_times",
         "CloudCompositor",
+        # 8< v1.0
         "ColorizeCompositor",
         "ColormapCompositor",
+        # >8 v1.0
         "CompositeBase",
         "DayNightCompositor",
         "DifferenceCompositor",
@@ -31,7 +33,9 @@ import pytest
         "MaskingCompositor",
         "MultiFiller",
         "NaturalEnh",
+        # 8< v1.0
         "PaletteCompositor",
+        # >8 v1.0
         "RatioCompositor",
         "RatioSharpenedRGB",
         "RealisticColors",

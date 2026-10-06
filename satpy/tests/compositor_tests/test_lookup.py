@@ -5,10 +5,15 @@ import unittest
 
 import dask.array as da
 import numpy as np
+
+# 8< v1.0
 import pytest
+
+# >8 v1.0
 import xarray as xr
 
 
+# 8< v1.0
 class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 
@@ -106,6 +111,7 @@ class TestColorizeCompositor(unittest.TestCase):
         np.testing.assert_allclose(res, exp, atol=1e-4)
 
 
+# >8 v1.0
 class TestCategoricalDataCompositor(unittest.TestCase):
     """Test composiotor for recategorization of categorical data."""
 

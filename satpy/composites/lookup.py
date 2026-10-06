@@ -4,12 +4,19 @@
 from __future__ import annotations
 
 import logging
+
+# 8< v1.0
 import warnings
 
+# >8 v1.0
 import numpy as np
 import xarray as xr
 
+# 8< v1.0
 from .core import CompositeBase, GenericCompositor
+
+# >8 v1.0
+# from .core import CompositeBase
 
 LOG = logging.getLogger(__name__)
 
@@ -64,6 +71,7 @@ class CategoricalDataCompositor(CompositeBase):
         return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
 
+# 8< v1.0
 class ColormapCompositor(GenericCompositor):
     """A compositor that uses colormaps.
 
@@ -208,3 +216,4 @@ class PaletteCompositor(ColormapCompositor):
 def _insert_palette_colors(channels, palette):
     channels = palette[channels]
     return channels
+# >8 v1.0
