@@ -56,13 +56,19 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
 
     _unzipped = None
 
-    def __init__(self, filename, filename_info, filetype_info, orthorect=False):
+    def __init__(self, filename, filename_info, filetype_info, orthorect=None, **kwargs):
         """Prepare the class for dataset reading."""
         self._original_filename = filename
         self._unzipped = unzip_file(filename)
         if self._unzipped:
             filename = self._unzipped
-        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
+
+        if kwargs.get("auto_maskandscale") is not None:
+            logger.warning("auto_maskandscale was given as a reader kwarg but is hardcoded to True.")
+        kwargs.pop("auto_maskandscale", None)
+
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
+
         self._global_attributes = None
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
@@ -73,7 +79,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             self._xarray_kwargs["chunks"] = chunks
 
         # Saves the orthorectification flag
-        self.orthorect = orthorect and filetype_info.get("orthorect", True)
+        filetype_orthorect = filetype_info.get("orthorect", True)
+        self.orthorect = orthorect and filetype_orthorect
+        logger.debug(f"Orthorectification is set to {self.orthorect} as the reader kwarg is {orthorect} and "
+                     f"the filetype orthorect flag is {filetype_orthorect}")
+        if not filetype_orthorect and orthorect:
+            logger.warning("Orthorectification is not available for this filetype, so the correction is disabled"
+                           "despite the reader kwarg orthorect=True.")
 
         # Saves the interpolation flag
         self.interpolate = filetype_info.get("interpolate", True)
@@ -215,14 +227,24 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
-        # Remove possibly incorrect attributes
-        for possible_invalid_attr in ("valid_min", "valid_max"):
-            variable.attrs.pop(possible_invalid_attr, None)
+        self._remove_invalid_valid_range(variable, dataset_info)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    @staticmethod
+    def _remove_invalid_valid_range(variable, dataset_info):
+        """Remove the possibly incorrect valid range attributes.
+
+        The file's valid range applies to the packed integers on disk, so it is only kept
+        for the counts calibration.
+        """
+        if dataset_info.get("calibration") == "counts":
+            return
+        for possible_invalid_attr in ("valid_min", "valid_max"):
+            variable.attrs.pop(possible_invalid_attr, None)
 
     def __del__(self):
         """Remove the decompressed temp file, if one was created."""

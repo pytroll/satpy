@@ -29,9 +29,11 @@ IMPORT_PATHS = {
     "add_alpha_bands": "satpy.composites.fill",
     "zero_missing_data": "satpy.composites.fill",
     "CategoricalDataCompositor": "satpy.composites.lookup",
+    # 8< v1.0
     "ColorizeCompositor": "satpy.composites.lookup",
     "ColormapCompositor": "satpy.composites.lookup",
     "PaletteCompositor": "satpy.composites.lookup",
+    # >8 v1.0
     "CloudCompositor": "satpy.composites.mask",
     "HighCloudCompositor": "satpy.composites.mask",
     "LongitudeMaskingCompositor": "satpy.composites.mask",
