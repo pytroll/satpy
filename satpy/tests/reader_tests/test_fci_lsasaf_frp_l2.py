@@ -93,26 +93,22 @@ def sample_nc_file(tmp_path):
 
 
 @pytest.fixture(params=["csv", "nc"])
-def reader(request, sample_csv_file, sample_nc_file, filename_info, filetype_info):
+def reader(request, filename_info, filetype_info):
     """Create the requested FRP file handler."""
     if request.param == "csv":
+        sample_file = request.getfixturevalue("sample_csv_file")
         return CSVFileHandler(
-            str(sample_csv_file),
+            str(sample_file),
             filename_info,
             filetype_info,
         )
 
+    sample_file = request.getfixturevalue("sample_nc_file")
     return NCFileHandler(
-        str(sample_nc_file),
+        str(sample_file),
         filename_info,
         filetype_info,
     )
-
-
-@pytest.fixture
-def reader_kind(request):
-    """Return the parameterized reader kind."""
-    return request.param
 
 
 def test_start_time(reader, filename_info):
