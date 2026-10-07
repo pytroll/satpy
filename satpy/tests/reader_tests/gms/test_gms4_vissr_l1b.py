@@ -180,15 +180,20 @@ def image_lines(channel):
 
 
 @pytest.fixture
-def file_contents(mode_block, coord_block, cal_block, image_lines, navigation_blocks):
-    """Bundle the blocks that make up a VISSR file's contents into one dict."""
+def header_blocks(mode_block, coord_block, cal_block, navigation_blocks):
+    """Bundle the header blocks of a VISSR file into one dict."""
     return {
         "mode": mode_block,
         "coordinate_conversion": coord_block,
         "calibration": cal_block,
-        "image_data": image_lines,
         **navigation_blocks,
     }
+
+
+@pytest.fixture
+def file_contents(header_blocks, image_lines):
+    """Get the contents of a VISSR file: header blocks and image data."""
+    return {**header_blocks, "image_data": image_lines}
 
 
 @pytest.fixture
