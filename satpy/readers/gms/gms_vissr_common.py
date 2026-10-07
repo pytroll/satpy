@@ -7,22 +7,24 @@ readers. Navigation is shared as well, see
 :mod:`satpy.readers.gms.gms_vissr_navigation`.
 """
 
+import numba
 import numpy as np
 
 import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms_vissr_navigation as nav
 
 FILL_VALUE = -1  # scanline not intersecting the earth
+# Calibration levels for which the lookup table yields fractions that need to be converted to percent.
+# "reflectance" is the deprecated name of "unnormalized_reflectance" (GMS-5).
+PERCENT_CALIBRATIONS = ("reflectance", "unnormalized_reflectance")
 
 
-def _lookup_calibration_value(block, lut, mask):
+def _lookup_calibration_value(counts, calib_table):
     """Look up calibrated values for a block of counts.
 
     Module-level (not a closure) so dask can pickle it for distributed schedulers.
     """
-    if mask is not None:
-        block = block.astype(np.int64) & mask
-    return lut[block]
+    return calib_table[counts]
 
 
 class Calibrator:
@@ -31,20 +33,13 @@ class Calibrator:
     Reference: Section 2.2 in the VISSR User Guide.
     """
 
-    def __init__(self, calib_table, mask=None, percent_calibrations=("unnormalized_reflectance",)):
+    def __init__(self, calib_table):
         """Initialize the calibrator.
 
         Args:
             calib_table: Calibration table (lookup table indexed by counts).
-            mask: Optional bit mask applied to the counts before the lookup,
-                for channels with fewer bits than the storage type (e.g. 0x3F
-                for 6-bit VIS counts).
-            percent_calibrations: Calibration levels whose table values are
-                fractions and need to be converted to percent.
         """
         self._calib_table = calib_table
-        self._mask = mask
-        self._percent_calibrations = percent_calibrations
 
     def calibrate(self, counts, calibration):
         """Transform counts (a dask array) to the given calibration level."""
@@ -56,14 +51,13 @@ class Calibrator:
     def _calibrate(self, counts):
         return counts.map_blocks(
             _lookup_calibration_value,
-            lut=self._calib_table,
-            mask=self._mask,
+            calib_table=self._calib_table,
             dtype=np.float32,
             meta=np.array((), dtype=np.float32),
         )
 
     def _postproc(self, res, calibration):
-        if calibration in self._percent_calibrations:
+        if calibration in PERCENT_CALIBRATIONS:
             return res * 100
         return res
 
@@ -82,22 +76,24 @@ def scale_earth_edges(edges, ratio, fill_value=FILL_VALUE):
     return np.where(edges != fill_value, (edges * ratio).astype(np.int32), edges)
 
 
+@numba.njit
 def get_earth_mask(shape, earth_edges, fill_value=FILL_VALUE):
-    """Get binary mask where True/False indicates earth/space.
+    """Get binary mask where 1/0 indicates earth/space.
 
     Args:
         shape: Image shape
         earth_edges: First and last earth pixel in each scanline
         fill_value: Fill value for scanlines not intersecting the earth.
     """
-    first_earth_pixels, last_earth_pixels = (np.asarray(edges) for edges in earth_edges)
-    intersects_earth = (first_earth_pixels != fill_value) & (last_earth_pixels != fill_value)
-    # Clamp each edge only on the side where it can leave the image. Lines
-    # with first > last end up empty.
-    first = np.maximum(first_earth_pixels, 0)
-    last = np.minimum(last_earth_pixels, shape[1] - 1)
-    pixels = np.arange(shape[1])
-    return intersects_earth[:, None] & (pixels[None, :] >= first[:, None]) & (pixels[None, :] <= last[:, None])
+    first_earth_pixels, last_earth_pixels = earth_edges
+    mask = np.zeros(shape, dtype=np.int8)
+    for line in range(shape[0]):
+        first = first_earth_pixels[line]
+        last = last_earth_pixels[line]
+        if first == fill_value or last == fill_value:
+            continue
+        mask[line, first:last+1] = 1
+    return mask
 
 
 class AreaDefEstimator:

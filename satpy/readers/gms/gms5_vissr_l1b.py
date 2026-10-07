@@ -173,16 +173,6 @@ from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
-FULL_DISK_SIZE = {
-    "IR": 2366,
-    "VIS": 9464,
-}
-PERCENT_CALIBRATIONS = (
-    # 8< v1.0
-    "reflectance",
-    # >8 v1.0
-    "unnormalized_reflectance",
-)
 
 
 def _recarr2dict(arr, preserve=None):
@@ -396,7 +386,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _calibrate(self, counts, dataset_id):
         table = self._get_calibration_table(dataset_id)
-        cal = Calibrator(table, percent_calibrations=PERCENT_CALIBRATIONS)
+        cal = Calibrator(table)
         res = cal.calibrate(counts.data, dataset_id["calibration"])
         return xr.DataArray(res, dims=counts.dims, coords=counts.coords)
 
@@ -429,7 +419,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         )
         return estimator.get_area_def_uniform_sampling(
             dataset_id,
-            size=FULL_DISK_SIZE[fmt.CHANNEL_TYPES[dataset_id["name"]]],
+            size=self._get_nominal_shape()[0],
             stepping_angle=coord_conv["stepping_angle_along_line"][_get_alternative_channel_name(dataset_id)],
         )
 

@@ -168,7 +168,10 @@ import satpy.readers.gms.gms_vissr_navigation as nav
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
 from satpy.readers.hrit_jma import mjd2datetime64
-from satpy.utils import datetime64_to_pydatetime
+from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
+
+CHUNK_SIZE = get_legacy_chunk_size()
+INSTRUMENT = "VISSR"
 
 
 def _mjd_to_datetime(mjd):
@@ -200,8 +203,8 @@ class GmsVissrFileHandler(BaseFileHandler):
 
     @property
     def sensor_names(self):
-        """Set of sensor names this file handler provides data for."""
-        return {"VISSR"}
+        """Set of sensor names this file handler provides data for (as in the YAML definition)."""
+        return {"gms4-vissr"}
 
     def combine_info(self, all_infos):
         """Combine per-file info dicts; GMS-1..4 archives are always a single VIS+IR file pair, never segmented."""
@@ -210,18 +213,15 @@ class GmsVissrFileHandler(BaseFileHandler):
         return super().combine_info(all_infos)
 
     def get_dataset(self, dataset_id, ds_info):
-        """Return the calibrated DataArray for *dataset_id*, or None if this file doesn't hold that channel."""
+        """Return the DataArray for *dataset_id*, or None if this file doesn't hold that channel."""
         requested_channel = ds_info.get("name", getattr(dataset_id, "name", None))
         if requested_channel != self._l1b.channel:
             return None
 
-        data_array = self._l1b.get_dataset(mask_space=self._mask_space)
+        data_array = self._l1b.get_dataset(dataset_id["calibration"], mask_space=self._mask_space)
         data_array.name = ds_info.get("name", self._l1b.channel)
         data_array.attrs.update(ds_info)
-        data_array.attrs["start_time"] = self.start_time
-        data_array.attrs["end_time"] = self.end_time
         data_array.attrs["platform_name"] = self._platform_name()
-        data_array.attrs["sensor"] = "VISSR"
 
         nadir_resolution = (
             float(self._l1b.coord[f"stepping_angle_{self._l1b.channel.lower()}"])
@@ -251,7 +251,7 @@ class GmsVissrFileHandler(BaseFileHandler):
         suffix = "ir" if self._l1b.channel == "IR" else "vis"
         estimator = common.AreaDefEstimator(
             platform_name=self._platform_name(),
-            sensor_name="VISSR",
+            sensor_name=INSTRUMENT,
             ssp_lon=float(self._l1b.mode["ssp_longitude"]),
             satellite_height=float(self._l1b.mode["satellite_height"]),
         )
@@ -275,7 +275,7 @@ def _read_struct(raw, offset, dtype):
 class GmsVissrL1bFile:
     """Load a single IR or VIS GMS-1..4 archive file."""
 
-    def __init__(self, path, line_chunks=64):
+    def __init__(self, path):
         """Detect the file's channel (VIS/IR) and parse its header blocks."""
         name = os.path.basename(os.fspath(path)).upper()
         if name.startswith("VS"):
@@ -313,7 +313,6 @@ class GmsVissrL1bFile:
         self.calibration = _read_struct(self._raw, params[cal_key]["offset"],
                                          params[cal_key]["dtype"])
 
-        self._line_chunks = line_chunks
         self._parse_image_data(spec)
 
     def _parse_image_data(self, spec):
@@ -333,10 +332,12 @@ class GmsVissrL1bFile:
         self.east_earth_edges = arr["LCW"]["east_side_earth_edge"].astype(np.int32)
         self._pixels_np = arr["image_data"]  # (nlines, npix) uint8
         self.n_lines, self.n_pixels = self._pixels_np.shape
+        # Chunks of whole lines, holding about as many pixels as a Satpy chunk.
+        self._chunks = (max(1, CHUNK_SIZE * CHUNK_SIZE // self.n_pixels), self.n_pixels)
 
     def pixel_counts_dask(self):
         """Return raw 0-255 (IR) / 0-63 (VIS) pixel counts as a dask array."""
-        return da.from_array(self._pixels_np, chunks=(self._line_chunks, self.n_pixels))
+        return da.from_array(self._pixels_np, chunks=self._chunks)
 
     def calibration_lut(self):
         """Return this file's own calibration lookup table for its channel."""
@@ -346,7 +347,7 @@ class GmsVissrL1bFile:
             return self.calibration["vis1_calibration_table"]["brightness_albedo_conversion_table"]
 
     def get_earth_mask(self):
-        """Return a boolean mask, True = earth disk, False = space."""
+        """Return a mask where 1 is the earth disk and 0 is space."""
         return common.get_earth_mask((self.n_lines, self.n_pixels), self._earth_edges_for_mask())
 
     def _earth_edges_for_mask(self):
@@ -362,17 +363,14 @@ class GmsVissrL1bFile:
         ratio = sampling_angle_ir / sampling_angle_vis if sampling_angle_vis > 0 else 2.0
         return common.scale_earth_edges(west, ratio), common.scale_earth_edges(east, ratio)
 
-    def calibrated_dask(self):
-        """Return calibrated physical values as a lazy dask array.
+    def calibrate(self, calibration):
+        """Return the counts or the calibrated values as a lazy dask array.
 
-        Kelvin for IR, albedo % 0-100 for VIS, via the Calibrator class
-        above.
+        Args:
+            calibration: "counts", "brightness_temperature" (IR) or "unnormalized_reflectance" (VIS)
         """
-        mask = 0xFF if self.channel == fmt.IR_CHANNEL else 0x3F
-        calibrator = common.Calibrator(self.calibration_lut(), mask=mask)
-        counts = self.pixel_counts_dask()
-        calibration_level = "brightness_temperature" if self.channel == fmt.IR_CHANNEL else "unnormalized_reflectance"
-        return calibrator.calibrate(counts, calibration_level)
+        calibrator = common.Calibrator(self.calibration_lut())
+        return calibrator.calibrate(self.pixel_counts_dask(), calibration)
 
     def _build_navigation_parameters(self, channel=None, solar=False):
         channel = channel or self.channel
@@ -464,36 +462,26 @@ class GmsVissrL1bFile:
         return nav.PredictedNavigationParameters(attitude=attitude_prediction, orbit=orbit_prediction)
 
     def navigate_dask(self):
-        """Return lat/lon as dask arrays, via the navigation module."""
+        """Return lon/lat as dask arrays, via the navigation module."""
         nav_params = self._build_navigation_parameters()
-        lines = self.line_numbers.astype(np.float64) - 1.0  # see _build_navigation_parameters note on +1 convention
-        pixels = np.arange(self.n_pixels, dtype=np.float64)
-        lons, lats = nav.get_lons_lats(lines, pixels, nav_params)
+        line_chunks, pixel_chunks = self._chunks
+        # Line numbers are 1-based, the navigation module expects 0-based lines.
+        lines = da.from_array(self.line_numbers.astype(np.float64) - 1.0, chunks=line_chunks)
+        pixels = da.from_array(np.arange(self.n_pixels, dtype=np.float64), chunks=pixel_chunks)
+        return nav.get_lons_lats(lines, pixels, nav_params)
 
-        chunks = (self._line_chunks, self.n_pixels)
-        lats = lats.rechunk(chunks) if hasattr(lats, "rechunk") else da.from_array(lats, chunks=chunks)
-        lons = lons.rechunk(chunks) if hasattr(lons, "rechunk") else da.from_array(lons, chunks=chunks)
-        return lats, lons
-
-    def get_dataset(self, mask_space=True):
-        """Return an xarray.DataArray of calibrated values, space-masked."""
-        data = self.calibrated_dask()
+    def get_dataset(self, calibration, mask_space=True):
+        """Return an xarray.DataArray of counts or calibrated values, with lon/lat coordinates."""
+        data = self.calibrate(calibration)
         if mask_space:
-            earth_mask = da.from_array(self.get_earth_mask(), chunks=(self._line_chunks, self.n_pixels))
-            data = da.where(earth_mask, data, np.nan)
-        lat, lon = self.navigate_dask()
-        da_out = xr.DataArray(
-            data, dims=("y", "x"),
+            earth_mask = da.from_array(self.get_earth_mask(), chunks=self._chunks)
+            data = da.where(earth_mask, data, np.float32(np.nan))
+        lon, lat = self.navigate_dask()
+        return xr.DataArray(
+            data,
+            dims=("y", "x"),
             coords={
                 "longitude": (("y", "x"), lon),
                 "latitude": (("y", "x"), lat),
             },
-            attrs={
-                "platform": "GMS (1-4 family, satellite ID TBD from mode block)",
-                "sensor": "VISSR",
-                "channel": self.channel,
-                "units": "K" if self.channel == fmt.IR_CHANNEL else "albedo",
-                "start_time": self.coord["scheduled_observation_time"],
-            },
         )
-        return da_out

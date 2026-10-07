@@ -470,15 +470,19 @@ class TestFileHandler:
 
     @pytest.fixture
     def area_def_exp(self, dataset_id):
-        """Get expected area definition."""
+        """Get expected area definition.
+
+        The area is square with as many lines and pixels as the nominal frame
+        has lines (2 in this test), and one pixel per stepping angle.
+        """
         if dataset_id["name"] == "IR1":
             resol = 5
-            size = 2366
-            extent = (-20438.1468, -20438.1468, 20455.4306, 20455.4306)
+            stepping_angle = 0.00014000005
         else:
             resol = 1
-            size = 9464
-            extent = (-20444.6235, -20444.6235, 20448.9445, 20448.9445)
+            stepping_angle = 3.5000005e-05
+        size = 2
+        pixel_size = stepping_angle * 123456.0
         area_id = f"gms-5_vissr_western-pacific_{resol}km"
         desc = f"GMS-5 VISSR Western Pacific area definition with {resol} km resolution"
         return AreaDefinition(
@@ -497,7 +501,7 @@ class TestFileHandler:
                 "x_0": "0",
                 "y_0": "0",
             },
-            area_extent=extent,
+            area_extent=(-0.5 * pixel_size, -0.5 * pixel_size, 1.5 * pixel_size, 1.5 * pixel_size),
             width=size,
             height=size,
         )

@@ -4,9 +4,28 @@ import dask.array as da
 import numpy as np
 import pytest
 
-import satpy.readers.gms.gms_vissr_common as common
-import satpy.readers.gms.gms_vissr_navigation as nav
-from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.utils import get_jit_methods
+from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
+
+try:
+    import satpy.readers.gms.gms_vissr_common as common
+    import satpy.readers.gms.gms_vissr_navigation as nav
+except ImportError as err:
+    if skip_numba_unstable_if_missing():
+        pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
+    raise
+
+
+@pytest.fixture(params=[False, True])
+def _disable_jit(request, monkeypatch):
+    """Run tests with jit enabled and disabled.
+
+    Reason: Coverage report is only accurate with jit disabled.
+    """
+    if request.param:
+        jit_methods = get_jit_methods(common)
+        for name, method in jit_methods.items():
+            monkeypatch.setattr(name, method.py_func)
 
 
 class TestCalibrator:
@@ -38,44 +57,45 @@ class TestCalibrator:
         res = common.Calibrator(table).calibrate(counts, "unnormalized_reflectance")
         np.testing.assert_allclose(res.compute(), [[0, 10], [20, 30]], rtol=1e-6)
 
-    def test_custom_percent_calibrations(self, counts, table):
-        """Test that readers can declare additional calibrations as percent."""
-        cal = common.Calibrator(table, percent_calibrations=("reflectance",))
-        res = cal.calibrate(counts, "reflectance")
+    def test_deprecated_reflectance_is_percent_too(self, counts, table):
+        """Test that the deprecated name of unnormalized reflectance is converted to percent as well."""
+        res = common.Calibrator(table).calibrate(counts, "reflectance")
         np.testing.assert_allclose(res.compute(), [[0, 10], [20, 30]], rtol=1e-6)
 
-    def test_mask(self, table):
-        """Test that the mask is applied before the lookup (6-bit counts)."""
-        counts = da.from_array(np.array([[0b11000001, 0b00000010]], dtype=np.uint8), chunks=1)
-        res = common.Calibrator(table, mask=0x3F).calibrate(counts, "brightness_temperature")
-        np.testing.assert_allclose(res.compute(), [[0.1, 0.2]], rtol=1e-6)
 
-
+@pytest.mark.usefixtures("_disable_jit")
 class TestEarthMask:
     """Test getting the earth mask."""
 
     def test_get_earth_mask(self):
-        """Test getting the earth mask."""
-        edges = np.array([-1, 1, 0, -1]), np.array([-1, 3, 2, -1])
+        """Test getting the earth mask of a disk, which is symmetric in both directions."""
+        first_earth_pixels = np.array([-1, 1, 0, 1, -1])
+        last_earth_pixels = np.array([-1, 3, 4, 3, -1])
+        edges = first_earth_pixels, last_earth_pixels
         mask_exp = np.array(
-            [[0, 0, 0, 0],
-             [0, 1, 1, 1],
-             [1, 1, 1, 0],
-             [0, 0, 0, 0]],
-            dtype=bool
+            [[0, 0, 0, 0, 0],
+             [0, 1, 1, 1, 0],
+             [1, 1, 1, 1, 1],
+             [0, 1, 1, 1, 0],
+             [0, 0, 0, 0, 0]]
         )
         mask = common.get_earth_mask(mask_exp.shape, edges)
         np.testing.assert_array_equal(mask, mask_exp)
 
     def test_fill_value_on_one_side_only(self):
         """Test that a scanline with only one fill value edge is fully masked."""
-        mask = common.get_earth_mask((1, 4), (np.array([-1]), np.array([2])))
+        mask = common.get_earth_mask((2, 4), (np.array([-1, 0]), np.array([2, -1])))
         assert not mask.any()
 
-    def test_edges_outside_image_are_clamped(self):
-        """Test that edges beyond the image border don't break the mask."""
-        mask = common.get_earth_mask((2, 4), (np.array([0, 10]), np.array([10, 12])))
-        np.testing.assert_array_equal(mask, [[1, 1, 1, 1], [0, 0, 0, 0]])
+    def test_last_pixel_beyond_image_border(self):
+        """Test that a last earth pixel beyond the image border doesn't break the mask."""
+        mask = common.get_earth_mask((1, 4), (np.array([1]), np.array([10])))
+        np.testing.assert_array_equal(mask, [[0, 1, 1, 1]])
+
+    def test_edges_outside_image(self):
+        """Test that scanlines which are entirely outside the image are masked."""
+        mask = common.get_earth_mask((1, 4), (np.array([10]), np.array([12])))
+        assert not mask.any()
 
     def test_scale_earth_edges(self):
         """Test that edges are scaled but fill values are preserved."""
