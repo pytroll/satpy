@@ -68,6 +68,7 @@ The following people have made contributions to this project:
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
+- [Fabio Mingione (FabMin94)](https://github.com/FabMin94)
 - [Zifeng Mo (Isotr0py)](https://github.com/Isotr0py)
 - [Mikhail Moskovchenko (simonreise)](https://github.com/simonreise)
 - [David Navia (dnaviap)](https://github.com/dnaviap)
@@ -118,3 +119,4 @@ The following people have made contributions to this project:
 - [Alexandra Melzer](https://github.com/armelzer)
 - [Francesc Lucas Carbó (cesclc)](https://github.com/cesclc)
 - [Göte Kleringer (Grukank)](https://github.com/Grukank)
+- [Danny Kilkenny](https://github.com/DKilkenny)

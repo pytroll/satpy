@@ -4,6 +4,9 @@
 
 import datetime as dt
 import logging
+import os
+from contextlib import suppress
+from types import MappingProxyType
 
 import numpy as np
 import xarray as xr
@@ -16,6 +19,7 @@ from satpy.readers.core.metimage import (
     TIE_POINTS_FACTOR,
 )
 from satpy.readers.core.netcdf import NetCDF4FileHandler
+from satpy.readers.core.utils import unzip_file
 from satpy.utils import normalize_low_res_chunks
 
 logger = logging.getLogger(__name__)
@@ -28,6 +32,11 @@ TIE_POINT_DIMS = ("num_tie_points_alt", "num_tie_points_act")
 
 class METimageNCBaseFileHandler(NetCDF4FileHandler):
     """Base reader class for METimage (VII) products in netCDF format.
+
+    Supports both plain and bz2-compressed (.nc.bz2) input files. Compressed
+    files are transparently decompressed to a temporary file on disk before
+    reading; the temp file is removed when the file handler is garbage
+    collected.
 
     Args:
         filename (str): File to read
@@ -45,9 +54,22 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         "%Y-%m-%d %H:%M:%S.%f",   # e.g. 2025-09-24 12:15:30.123456
     ]
 
-    def __init__(self, filename, filename_info, filetype_info, orthorect=False):
+    _unzipped = None
+
+    def __init__(self, filename, filename_info, filetype_info, orthorect=None, **kwargs):
         """Prepare the class for dataset reading."""
-        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True)
+        self._original_filename = filename
+        self._unzipped = unzip_file(filename)
+        if self._unzipped:
+            filename = self._unzipped
+
+        if kwargs.get("auto_maskandscale") is not None:
+            logger.warning("auto_maskandscale was given as a reader kwarg but is hardcoded to True.")
+        kwargs.pop("auto_maskandscale", None)
+
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale=True, **kwargs)
+
+        self._global_attributes = None
 
         # Chunk whole rows of pixels so that dask chunks are aligned to the
         # on-disk chunks and to the scans of the instrument.
@@ -57,7 +79,13 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
             self._xarray_kwargs["chunks"] = chunks
 
         # Saves the orthorectification flag
-        self.orthorect = orthorect and filetype_info.get("orthorect", True)
+        filetype_orthorect = filetype_info.get("orthorect", True)
+        self.orthorect = orthorect and filetype_orthorect
+        logger.debug(f"Orthorectification is set to {self.orthorect} as the reader kwarg is {orthorect} and "
+                     f"the filetype orthorect flag is {filetype_orthorect}")
+        if not filetype_orthorect and orthorect:
+            logger.warning("Orthorectification is not available for this filetype, so the correction is disabled"
+                           "despite the reader kwarg orthorect=True.")
 
         # Saves the interpolation flag
         self.interpolate = filetype_info.get("interpolate", True)
@@ -199,14 +227,31 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         # Manage the attributes of the dataset
         variable.attrs.setdefault("units", None)
 
-        # Remove possibly incorrect attributes
-        for possible_invalid_attr in ("valid_min", "valid_max"):
-            variable.attrs.pop(possible_invalid_attr, None)
+        self._remove_invalid_valid_range(variable, dataset_info)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
         variable = self._standardize_dims(variable)
         return variable
+
+    @staticmethod
+    def _remove_invalid_valid_range(variable, dataset_info):
+        """Remove the possibly incorrect valid range attributes.
+
+        The file's valid range applies to the packed integers on disk, so it is only kept
+        for the counts calibration.
+        """
+        if dataset_info.get("calibration") == "counts":
+            return
+        for possible_invalid_attr in ("valid_min", "valid_max"):
+            variable.attrs.pop(possible_invalid_attr, None)
+
+    def __del__(self):
+        """Remove the decompressed temp file, if one was created."""
+        super().__del__()   # release the netCDF/h5netcdf handle first, so Windows can drop its lock
+        with suppress(OSError):
+            if self._unzipped:
+                os.remove(self._unzipped)
 
     @staticmethod
     def wrap_longitude(longitude_array):
@@ -281,9 +326,20 @@ class METimageNCBaseFileHandler(NetCDF4FileHandler):
         raise NotImplementedError
 
     def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets."""
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        The attributes only depend on the file, so they are collected once and
+        cached on the instance; ``get_dataset`` calls this for every dataset.
+        A read-only view of the cached dictionary is returned.
+
+        """
+        if self._global_attributes is None:
+            self._global_attributes = MappingProxyType(self._collect_global_attributes())
+        return self._global_attributes
+
+    def _collect_global_attributes(self):
         attributes = {
-            "filename": self.filename,
+            "filename": self._original_filename,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "spacecraft_name": self.spacecraft_name,

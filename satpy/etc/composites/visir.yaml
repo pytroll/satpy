@@ -442,24 +442,21 @@ composites:
     standard_name: cloud_optical_thickness_pps
 
   cloud_water_path:
-    compositor: !!python/name:satpy.composites.lookup.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
     - cmic_cwp
-    - cmic_cwp_pal
     standard_name: cloud_water_path
 
   ice_water_path:
-    compositor: !!python/name:satpy.composites.lookup.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
     - cmic_iwp
-    - cmic_iwp_pal
     standard_name: ice_water_path
 
   liquid_water_path:
-    compositor: !!python/name:satpy.composites.lookup.ColorizeCompositor
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
     prerequisites:
     - cmic_lwp
-    - cmic_lwp_pal
     standard_name: liquid_water_path
 
   night_microphysics:

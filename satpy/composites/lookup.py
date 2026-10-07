@@ -5,10 +5,18 @@ from __future__ import annotations
 
 import logging
 
+# 8< v1.0
+import warnings
+
+# >8 v1.0
 import numpy as np
 import xarray as xr
 
+# 8< v1.0
 from .core import CompositeBase, GenericCompositor
+
+# >8 v1.0
+# from .core import CompositeBase
 
 LOG = logging.getLogger(__name__)
 
@@ -63,6 +71,7 @@ class CategoricalDataCompositor(CompositeBase):
         return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
 
+# 8< v1.0
 class ColormapCompositor(GenericCompositor):
     """A compositor that uses colormaps.
 
@@ -81,7 +90,7 @@ class ColormapCompositor(GenericCompositor):
         compositor: !!python/name:satpy.composites.core.SingleBandCompositor
         prerequisites:
         - ctth_alti
-        tandard_name: cloud_top_height
+        standard_name: cloud_top_height
 
     and the enhancement::
 
@@ -97,6 +106,16 @@ class ColormapCompositor(GenericCompositor):
                 min_value: 0
                 max_value: 255
     """
+
+    def __init__(self, name, **kwargs):
+        """Initialize the compositor and warn that it is deprecated."""
+        warnings.warn(
+            f"'{self.__class__.__name__}' is deprecated and will be removed in a future version of Satpy. "
+            "Use a 'SingleBandCompositor' with a 'colorize' or 'palettize' enhancement instead.",
+            UserWarning,
+            stacklevel=2,
+        )
+        super().__init__(name, **kwargs)
 
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -197,3 +216,4 @@ class PaletteCompositor(ColormapCompositor):
 def _insert_palette_colors(channels, palette):
     channels = palette[channels]
     return channels
+# >8 v1.0
