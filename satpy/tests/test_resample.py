@@ -1,7 +1,9 @@
 """Unittests for resamplers."""
 
+import logging
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -117,7 +119,7 @@ class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
     @mock.patch("satpy.resample.kdtree.xr.Dataset")
-    @mock.patch("satpy.resample.kdtree.zarr.open")
+    @mock.patch("zarr.open")
     @mock.patch("satpy.resample.kdtree.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
@@ -192,6 +194,35 @@ class TestKDTreeResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
+
+
+def test_kdtree_resamplers_available_without_zarr():
+    """Test that a broken zarr installation doesn't make the kd-tree resamplers unavailable."""
+    import satpy.resample
+    from satpy.resample.base import get_all_resampler_classes
+
+    # mock.patch.dict drops modules first imported inside it, so import everything beforehand
+    get_all_resampler_classes()
+    # None in sys.modules makes 'import zarr' raise ImportError (ex. zarr 2 with numcodecs 0.16)
+    with mock.patch.dict(sys.modules, {"zarr": None}), mock.patch.object(satpy.resample, "kdtree"):
+        # force a fresh import of the kdtree module, the original is restored afterwards
+        del sys.modules["satpy.resample.kdtree"]
+        resamplers = get_all_resampler_classes()
+    assert {"kd_tree", "nearest", "bilinear"} <= resamplers.keys()
+
+
+def test_resampler_module_import_error_is_logged(caplog):
+    """Test that a builtin resampler module failing to import is logged instead of silently ignored."""
+    from satpy.resample.base import get_all_resampler_classes
+
+    # mock.patch.dict drops modules first imported inside it, so import everything beforehand
+    get_all_resampler_classes()
+    with mock.patch.dict(sys.modules, {"satpy.resample.bucket": None}), \
+            caplog.at_level(logging.WARNING, logger="satpy.resample.base"):
+        resamplers = get_all_resampler_classes()
+    assert "bucket_avg" not in resamplers
+    assert "nearest" in resamplers
+    assert "Resamplers from 'satpy.resample.bucket' are not available" in caplog.text
 
 
 class TestNativeResampler:
