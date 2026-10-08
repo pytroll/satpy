@@ -159,14 +159,6 @@ class _CLAVRxHelper:
         flag_values = data.attrs.get("flag_values", [None])
         valid_range = attrs.get("valid_range", [None])
 
-        is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
-
-        if is_invalid and flag_values[0] is not None:
-            # Fall back to sequential values [0, 1, 2, ...] based on length
-            num_flags = len(flag_values)
-            flag_values = np.arange(num_flags, dtype=data.dtype)
-            attrs["flag_values"] = flag_values.tolist()
-
         if isinstance(valid_range, np.ndarray):
             valid_range = valid_range.tolist()
             attrs["valid_range"] = valid_range
@@ -174,6 +166,14 @@ class _CLAVRxHelper:
         flags = not data.attrs.get("SCALED", 1) and any(flag_values)
         if flags:
             fill = attrs.get("_FillValue", None)
+            is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
+
+            if is_invalid and flag_values[0] is not None:
+                # Fall back to sequential values [0, 1, 2, ...] based on length
+                num_flags = len(flag_values)
+                flag_values = np.arange(num_flags, dtype=data.dtype)
+                attrs["flag_values"] = flag_values.tolist()
+
             if isinstance(flag_values, np.ndarray) or isinstance(flag_values, list):
                 data = data.where((data >= flag_values[0]) & (data <= flag_values[-1]), fill)
         else:
