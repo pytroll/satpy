@@ -1,0 +1,19 @@
+reader:
+  name: uvns_generic
+  short_name: uvns_generic
+  long_name: Generic metadata-driven UVNS reader
+  description: >
+    Metadata-driven NetCDF4/HDF5 reader for explicit use on UVNS-family
+    and related products. (Also experimental generic netCDF4 loader).
+  status: Beta
+  supports_fsspec: false
+  discoverable: false
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  sensors:
+    - gen
+
+file_types:
+  uvn:
+    file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
+    file_patterns:
+      - "{filename:s}.nc"
