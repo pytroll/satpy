@@ -81,7 +81,6 @@ _DTYPE_TO_FILL_KEY = {
 #
 LAZY_LIMIT = 1
 
-
 @dataclass(frozen=True)
 class VariableRecord:
     """Immutable description of a discovered file variable.

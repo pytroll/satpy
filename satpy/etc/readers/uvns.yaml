@@ -5,6 +5,7 @@ reader:
   description: Metadata-driven NetCDF4/HDF5 reader validated for Sentinel-4, Sentinel-5, TROPOMI and GOME products
   status: Beta
   supports_fsspec: false
+  discoverable: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors:
     - uvn
@@ -14,4 +15,31 @@ file_types:
   uvn:
     file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
     file_patterns:
-      - "{filename:s}.nc"
+      # Sentinel-4 UVN products
+      - "*UVN*.nc"
+
+      # Sentinel-5 UVNS products
+      - "*SN5*.nc"
+
+      # GOME products
+      - "*GOME*.nc"
+
+      # Sentinel-5P/TROPOMI products intentionally excluded from
+      # automatic reader discovery.
+      #
+      # The UVNS reader has been validated successfully on Sentinel-5P
+      # Level-1 and Level-2 products and can be used explicitly via:
+      #
+      #     Scene(files, reader="uvns")
+      #
+      # However, enabling automatic discovery for S5P products causes
+      # competition with the dedicated tropomi_l2 reader. In addition,
+      # the tropomi_l2 reader currently only supports Level-2 products;
+      # Level-1 products are not handled correctly and may raise errors
+      # during dataset discovery.
+      #
+      # Future work may introduce a non-discoverable/manual-only reader
+      # mode, allowing broader filename matching without affecting
+      # automatic reader selection.
+      #
+      # - "S5P*.nc"
