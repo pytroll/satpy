@@ -11,8 +11,6 @@ The file handler:
 * assigns deterministic, unique Satpy dataset names;
 * translates explicit NetCDF ``coordinates`` attributes into Satpy coordinate
   dataset references;
-* supplies missing latitude and longitude ``standard_name`` attributes when
-  these can be determined unambiguously from CF-compatible units;
 * normalises known byte-string attribute representations;
 * performs no shape-based coordinate guessing.
 
@@ -83,6 +81,7 @@ _DTYPE_TO_FILL_KEY = {
 #
 LAZY_LIMIT = 1
 
+
 @dataclass(frozen=True)
 class VariableRecord:
     """Immutable description of a discovered file variable.
@@ -112,6 +111,7 @@ class VariableRecord:
     attrs: Mapping[str, Any]
     is_vlen_string: bool = False
 
+
 class AttributeNormalizer:
     """Normalise backend-dependent NetCDF and HDF5 attribute values."""
 
@@ -129,10 +129,14 @@ class AttributeNormalizer:
             return value.rstrip("\x00")
 
         if isinstance(value, (bytes, np.bytes_)):
-            return bytes(value).decode(
-                "utf-8",
-                errors="strict",
-            ).rstrip("\x00")
+            return (
+                bytes(value)
+                .decode(
+                    "utf-8",
+                    errors="strict",
+                )
+                .rstrip("\x00")
+            )
 
         if isinstance(value, np.ndarray) and value.dtype.kind == "S":
             decoded = np.char.decode(
@@ -156,10 +160,7 @@ class AttributeNormalizer:
         attrs: Mapping[str, Any],
     ) -> dict[str, Any]:
         """Normalise all values in an attribute mapping."""
-        return {
-            str(key): cls.normalise_value(value)
-            for key, value in attrs.items()
-        }
+        return {str(key): cls.normalise_value(value) for key, value in attrs.items()}
 
 
 class DatasetNameRegistry:
@@ -178,8 +179,7 @@ class DatasetNameRegistry:
         )
         self._path_to_name = self._build_name_registry(self._paths)
         self._name_to_path = {
-            dataset_name: path
-            for path, dataset_name in self._path_to_name.items()
+            dataset_name: path for path, dataset_name in self._path_to_name.items()
         }
 
     @staticmethod
@@ -240,16 +240,11 @@ class DatasetNameRegistry:
     def _validate_unique_names(mapping: Mapping[str, str]) -> None:
         """Raise if a generated Satpy dataset name is not unique."""
         counts = Counter(mapping.values())
-        duplicates = sorted(
-            name
-            for name, count in counts.items()
-            if count > 1
-        )
+        duplicates = sorted(name for name, count in counts.items() if count > 1)
 
         if duplicates:
             raise ValueError(
-                "Could not generate unique dynamic dataset names: "
-                f"{duplicates!r}"
+                "Could not generate unique dynamic dataset names: " f"{duplicates!r}"
             )
 
     def dataset_name(self, path: str) -> str:
@@ -292,9 +287,7 @@ class CoordinateResolver:
     @staticmethod
     def geographic_role(attrs: Mapping[str, Any]) -> str | None:
         """Return latitude or longitude when metadata identifies the role."""
-        standard_name = str(
-            attrs.get("standard_name", "")
-        ).strip().lower()
+        standard_name = str(attrs.get("standard_name", "")).strip().lower()
 
         if standard_name == "latitude":
             return "latitude"
@@ -318,10 +311,12 @@ class CoordinateResolver:
         if value is None:
             return ()
 
+        raw_values: list[str]
+
         if isinstance(value, str):
             raw_values = value.split()
         elif isinstance(value, (tuple, list, np.ndarray)):
-            raw_values = value
+            raw_values = [str(v) for v in value]
         else:
             logger.warning(
                 "Ignoring unsupported coordinates attribute type %s",
@@ -330,9 +325,9 @@ class CoordinateResolver:
             return ()
 
         return tuple(
-            DatasetNameRegistry.normalise_path(str(path))
+            DatasetNameRegistry.normalise_path(path)
             for path in raw_values
-            if str(path).strip()
+            if path.strip()
         )
 
     @staticmethod
@@ -344,8 +339,7 @@ class CoordinateResolver:
         """Validate a geographic coordinate pair against a source variable."""
         if longitude.dimensions != latitude.dimensions:
             logger.warning(
-                "Longitude %r and latitude %r have different dimensions: "
-                "%r and %r",
+                "Longitude %r and latitude %r have different dimensions: " "%r and %r",
                 longitude.path,
                 latitude.path,
                 longitude.dimensions,
@@ -355,8 +349,7 @@ class CoordinateResolver:
 
         if longitude.shape != latitude.shape:
             logger.warning(
-                "Longitude %r and latitude %r have different shapes: "
-                "%r and %r",
+                "Longitude %r and latitude %r have different shapes: " "%r and %r",
                 longitude.path,
                 latitude.path,
                 longitude.shape,
@@ -386,9 +379,7 @@ class CoordinateResolver:
         attribute are considered. No whole-file latitude or longitude search is
         performed.
         """
-        coordinate_paths = self._parse_coordinate_paths(
-            record.attrs.get("coordinates")
-        )
+        coordinate_paths = self._parse_coordinate_paths(record.attrs.get("coordinates"))
 
         if not coordinate_paths:
             return ()
@@ -409,9 +400,7 @@ class CoordinateResolver:
                 )
                 continue
 
-            role = self.geographic_role(
-                coordinate_record.attrs
-            )
+            role = self.geographic_role(coordinate_record.attrs)
 
             if role is None:
                 logger.debug(
@@ -428,8 +417,7 @@ class CoordinateResolver:
                 and previous_record.path != coordinate_record.path
             ):
                 logger.warning(
-                    "Dataset %r references more than one %s coordinate: "
-                    "%r and %r",
+                    "Dataset %r references more than one %s coordinate: " "%r and %r",
                     record.path,
                     role,
                     previous_record.path,
@@ -444,10 +432,7 @@ class CoordinateResolver:
                 logger.warning(
                     "Dataset %r has an incomplete geographic coordinate pair: %r",
                     record.path,
-                    {
-                        role: rec.path
-                        for role, rec in geographic_records.items()
-                    },
+                    {role: rec.path for role, rec in geographic_records.items()},
                 )
             return ()
 
@@ -469,12 +454,8 @@ class CoordinateResolver:
         )
 
         return (
-            self._names.dataset_name(
-                longitude_record.path
-            ),
-            self._names.dataset_name(
-                latitude_record.path
-            ),
+            self._names.dataset_name(longitude_record.path),
+            self._names.dataset_name(latitude_record.path),
         )
 
     def _resolve_coordinate_reference(
@@ -495,9 +476,7 @@ class CoordinateResolver:
 
             4. Ambiguity failure.
         """
-        reference = DatasetNameRegistry.normalise_path(
-            reference
-        )
+        reference = DatasetNameRegistry.normalise_path(reference)
 
         #
         # 1. Full-path lookup.
@@ -528,19 +507,14 @@ class CoordinateResolver:
             1,
         )[0]
 
-        local_candidate = (
-            f"{parent_group}/{reference}"
-        )
+        local_candidate = f"{parent_group}/{reference}"
 
-        record = self._records.get(
-            local_candidate
-        )
+        record = self._records.get(local_candidate)
 
         if record is not None:
 
             logger.debug(
-                "Resolved coordinate %r for %r "
-                "via namespace-local lookup: %r",
+                "Resolved coordinate %r for %r " "via namespace-local lookup: %r",
                 reference,
                 source_record.path,
                 local_candidate,
@@ -571,6 +545,7 @@ class CoordinateResolver:
 
         return None
 
+
 class BackendCompatibility:
     """Backend interoperability helpers.
 
@@ -599,10 +574,8 @@ class BackendCompatibility:
 
             self._h5netcdf_accessor = H5NetcdfAccessor()
 
-            self._h5netcdf_file_handle = (
-                self._h5netcdf_accessor.create_file_handle(
-                    self.filename
-                )
+            self._h5netcdf_file_handle = self._h5netcdf_accessor.create_file_handle(
+                self.filename
             )
 
         return self._h5netcdf_file_handle
@@ -659,8 +632,7 @@ class BackendCompatibility:
         if dtype.names != view.names:
 
             logger.warning(
-                "Compound dtype/view field mismatch for %s: "
-                "%r != %r",
+                "Compound dtype/view field mismatch for %s: " "%r != %r",
                 key,
                 dtype.names,
                 view.names,
@@ -723,9 +695,7 @@ class BackendCompatibility:
                     # backend used. netCDF4 generally provides the most
                     # faithful interpretation of NetCDF attribute types.
                     #
-                    attrs[attr_name] = var.getncattr(
-                        attr_name
-                    )
+                    attrs[attr_name] = var.getncattr(attr_name)
 
                 except Exception:
 
@@ -740,8 +710,7 @@ class BackendCompatibility:
                     )
 
             logger.warning(
-                "Loaded compound variable via netCDF4 fallback: %s "
-                "(dtype=%s)",
+                "Loaded compound variable via netCDF4 fallback: %s " "(dtype=%s)",
                 key,
                 data.dtype,
             )
@@ -756,7 +725,7 @@ class BackendCompatibility:
         finally:
             ds.close()
 
-#################################################
+
 class DatasetDerivations:
     """Utilities for generating derived datasets."""
 
@@ -813,35 +782,6 @@ class DatasetDerivations:
             0,
         )
 
-    def _coefficients_have_data(
-        self,
-        band_path,
-        coefficient_name,
-    ):
-        da = self[
-            f"{band_path}/instrument_data/"
-            f"{coefficient_name}"
-        ]
-
-        fill_value = da.attrs.get("_FillValue")
-
-        data = da.data
-
-        valid = np.isfinite(data)
-
-        if fill_value is not None:
-            valid &= (data != fill_value)
-
-        valid_min = da.attrs.get("valid_min")
-        valid_max = da.attrs.get("valid_max")
-
-        if valid_min is not None:
-            valid &= (data >= valid_min)
-
-        if valid_max is not None:
-            valid &= (data <= valid_max)
-
-        return bool(valid.any().compute())
 
 class UVNSFileHandler(NetCDF4FileHandler):
     """Dynamically discover and load UVNS-family file variables."""
@@ -880,12 +820,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
         )
         self._dataset_infos = self._build_dataset_infos()
 
-        self._wavelength_handler = (
-            Sentinel5WavelengthHandler(self)
-        )
+        self._wavelength_handler = self._create_wavelength_handler()
 
-        self._derived_dataset_infos = (
-            self._wavelength_handler.discover()
+        self._derived_dataset_infos = self._wavelength_handler.discover()
+
+        logger.info(
+            "Discovered %s wavelength datasets",
+            len(self._derived_dataset_infos),
         )
 
     # Inherited
@@ -902,43 +843,14 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         if self.accessor.engine == "h5netcdf":
             try:
-                info = h5py.check_string_dtype(
-                    var_obj._h5ds.dtype
-                )
+                info = h5py.check_string_dtype(var_obj._h5ds.dtype)
 
-                is_vlen_string = (
-                    info is not None
-                    and info.length is None
-                )
+                is_vlen_string = info is not None and info.length is None
 
-                self.file_content[
-                    var_name + "/is_vlen_string"
-                ] = is_vlen_string
+                self.file_content[var_name + "/is_vlen_string"] = is_vlen_string
 
             except Exception:
-                self.file_content[
-                    var_name + "/is_vlen_string"
-                ] = False
-
-    def _get_h5netcdf_handle(self):
-        """Return a handle used to inspect h5netcdf datatype mappings.
-
-        This handle is used only to compare the original HDF5 compound
-        datatype against the dtype_view generated by h5netcdf.
-
-        It is not part of the netCDF4 fallback path.
-        """
-        if not hasattr(self, "_h5netcdf_file_handle"):
-
-            self._h5netcdf_accessor = H5NetcdfAccessor()
-
-            self._h5netcdf_file_handle = (
-                self._h5netcdf_accessor.create_file_handle(
-                    self.filename
-                )
-            )
-
-        return self._h5netcdf_file_handle
+                self.file_content[var_name + "/is_vlen_string"] = False
 
     @property
     def start_time(self):
@@ -988,15 +900,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
             attrs = self._get_indexed_variable_attrs(raw_path)
 
-            dimensions = tuple(
-                self.file_content[raw_path + "/dimensions"]
-            )
-            shape = tuple(
-                self.file_content[raw_path + "/shape"]
-            )
-            dtype = str(
-                self.file_content[raw_path + "/dtype"]
-            )
+            dimensions = tuple(self.file_content[raw_path + "/dimensions"])
+            shape = tuple(self.file_content[raw_path + "/shape"])
+            dtype = str(self.file_content[raw_path + "/dtype"])
 
             self._warn_for_synthetic_dimensions(
                 path,
@@ -1049,9 +955,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         synthetic = [
             dimension
             for dimension in dimensions
-            if str(dimension).startswith(
-                SYNTHETIC_DIMENSION_PREFIXES
-            )
+            if str(dimension).startswith(SYNTHETIC_DIMENSION_PREFIXES)
         ]
 
         if synthetic:
@@ -1073,20 +977,20 @@ class UVNSFileHandler(NetCDF4FileHandler):
             # internal NetCDF paths directly to Satpy.
             raw_coordinates = ds_info.pop("coordinates", None)
 
-            ds_info.update({
-                "name": record.dataset_name,
-                "file_key": path,
-                "file_type": self.filetype_info["file_type"],
-                "source_dimensions": record.dimensions,
-                "source_shape": record.shape,
-            })
+            ds_info.update(
+                {
+                    "name": record.dataset_name,
+                    "file_key": path,
+                    "file_type": self.filetype_info["file_type"],
+                    "source_dimensions": record.dimensions,
+                    "source_shape": record.shape,
+                }
+            )
 
             if raw_coordinates is not None:
                 ds_info["source_coordinates"] = raw_coordinates
 
-            geographic_role = self._coordinate_resolver.geographic_role(
-                record.attrs
-            )
+            geographic_role = self._coordinate_resolver.geographic_role(record.attrs)
 
             # Latitude and longitude datasets must not depend on themselves.
             if geographic_role is None:
@@ -1099,7 +1003,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return dataset_infos
 
-    ######
     def _build_xarray_kwargs(
         self,
         kwargs_override,
@@ -1107,9 +1010,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         """Build xarray open_dataset keyword arguments."""
         kwargs = dict(self._xarray_kwargs)
 
-        kwargs.update(
-            kwargs_override
-        )
+        kwargs.update(kwargs_override)
 
         return kwargs
 
@@ -1126,10 +1027,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         """
         record = self._records[file_key]
 
-        if (
-            record.is_vlen_string
-            and kwargs.get("chunks") is not None
-        ):
+        if record.is_vlen_string and kwargs.get("chunks") is not None:
             logger.info(
                 "Opening VLEN string variable eagerly: %s",
                 file_key,
@@ -1149,15 +1047,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
     ):
         """Return a backend fallback result if required.
 
-        Returns
+        Returns:
         -------
         xarray.DataArray | None
             Loaded variable when a fallback path is required,
             otherwise None.
         """
-        engine = kwargs.get(
-            "engine"
-        )
+        engine = kwargs.get("engine")
 
         if engine != "h5netcdf":
             return None
@@ -1168,11 +1064,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         ):
             return None
 
-        file_key = (
-            key
-            if group is None
-            else f"{group}/{key}"
-        )
+        file_key = key if group is None else f"{group}/{key}"
 
         logger.warning(
             "Compound variable uses incompatible h5netcdf dtype_view; "
@@ -1192,11 +1084,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         kwargs,
     ):
         """Open a variable through xarray."""
-        file_key = (
-            key
-            if group is None
-            else f"{group}/{key}"
-        )
+        file_key = key if group is None else f"{group}/{key}"
 
         try:
 
@@ -1218,10 +1106,10 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return val
 
-    ######Overrideen inheritance methods. #######
-    ######
-    ######
-    ######
+    #
+    # NetCDF4FileHandler overrides.
+    #
+
     def _get_var_from_xr(
         self,
         group,
@@ -1229,15 +1117,9 @@ class UVNSFileHandler(NetCDF4FileHandler):
         **kwargs_override,
     ):
         """Load a variable through xarray or a compatible fallback."""
-        kwargs = self._build_xarray_kwargs(
-            kwargs_override
-        )
+        kwargs = self._build_xarray_kwargs(kwargs_override)
 
-        file_key = (
-            key
-            if group is None
-            else f"{group}/{key}"
-        )
+        file_key = key if group is None else f"{group}/{key}"
 
         kwargs = self._apply_vlen_rules(
             file_key,
@@ -1258,7 +1140,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
             key,
             kwargs,
         )
-
 
     def _get_var_from_netcdf4(self, group, key):
 
@@ -1355,17 +1236,21 @@ class UVNSFileHandler(NetCDF4FileHandler):
             key_name = key
 
         try:
-
+            #
+            # UVNS datasets are always loaded through the on-demand xarray path.
+            #
+            # This ensures that VLEN handling, compound datatype fallback,
+            # metadata repair handlers, and netCDF4 backend fallbacks are
+            # applied consistently. Cached file-handle access is intentionally
+            # bypassed.
+            #
             if self.file_handle is not None:
-                result = self._get_var_from_filehandle(
-                    group,
-                    key_name,
-                )
-            else:
-                result = self._get_var_from_xr(
-                    group,
-                    key_name,
-                )
+                logger.debug("Ignoring cached file handle for UVNS reader.")
+
+            result = self._get_var_from_xr(
+                group,
+                key_name,
+            )
 
         except Exception as exc:
 
@@ -1380,15 +1265,11 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         return result
 
-    ##############################################
-
     def available_datasets(self, configured_datasets=None):
         """Report configured and dynamically discovered datasets."""
         handled_paths: set[str] = set()
 
-        for is_available, configured_info in (
-            configured_datasets or []
-        ):
+        for is_available, configured_info in configured_datasets or []:
             ds_info = configured_info.copy()
             file_key = ds_info.get(
                 "file_key",
@@ -1407,12 +1288,8 @@ class UVNSFileHandler(NetCDF4FileHandler):
             ):
                 handled_paths.add(normalised_file_key)
 
-                dynamic_name = self._name_registry.dataset_name(
-                    normalised_file_key
-                )
-                dynamic_info = self._dataset_infos[
-                    dynamic_name
-                ]
+                dynamic_name = self._name_registry.dataset_name(normalised_file_key)
+                dynamic_info = self._dataset_infos[dynamic_name]
 
                 merged_info = dynamic_info.copy()
                 merged_info.update(ds_info)
@@ -1427,9 +1304,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             if path in handled_paths:
                 continue
 
-            yield True, self._dataset_infos[
-                record.dataset_name
-            ].copy()
+            yield True, self._dataset_infos[record.dataset_name].copy()
 
         for ds_info in self._derived_dataset_infos.values():
             yield True, ds_info.copy()
@@ -1437,21 +1312,14 @@ class UVNSFileHandler(NetCDF4FileHandler):
     def get_dataset(self, ds_id, ds_info):
         """Load and normalise a dataset by its identifier and metadata configuration.
 
-        This method extracts the target dataset from the file handler, standardises
-        its dimensions, cleans up metadata attributes, and applies the expected
-        Satpy dataset name.
+        This method extracts the target dataset from the file handler,
+        standardises its dimensions, cleans up metadata attributes, and
+        applies the expected Satpy dataset name.
         """
-
-        derived_type = ds_info.get(
-            "derived_type"
-        )
-
+        derived_type = ds_info.get("derived_type")
         if derived_type is not None:
-            return (
-                self._wavelength_handler.get_dataset(
-                    ds_info
-                )
-            )
+
+            return self._wavelength_handler.get_dataset(ds_info)
 
         file_key = DatasetNameRegistry.normalise_path(
             ds_info.get("file_key", ds_id["name"])
@@ -1464,17 +1332,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
         data = self[file_key]
 
         if data is None:
-            raise RuntimeError(
-                f"{file_key} returned None"
-            )
+            raise RuntimeError(f"{file_key} returned None")
 
         data = self._normalise_dimensions(data)
 
         attrs = AttributeNormalizer.normalise_attrs(data.attrs)
 
-        attrs.update(
-            self._public_dataset_metadata(ds_info)
-        )
+        attrs.update(self._public_dataset_metadata(ds_info))
 
         data.attrs = attrs
 
@@ -1492,7 +1356,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         attr_prefix = variable_path + "/attr/"
 
         raw_attrs = {
-            key[len(attr_prefix):]: value
+            key[len(attr_prefix) :]: value
             for key, value in self.file_content.items()
             if key.startswith(attr_prefix)
         }
@@ -1510,18 +1374,13 @@ class UVNSFileHandler(NetCDF4FileHandler):
         if ds_name in self._derived_dataset_infos:
             return None
 
-        record = self._records[
-            self._name_registry.variable_path(ds_name)
-        ]
+        record = self._records[self._name_registry.variable_path(ds_name)]
 
         #
         # Geographic coordinate datasets do not themselves
         # have area definitions.
         #
-        if (
-            self._coordinate_resolver.geographic_role(record.attrs)
-            is not None
-        ):
+        if self._coordinate_resolver.geographic_role(record.attrs) is not None:
             return None
 
         ds_info = self._dataset_infos.get(ds_name)
@@ -1541,8 +1400,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         if lon_info is None or lat_info is None:
             logger.warning(
-                "Missing coordinate dataset metadata for %s "
-                "(lon=%s, lat=%s)",
+                "Missing coordinate dataset metadata for %s " "(lon=%s, lat=%s)",
                 ds_name,
                 lon_name,
                 lat_name,
@@ -1576,8 +1434,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             and lats.shape[0] == 1
         ):
             logger.info(
-                "Collapsing singleton time dimension "
-                "for coordinate pair %r/%r",
+                "Collapsing singleton time dimension " "for coordinate pair %r/%r",
                 lon_name,
                 lat_name,
             )
@@ -1590,8 +1447,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
         #
         if lons.ndim > 2 or lats.ndim > 2:
             raise ValueError(
-                "Cannot build SwathDefinition from "
-                f"{lons.shape=} {lats.shape=}"
+                "Cannot build SwathDefinition from " f"{lons.shape=} {lats.shape=}"
             )
 
         return SwathDefinition(
@@ -1599,7 +1455,52 @@ class UVNSFileHandler(NetCDF4FileHandler):
             lats=lats,
         )
 
+    def _create_wavelength_handler(self):
+        """Create the wavelength handler for the current product.
 
+        Handler selection is based on discovered variable names rather than
+        file-type configuration.
+
+        Sentinel-4 products are identified by the presence of assigned or
+        calibrated spectral-map datasets.
+
+        Sentinel-5 products are identified by the presence of nominal or
+        calibrated wavelength coefficient datasets.
+
+        Products that do not expose recognised wavelength metadata use the
+        base wavelength handler which provides no derived wavelength
+        datasets.
+        """
+        record_names = {record.name for record in self._records.values()}
+
+        #
+        # Sentinel-4
+        #
+        if (
+            "assigned_spectral_map" in record_names
+            or "calibrated_spectral_map" in record_names
+        ):
+            logger.info("Using Sentinel4WavelengthHandler")
+
+            return Sentinel4WavelengthHandler(self)
+
+        #
+        # Sentinel-5
+        #
+        if (
+            "nominal_wavelength_coefficients" in record_names
+            or "calibrated_wavelength_coefficients" in record_names
+        ):
+            logger.info("Using Sentinel5WavelengthHandler")
+
+            return Sentinel5WavelengthHandler(self)
+
+        #
+        # No wavelength support
+        #
+        logger.info("No wavelength handler selected")
+
+        return WavelengthHandler(self)
 
     @staticmethod
     def _normalise_dimensions(data):
@@ -1615,11 +1516,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
         counts = Counter(data.dims)
 
-        duplicates = {
-            dim
-            for dim, count in counts.items()
-            if count > 1
-        }
+        duplicates = {dim for dim, count in counts.items() if count > 1}
 
         if not duplicates:
             return data
@@ -1644,9 +1541,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             else:
                 suffix = str(idx)
 
-            new_dims.append(
-                f"{dim}_{suffix}"
-            )
+            new_dims.append(f"{dim}_{suffix}")
 
             seen[dim] += 1
 
@@ -1664,27 +1559,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
         )
 
     @staticmethod
-    def _complete_coordinate_standard_name(
-        attrs: Mapping[str, Any],
-    ) -> dict[str, Any]:
-        """Complete a missing latitude or longitude standard name."""
-        result = dict(attrs)
-
-        if result.get("standard_name"):
-            return result
-
-        units = str(
-            result.get("units", "")
-        ).strip().lower()
-
-        if units in LATITUDE_UNITS:
-            result["standard_name"] = "latitude"
-        elif units in LONGITUDE_UNITS:
-            result["standard_name"] = "longitude"
-
-        return result
-
-    @staticmethod
     def _public_dataset_metadata(
         ds_info: Mapping[str, Any],
     ) -> dict[str, Any]:
@@ -1698,12 +1572,10 @@ class UVNSFileHandler(NetCDF4FileHandler):
         }
 
         return {
-            key: value
-            for key, value in ds_info.items()
-            if key not in internal_keys
+            key: value for key, value in ds_info.items() if key not in internal_keys
         }
 
-    ####
+    #
     # Generic Metadata Repair Framework
     # ---------------------------------
     #
@@ -1728,10 +1600,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
     def _is_dimension_scalar_error(self, exc):
 
-        return (
-            "already exists as a scalar variable"
-            in str(exc)
-        )
+        return "already exists as a scalar variable" in str(exc)
 
     def _get_var_from_cf_time_repair(
         self,
@@ -1770,7 +1639,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
             val = ds[key]
 
-            #if not val.chunks or val.size < LAZY_LIMIT:
+            # if not val.chunks or val.size < LAZY_LIMIT:
             #    val.load()
             val.load()
             val.attrs["_cf_time_repair"] = True
@@ -1792,10 +1661,7 @@ class UVNSFileHandler(NetCDF4FileHandler):
             #
             # Respect explicit metadata.
             #
-            if (
-                "_FillValue" in var.attrs
-                or "missing_value" in var.attrs
-            ):
+            if "_FillValue" in var.attrs or "missing_value" in var.attrs:
                 continue
 
             dtype = np.dtype(var.dtype)
@@ -1811,18 +1677,20 @@ class UVNSFileHandler(NetCDF4FileHandler):
             # Cheap detection.
             #
             try:
-                has_fill = bool(
-                    (var == fill_value).any().compute()
+                has_fill = bool((var == fill_value).any().compute())
+            except Exception as exc:
+                logger.debug(
+                    "Failed to check fill values for %r: %s",
+                    name,
+                    exc,
                 )
-            except Exception:
                 continue
 
             if not has_fill:
                 continue
 
             logger.warning(
-                "Masking implicit NetCDF fill value %r "
-                "for variable %r",
+                "Masking implicit NetCDF fill value %r " "for variable %r",
                 fill_value,
                 name,
             )
@@ -1863,7 +1731,6 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
             return val
 
-
     def _remove_dimension_size_scalars(self, group):
         """Identify scalar variables that duplicate dimension sizes."""
         ds = netCDF4.Dataset(self.filename)
@@ -1884,7 +1751,12 @@ class UVNSFileHandler(NetCDF4FileHandler):
 
                 try:
                     value = var[...].item()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(
+                        "Failed to read scalar variable %r: %s",
+                        name,
+                        exc,
+                    )
                     continue
 
                 dim_size = len(g.dimensions[name])
@@ -1905,24 +1777,91 @@ class UVNSFileHandler(NetCDF4FileHandler):
             ds.close()
 
 
-
-#################################################
-
+#
+# Wavelength support
+# ------------------
+#
+# UVNS-family products expose wavelength information using product-
+# specific metadata structures. This module provides a common framework
+# that discovers wavelength capabilities dynamically and exposes derived
+# wavelength datasets through the standard Satpy dataset interface.
+#
+# Sentinel-5 products store wavelength solutions as Chebyshev
+# coefficients. The reader expands these coefficients into
+# per-spectral-channel wavelength coordinates and exposes:
+#
+#     * wavelength
+#     * nominal_wavelength
+#     * calibrated_wavelength
+#
+# Sentinel-4 products store assigned and calibrated spectral maps as
+# Chebyshev coefficient sets together with detector column metadata.
+# The reader reconstructs detector wavelength coordinates and exposes:
+#
+#     * wavelength
+#     * assigned_wavelength
+#     * calibrated_wavelength
+#
+# Derived wavelength datasets are discovered automatically from product
+# contents and are advertised only when sufficient information is
+# available to construct a valid wavelength solution.
+#
 class WavelengthHandler:
-    """Base class for wavelength dataset generation."""
+    """Base class for UVNS wavelength support.
+
+    Subclasses implement product-specific wavelength discovery and
+    reconstruction logic while exposing a common interface to the file
+    handler.
+
+    The default implementation represents products that do not provide
+    wavelength metadata suitable for generation of derived wavelength
+    datasets.
+    """
 
     def __init__(self, file_handler):
+        """Initialise the wavelength handler."""
         self.fh = file_handler
 
+    def discover(self):
+        """No derived wavelength datasets available."""
+        return {}
 
-class Sentinel5WavelengthHandler(
-    WavelengthHandler
-):
-    """Sentinel-5 wavelength generation."""
+    def get_dataset(self, ds_info):
+        """Return the requested wavelength dataset."""
+        raise KeyError("No wavelength datasets are available for this product.")
+
+
+class Sentinel5WavelengthHandler(WavelengthHandler):
+    """Generate wavelength datasets from Sentinel-5 coefficient products.
+
+    Sentinel-5 wavelength information is stored as Chebyshev polynomial
+    coefficients. Derived datasets are generated lazily by expanding the
+    coefficients across the instrument spectral dimension.
+
+    Three dataset variants may be exposed:
+
+        * wavelength
+        * nominal_wavelength
+        * calibrated_wavelength
+
+    The generic wavelength dataset automatically selects the calibrated
+    solution when available and otherwise falls back to the nominal
+    solution.
+    """
 
     def discover(self):
-        """Discover wavelength datasets."""
+        """Discover derived Sentinel-5 wavelength datasets.
 
+        Wavelength datasets are advertised only when the source coefficient
+        datasets contain usable wavelength information. Coefficient datasets
+        that contain only fill values, NaNs, or values outside the declared
+        valid range are treated as unavailable.
+
+        Returns:
+        -------
+        dict
+            Mapping of derived dataset name to Satpy dataset metadata.
+        """
         derived = {}
         processed_bands = set()
 
@@ -1949,13 +1888,11 @@ class Sentinel5WavelengthHandler(
             prefix = band_path.replace("/", "__")
 
             nominal_path = (
-                f"{band_path}/instrument_data/"
-                "nominal_wavelength_coefficients"
+                f"{band_path}/instrument_data/" "nominal_wavelength_coefficients"
             )
 
             calibrated_path = (
-                f"{band_path}/instrument_data/"
-                "calibrated_wavelength_coefficients"
+                f"{band_path}/instrument_data/" "calibrated_wavelength_coefficients"
             )
 
             nominal_valid = False
@@ -2004,21 +1941,22 @@ class Sentinel5WavelengthHandler(
         band_path,
     ):
         """Return spectral channel count for a band."""
-        return self.fh[
-            f"{band_path}/spectral_channel"
-        ].size
+        return self.fh[f"{band_path}/spectral_channel"].size
 
     def _coefficients_have_data(
         self,
         band_path,
         coefficient_name,
     ):
-        """Return True if coefficient data contains valid values."""
+        """Determine whether a coefficient dataset contains usable data.
 
-        da = self.fh[
-            f"{band_path}/instrument_data/"
-            f"{coefficient_name}"
-        ]
+        Values identified as fill values, NaNs, or values outside the
+        declared valid range are ignored.
+
+        A wavelength dataset is advertised only when at least one
+        coefficient value remains after validity filtering.
+        """
+        da = self.fh[f"{band_path}/instrument_data/" f"{coefficient_name}"]
 
         fill_value = da.attrs.get("_FillValue")
         valid_min = da.attrs.get("valid_min")
@@ -2029,13 +1967,13 @@ class Sentinel5WavelengthHandler(
         valid = np.isfinite(data)
 
         if fill_value is not None:
-            valid &= (data != fill_value)
+            valid &= data != fill_value
 
         if valid_min is not None:
-            valid &= (data >= valid_min)
+            valid &= data >= valid_min
 
         if valid_max is not None:
-            valid &= (data <= valid_max)
+            valid &= data <= valid_max
 
         return bool(valid.any().compute())
 
@@ -2045,10 +1983,7 @@ class Sentinel5WavelengthHandler(
         coefficient_name,
     ):
         """Load a coefficient variable."""
-        data = self.fh[
-            f"{band_path}/instrument_data/"
-            f"{coefficient_name}"
-        ]
+        data = self.fh[f"{band_path}/instrument_data/" f"{coefficient_name}"]
 
         if isinstance(data, xr.DataArray):
             return data.data
@@ -2060,14 +1995,11 @@ class Sentinel5WavelengthHandler(
         band_path,
     ):
         """Select best available wavelength coefficients."""
-
         if self._coefficients_have_data(
             band_path,
             "calibrated_wavelength_coefficients",
         ):
-            logger.info(
-                "Using calibrated wavelength coefficients."
-            )
+            logger.info("Using calibrated wavelength coefficients.")
 
             return (
                 "calibrated_wavelength_coefficients",
@@ -2084,7 +2016,6 @@ class Sentinel5WavelengthHandler(
             "nominal",
         )
 
-
     def _create_wavelength_dataset(
         self,
         *,
@@ -2095,19 +2026,14 @@ class Sentinel5WavelengthHandler(
         source,
     ):
         """Create a wavelength DataArray."""
-
         coeffs = self._get_coefficients(
             band_path,
             coefficient_name,
         )
 
-        wavelengths = (
-            DatasetDerivations.expand_wavelengths(
-                coeffs,
-                self._spectral_channel_count(
-                    band_path
-                ),
-            )
+        wavelengths = DatasetDerivations.expand_wavelengths(
+            coeffs,
+            self._spectral_channel_count(band_path),
         )
 
         return xr.DataArray(
@@ -2118,7 +2044,7 @@ class Sentinel5WavelengthHandler(
                 "x",
             ),
             name=dataset_name,
-            attrs = {
+            attrs={
                 "long_name": long_name,
                 "wavelength_source": source,
                 "derived_from": coefficient_name,
@@ -2131,7 +2057,6 @@ class Sentinel5WavelengthHandler(
         dataset_name,
     ):
         """Generate wavelengths from nominal coefficients."""
-
         return self._create_wavelength_dataset(
             band_path=band_path,
             coefficient_name="nominal_wavelength_coefficients",
@@ -2140,27 +2065,18 @@ class Sentinel5WavelengthHandler(
             source="nominal",
         )
 
-
     def _get_calibrated_wavelength(
         self,
         band_path,
         dataset_name,
     ):
         """Generate wavelengths from calibrated coefficients."""
-
-        coeffs = self._get_coefficients(
+        if not self._coefficients_have_data(
             band_path,
             "calibrated_wavelength_coefficients",
-        )
-
-        if not self._coefficients_have_data(
-                band_path,
-                "calibrated_wavelength_coefficients",
         ):
 
-            raise KeyError(
-                "No calibrated wavelength coefficients available."
-            )
+            raise KeyError("No calibrated wavelength coefficients available.")
 
         return self._create_wavelength_dataset(
             band_path=band_path,
@@ -2170,19 +2086,17 @@ class Sentinel5WavelengthHandler(
             source="calibrated",
         )
 
-
     def _get_best_wavelength(
         self,
         band_path,
         dataset_name,
     ):
-        """Generate wavelengths using the preferred solution."""
+        """Generate wavelengths using the preferred solution.
 
-        coefficient_name, source = (
-            self._select_wavelength_coefficients(
-                band_path
-            )
-        )
+        Calibrated wavelength coefficients are preferred when they contain
+        usable data. Otherwise the nominal wavelength solution is used.
+        """
+        coefficient_name, source = self._select_wavelength_coefficients(band_path)
 
         return self._create_wavelength_dataset(
             band_path=band_path,
@@ -2192,13 +2106,11 @@ class Sentinel5WavelengthHandler(
             source=source,
         )
 
-
     def get_dataset(
         self,
         ds_info,
     ):
         """Load a derived dataset."""
-
         band_path = ds_info["band_path"]
         dataset_name = ds_info["name"]
 
@@ -2222,6 +2134,287 @@ class Sentinel5WavelengthHandler(
                     dataset_name,
                 )
 
-        raise KeyError(
-            ds_info["derived_type"]
+        raise KeyError(ds_info["derived_type"])
+
+
+class Sentinel4WavelengthHandler(WavelengthHandler):
+    """Generate wavelength datasets from Sentinel-4 spectral maps.
+
+    Sentinel-4 products provide wavelength solutions as assigned and
+    calibrated spectral-map coefficient datasets. These coefficients are
+    evaluated using detector column metadata to reconstruct wavelength
+    coordinates across the spectral axis.
+
+    Three dataset variants may be exposed:
+
+        * wavelength
+        * assigned_wavelength
+        * calibrated_wavelength
+
+    The generic wavelength dataset automatically prefers the calibrated
+    solution when available.
+    """
+
+    def discover(self):
+        """Discover derived Sentinel-4 wavelength datasets.
+
+        Assigned and calibrated wavelength datasets are advertised only when
+        the corresponding spectral-map variables contain at least one
+        Chebyshev coefficient.
+
+        Products containing zero-length coefficient dimensions are treated
+        as having no wavelength solution.
+
+        Returns:
+        -------
+        dict
+            Mapping of derived dataset name to Satpy dataset metadata.
+        """
+        derived = {}
+
+        file_type = self.fh.filetype_info["file_type"]
+
+        assigned_exists = set()
+        calibrated_exists = set()
+
+        for path, record in self.fh._records.items():
+
+            if record.name not in (
+                "assigned_spectral_map",
+                "calibrated_spectral_map",
+            ):
+                continue
+
+            detector_path = path.rsplit("/", 1)[0]
+
+            prefix = detector_path.replace("/", "__")
+
+            if record.name == "assigned_spectral_map" and self._has_coefficients(
+                detector_path,
+                "assigned_spectral_map",
+            ):
+
+                assigned_exists.add(detector_path)
+
+                derived[f"{prefix}__assigned_wavelength"] = {
+                    "name": f"{prefix}__assigned_wavelength",
+                    "file_type": file_type,
+                    "derived_type": "assigned",
+                    "detector_path": detector_path,
+                }
+
+            elif record.name == "calibrated_spectral_map" and self._has_coefficients(
+                detector_path,
+                "calibrated_spectral_map",
+            ):
+
+                calibrated_exists.add(detector_path)
+
+                derived[f"{prefix}__calibrated_wavelength"] = {
+                    "name": f"{prefix}__calibrated_wavelength",
+                    "file_type": file_type,
+                    "derived_type": "calibrated",
+                    "detector_path": detector_path,
+                }
+
+        for detector_path in assigned_exists | calibrated_exists:
+            prefix = detector_path.replace("/", "__")
+
+            derived[f"{prefix}__wavelength"] = {
+                "name": f"{prefix}__wavelength",
+                "file_type": file_type,
+                "derived_type": "best",
+                "detector_path": detector_path,
+            }
+
+        return derived
+
+    def _has_calibrated(
+        self,
+        detector_path,
+    ):
+        """Return whether a calibrated spectral map is available."""
+        return f"{detector_path}/calibrated_spectral_map" in self.fh._records
+
+    def _get_best_wavelength(
+        self,
+        detector_path,
+        dataset_name,
+    ):
+        """Generate wavelengths using the preferred Sentinel-4 solution.
+
+        The calibrated spectral map is preferred when available. Otherwise
+        the assigned spectral map is used.
+        """
+        if self._has_calibrated(detector_path):
+            return self._create_dataset(
+                detector_path=detector_path,
+                coefficient_name=("calibrated_spectral_map"),
+                dataset_name=dataset_name,
+            )
+
+        return self._create_dataset(
+            detector_path=detector_path,
+            coefficient_name=("assigned_spectral_map"),
+            dataset_name=dataset_name,
         )
+
+    def _chebyshev_axis(self, detector_path):
+        """Construct the normalised Chebyshev evaluation axis.
+
+        The axis is reconstructed from the detector column limits stored in
+        the product metadata and spans the interval [-1, 1] required for
+        Chebyshev polynomial evaluation.
+        """
+        i_min = int(self.fh[f"{detector_path}/column_min_spectral"])
+
+        i_max = int(self.fh[f"{detector_path}/column_max_spectral"])
+
+        ncols = abs(i_max - i_min) + 1
+
+        i = np.arange(ncols)
+
+        x = 2.0 * (i - i_min) / (i_max - i_min) - 1.0
+
+        return x
+
+    def _has_coefficients(
+        self,
+        detector_path,
+        coefficient_name,
+    ):
+        """Return whether a Sentinel-4 spectral map contains any coefficients.
+
+        Some Sentinel-4 calibration products contain spectral-map variables
+        whose coefficient dimension has length zero, for example::
+
+            (time_index, n_spatial, 0)
+
+        These products do not provide a wavelength solution and derived
+        wavelength datasets should not be advertised.
+        """
+        da = self.fh[f"{detector_path}/{coefficient_name}"]
+
+        #
+        # Empty coefficient dimension:
+        #
+        #     (time, spatial, 0)
+        #
+        # is used in some calibration products to indicate
+        # that no wavelength solution is available.
+        #
+        if da.shape[-1] == 0:
+            return False
+
+        return True
+
+    def _get_coefficients(
+        self,
+        detector_path,
+        coefficient_name,
+    ):
+        """Load a Sentinel-4 spectral-map coefficient dataset.
+
+        Raises:
+        ------
+        KeyError
+        If the spectral map contains no Chebyshev coefficients.
+        """
+        da = self.fh[f"{detector_path}/{coefficient_name}"]
+
+        if da.shape[-1] == 0:
+            raise KeyError(f"{coefficient_name} contains no " f"Chebyshev coefficients")
+
+        if isinstance(
+            da,
+            xr.DataArray,
+        ):
+            return da.data
+
+        return da
+
+    def _expand_wavelengths(
+        self,
+        coeffs,
+        detector_path,
+    ):
+        """Evaluate Sentinel-4 spectral-map coefficients.
+
+        Chebyshev coefficients are evaluated on the detector-specific
+        spectral axis reconstructed from the detector column metadata.
+        """
+        x = self._chebyshev_axis(detector_path)
+
+        wavelengths = np.polynomial.chebyshev.chebval(
+            x,
+            np.moveaxis(coeffs, -1, 0),
+        )
+
+        return np.moveaxis(
+            wavelengths,
+            -1,
+            0,
+        )
+
+    def _create_dataset(
+        self,
+        *,
+        detector_path,
+        coefficient_name,
+        dataset_name,
+    ):
+
+        coeffs = self._get_coefficients(
+            detector_path,
+            coefficient_name,
+        )
+
+        wavelengths = self._expand_wavelengths(
+            coeffs,
+            detector_path,
+        )
+
+        return xr.DataArray(
+            wavelengths,
+            dims=(
+                "spectral_channel",
+                "y",
+                "x",
+            ),
+            name=dataset_name,
+            attrs={
+                "derived_from": coefficient_name,
+            },
+        )
+
+    def get_dataset(
+        self,
+        ds_info,
+    ):
+        """Load a derived dataset."""
+        detector_path = ds_info["detector_path"]
+
+        dataset_name = ds_info["name"]
+        match ds_info["derived_type"]:
+
+            case "best":
+                return self._get_best_wavelength(
+                    detector_path,
+                    dataset_name,
+                )
+
+            case "assigned":
+                return self._create_dataset(
+                    detector_path=detector_path,
+                    coefficient_name=("assigned_spectral_map"),
+                    dataset_name=dataset_name,
+                )
+
+            case "calibrated":
+                return self._create_dataset(
+                    detector_path=detector_path,
+                    coefficient_name=("calibrated_spectral_map"),
+                    dataset_name=dataset_name,
+                )
+
+        raise KeyError(ds_info["derived_type"])

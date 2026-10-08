@@ -1,42 +1,17 @@
-##############################################################################
-# WARNING: Starting line with \T gives a parsing error.
-##############################################################################
 reader:
-    name: uvns
-    short_name: uvns
-    long_name: Ultra-violet through Near-infrared spectrometer Reader
-    description: UVN Sentinel 4/5/5P Level 1&2 NetCDF reader
-    status: Beta
-    supports_fsspec: false
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-    sensors: [gome, uvn, uvns, tropomi]
+  name: uvns
+  short_name: uvns
+  long_name: Metadata-driven UVNS reader
+  description: Metadata-driven NetCDF4/HDF5 reader validated for Sentinel-4, Sentinel-5, TROPOMI and GOME products
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  sensors:
+    - uvn
+    - uvns
 
 file_types:
-    gome:
-        file_reader: !!python/name:readers.uvns.UVNS_Reader
-        file_patterns:
-            - 'GOME_{product_name:s}_{product_level:s}_{start_time:s}_051_{platform_shortname:s}_{orbit:s}_{processing_location:s}_{revision:s}.{file_structure:s}'
-            - 'S-O3M_GOME_{product_name:s}_{product_level:s}_{platform_shortname:s}_{start_time:s}_{end_time:s}_N_O_{creation_time:s}.{file_structure:s}'
-            - 'O3MOUV_{product_level:s}_{start_time:s}_v02p02.{file_structure:s}'
-            - 'S-O3M_GOME_{product_name:s}_{product_level:s}_{start_time:s}_{pfields0:s}_{platform_shortname:s}_{orbit:s}_{processing_location:s}_{pfields1:s}.{file_structure:s}'
-    uvn:
-        file_reader: !!python/name:readers.uvns.UVNS_Reader
-        file_patterns:
-            #Sentinel 4 L1 and L2
-            - '{pflag:1s}_{country:2s}-{organisation:s}-{location:s},{instrument_type:s}+{datadesignator:3s},{spacecraft:4s}+UVN-{processing_level:2s}-{type:s}-{subtype:s}-{coverage:s}-{subsetting:s}-{component1:s}-{component2:s}-{component3:s}-{purpose:s}-{format:s}_{oflag:s}_{originator:s}_{creation_time:s}_{facility:s}_{environment:s}_{start_time:s}_{end_time:s}_{processing_mode:s}_{special_compression:s}_{disposition_mode:s}_{repeat_cycle_in_day:s}_{count_in_repeat_cycle:s}.{file_structure:s}'
-            #When level is only one digit:
-            #W_XX-EUMETSAT-Darmstadt,SND+SAT,MTS1+UVN-1B-CAL-LDRK-ZU-GROUP-CHK-BODY--   -NC4E_C_EUMT_20210414T044138_L1RP__20230623221826_20230623221826_F__X_0000_0000.nc'
-            #W_XX-EUMETSAT-Darmstadt,SND+SAT,MTS1+UVN-2-GSR--ZU-----DIS-NC4E_C_EUMT_20200925000000_L2PF_IV_20031224000000_20031224000000_N__O_0000_1000.nc
-            - '{pflag:1s}_{country:2s}-{organisation:s}-{location:s},{instrument_type:s}+{datadesignator:3s},{spacecraft:4s}+UVN-{processing_level:1s}-{type:s}-{subtype:s}-{coverage:s}-{subsetting:s}-{component1:s}-{component2:s}-{component3:s}-{purpose:s}-{format:s}_{oflag:s}_{originator:s}_{creation_time:s}_{facility:s}_{environment:s}_{start_time:s}_{end_time:s}_{processing_mode:s}_{special_compression:s}_{disposition_mode:s}_{repeat_cycle_in_day:s}_{count_in_repeat_cycle:s}.{file_structure:s}'
-    uvns:
-        file_reader: !!python/name:readers.uvns.UVNS_Reader
-        file_patterns:
-            #Sentinel 5 L1 and L2
-            #W_xx-eumetsat-darmstadt,SAT,SGA1-SN5-1B-IRR_C_EUMT_20220302173100_G_V_20180217141140_20180217141140_T_N____.nc
-            - '{pflag:1s}_{country:2s}-{organisation:s}-{location:s},SAT,{spacecraft:4s}-SN5-{processing_level:2s}-{type:3s}_C_EUMT_{creation_time:s}_{mission_type:1s}_{environment:1s}_{start_time:s}_{end_time:s}_{disposition_mode:1s}_{processing_mode:1s}_{free_text:3s}.{file_structure:s}'
-
-    tropomi:
-        file_reader: !!python/name:readers.uvns.UVNS_Reader
-        file_patterns:            
-            #Sentinel 5P Tropomi
-            - 'S5P_{processing_stream:4s}_{level:3s}_{product:6s}_{start_time:s}_{end_time:s}_{orbit:5d}_{collection:2d}_{processor_version:6d}_{creation_time:s}.{file_structure:s}'
+  uvn:
+    file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
+    file_patterns:
+      - "{filename:s}.nc"

@@ -1,5 +1,4 @@
-"""
-h5netcdf compatibility fixes used by the UVNS reader.
+"""h5netcdf compatibility fixes used by the UVNS reader.
 
 These fixes address backend interoperability issues
 encountered when loading NetCDF/HDF5 content through
@@ -22,16 +21,14 @@ logger = logging.getLogger(__name__)
 
 def apply_h5netcdf_compatibility_fixes():
     """Install all h5netcdf compatibility fixes."""
-
     _apply_vlen_string_patch()
 
 
 def _apply_vlen_string_patch():
     """Patch xarray's h5netcdf backend to safely handle VLEN strings."""
-
     from xarray.backends.h5netcdf_ import (
-        H5NetCDFStore,
         H5NetCDFArrayWrapper,
+        H5NetCDFStore,
         _read_attributes,
     )
 
@@ -92,7 +89,6 @@ def _apply_vlen_string_patch():
         This workaround applies to any HDF5 VLEN string dataset and
         is not tied to specific UVNS products.
         """
-
         from xarray.core import indexing
         from xarray.core.variable import Variable
 
