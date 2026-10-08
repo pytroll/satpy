@@ -66,10 +66,12 @@ RESAMPLER_MODULES = [
 ]
 
 def _get_resampler_classes_from_module(import_path):
-    with suppress(ImportError):
+    try:
         mod = import_module(import_path)
-        return mod.get_resampler_classes()
-    return {}
+    except ImportError as err:
+        LOG.warning("Resamplers from '%s' are not available: %s", import_path, err)
+        return {}
+    return mod.get_resampler_classes()
 
 
 def get_all_resampler_classes():
