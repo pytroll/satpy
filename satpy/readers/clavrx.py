@@ -444,6 +444,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   decode_coords=True,
+                                  decode_timedelta=False,
                                   chunks=CHUNK_SIZE)
         # Check if x,y are variables within the clavrx file (this is a clavrx option)
         # and if they are 2d.  If so, rename them so that the y,x dimension can be 1d
