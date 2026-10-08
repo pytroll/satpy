@@ -127,6 +127,24 @@ class _CLAVRxHelper:
             attrs.pop(attr_key, None)
         return attrs
 
+
+    @staticmethod
+    def _verify_flag_values(flag_values) -> bool:
+        # Fix invalid/corrupted flag_values (e.g., [0, 0, 0, ...] instead of [0, 1, 2, ...])
+        if flag_values is None:
+            return False
+
+        if flag_values[0] is not None:
+            flag_values = np.asarray(flag_values)
+
+            # Check if flag_values has duplicates or is not strictly increasing
+            is_invalid = len(flag_values) > 1 and np.any(np.diff(flag_values) <= 0)
+        else:
+            is_invalid = False
+
+        return is_invalid
+
+
     @staticmethod
     def _get_data(data, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
@@ -140,6 +158,14 @@ class _CLAVRxHelper:
         offset = attrs.pop("add_offset", (np.zeros(1, dtype=data.dtype))[0])
         flag_values = data.attrs.get("flag_values", [None])
         valid_range = attrs.get("valid_range", [None])
+
+        is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
+
+        if is_invalid and flag_values[0] is not None:
+            # Fall back to sequential values [0, 1, 2, ...] based on length
+            num_flags = len(flag_values)
+            flag_values = np.arange(num_flags, dtype=data.dtype)
+            attrs["flag_values"] = flag_values.tolist()
 
         if isinstance(valid_range, np.ndarray):
             valid_range = valid_range.tolist()
@@ -419,6 +445,12 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   mask_and_scale=False,
                                   decode_coords=True,
                                   chunks=CHUNK_SIZE)
+        # Check if x,y are variables within the clavrx file (this is a clavrx option)
+        # and if they are 2d.  If so, rename them so that the y,x dimension can be 1d
+        if "x" in self.nc.variables and "x" not in self.nc.dims and self.nc["x"].ndim > 1:
+            self.nc = self.nc.rename({"x": "columns"})
+        if "y" in self.nc.variables and "y" not in self.nc.dims and self.nc["y"].ndim > 1:
+            self.nc = self.nc.rename({"y": "rows"})
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({"scan_lines_along_track_direction": "y",
                                        "pixel_elements_along_scan_direction": "x"})
