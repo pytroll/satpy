@@ -16,13 +16,13 @@ file_types:
     file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
     file_patterns:
       # Sentinel-4 UVN products
-      - "*UVN*.nc"
+      - "{prefix:s}UVN{suffix:s}.nc"
 
       # Sentinel-5 UVNS products
-      - "*SN5*.nc"
+      - "{prefix:s}SN5{suffix:s}.nc"
 
       # GOME products
-      - "*GOME*.nc"
+      - "{prefix:s}GOME{suffix:s}.nc"
 
       # Sentinel-5P/TROPOMI products intentionally excluded from
       # automatic reader discovery.
@@ -42,4 +42,4 @@ file_types:
       # mode, allowing broader filename matching without affecting
       # automatic reader selection.
       #
-      # - "S5P*.nc"
+      # - "{prefix:s}S5P{suffix:s}.nc"

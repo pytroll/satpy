@@ -79,7 +79,7 @@ _DTYPE_TO_FILL_KEY = {
 # A value of 1 effectively disables size-based eager loading
 # while preserving VLEN special handling.
 #
-LAZY_LIMIT = 1
+LAZY_LIMIT = 4096
 
 @dataclass(frozen=True)
 class VariableRecord:
