@@ -104,6 +104,15 @@ datasets:
     file_type: cldprop_l2_viirs
     standard_name: cloud_top_height
 
+  Cloud_Optical_Thickness:
+    name: Cloud_Optical_Thickness
+    long_name: Cloud Optical Thickness two-channel retrieval using 2.2 um and either 0.65 um, 0.86 um or 1.24um (specified in Quality_Assurance) from best points: not failed in any way, not marked for clear sky restoral
+    units: "1"
+    coordinates: [cld_lon,cld_lat]
+    file_key: geophysical_data/Cloud_Optical_Thickness
+    file_type: cldprop_l2_viirs
+    standard_name: cloud_optical_thickness
+
 ##########################################
 # Datasets in files aerdb_l2_viirs
 ##########################################
