@@ -1,18 +1,35 @@
 """Unit tests for data access methods and properties of the Scene class."""
 import math
+import warnings
 
 import numpy as np
 import pytest
 import xarray as xr
 from dask import array as da
 
+import satpy
 from satpy import Scene
-from satpy.dataset.dataid import default_id_keys_config
+from satpy.dataset.dataid import DataID, default_id_keys_config
 from satpy.tests.utils import FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START, make_cid, make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - include_test_etc
+
+
+def _scene_with_three_datasets():
+    """Create a Scene with three simple 1D datasets in it."""
+    scene = Scene()
+    scene["1"] = xr.DataArray(np.arange(5))
+    scene["2"] = xr.DataArray(np.arange(5))
+    scene["3"] = xr.DataArray(np.arange(5))
+    return scene
+
+
+def _assert_same_objects(objs, exp_objs, exp_type):
+    """Check that iteration produced exactly the expected objects of the expected type."""
+    assert [type(obj) for obj in objs] == [exp_type] * len(exp_objs)
+    assert all(obj is exp_obj for obj, exp_obj in zip(objs, exp_objs, strict=True))
 
 
 @pytest.mark.usefixtures("include_test_etc")
@@ -55,13 +72,31 @@ class TestDataAccessMethods:
         assert scene.sensor_names == exp_sensors
 
     def test_iter(self):
-        """Test iteration over the scene."""
-        scene = Scene()
-        scene["1"] = xr.DataArray(np.arange(5))
-        scene["2"] = xr.DataArray(np.arange(5))
-        scene["3"] = xr.DataArray(np.arange(5))
-        for x in scene:
-            assert isinstance(x, xr.DataArray)
+        """Test iteration over the scene produces the DataID keys."""
+        scene = _scene_with_three_datasets()
+        # 8< v1.0
+        with satpy.config.set(scene_iter_keys=True):
+            objs = list(scene)
+        # >8 v1.0
+        # objs = list(scene)
+        _assert_same_objects(objs, list(scene.keys()), DataID)
+
+    # 8< v1.0
+    def test_iter_default_deprecated(self):
+        """Test iteration over the scene by default produces the DataArrays with a warning."""
+        scene = _scene_with_three_datasets()
+        with pytest.warns(UserWarning, match="Satpy 1.0"):
+            objs = list(scene)
+        _assert_same_objects(objs, list(scene.values()), xr.DataArray)
+    # >8 v1.0
+
+    def test_iter_dataarrays_no_warning(self):
+        """Test iteration over the scene produces the DataArrays without a warning when requested."""
+        scene = _scene_with_three_datasets()
+        with satpy.config.set(scene_iter_keys=False), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            objs = list(scene)
+        _assert_same_objects(objs, list(scene.values()), xr.DataArray)
 
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""
