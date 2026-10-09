@@ -465,6 +465,32 @@ class TestFileFileYAMLReader(unittest.TestCase):
         assert self.reader.supports_sensor("canon")
         assert not self.reader.supports_sensor("nikon")
 
+    def test_load_area_def_no_areas(self):
+        """Test loading the area def when no areas are available."""
+        dataid = MagicMock()
+
+        fh = MagicMock()
+        fh.get_area_def.return_value = None
+
+        result = self.reader._load_area_def(dataid, [fh])
+
+        assert result is None
+
+    @patch("satpy.readers.core.yaml_reader.StackedAreaDefinition")
+    def test_load_area_def_single_area(self, sad):
+        """Test loading the area def when only one area is available."""
+        dataid = MagicMock()
+
+        area = MagicMock()
+
+        fh = MagicMock()
+        fh.get_area_def.return_value = area
+
+        result = self.reader._load_area_def(dataid, [fh])
+
+        assert result is area
+        sad.assert_not_called()
+
     @patch("satpy.readers.core.yaml_reader.StackedAreaDefinition")
     def test_load_area_def(self, sad):
         """Test loading the area def for the reader."""
