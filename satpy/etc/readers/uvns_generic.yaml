@@ -1,0 +1,75 @@
+reader:
+  name: uvns_generic
+  short_name: uvns_generic
+  long_name: Generic metadata-driven UVNS reader
+  description: >
+    Metadata-driven NetCDF4/HDF5 reader for explicit use on UVNS-family
+    and related products. Also provides experimental support for other
+    compatible NetCDF4/HDF5 datasets.
+  status: Beta
+  supports_fsspec: false
+
+  #
+  # This reader is intentionally excluded from automatic reader
+  # discovery.
+  #
+  # The metadata-driven UVNS reader has been validated on Sentinel-4,
+  # Sentinel-5, TROPOMI, GOME, and a variety of other NetCDF4/HDF5
+  # products. The generic filename pattern used by this configuration
+  # would otherwise cause the reader to participate in automatic
+  # discovery for virtually every NetCDF product visible to Satpy.
+  #
+  # To avoid conflicts with dedicated mission-specific readers, this
+  # configuration is only available when explicitly requested:
+  #
+  #     Scene(files, reader="uvns_generic")
+  #
+  discoverable: false
+
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
+  sensors:
+    - gen
+
+file_types:
+  uvn:
+    file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
+
+    file_patterns:
+
+      #
+      # Generic NetCDF4/HDF5 matching.
+      #
+      # This broad pattern allows exploratory use of the metadata-driven
+      # UVNS reader on compatible products beyond the restricted
+      # filename patterns used by the discoverable "uvns" reader
+      # configuration.
+      #
+      # During validation the underlying reader was successfully
+      # exercised on:
+      #
+      # - Sentinel-4 products
+      # - Sentinel-5 products
+      # - Sentinel-5P/TROPOMI products
+      # - GOME products
+      # - Selected MTG FCI products
+      #
+      # MTG FCI products are included here primarily for experimentation
+      # and evaluation. Satpy already provides dedicated FCI readers
+      # (for example fci_l1c_nc and the FCI Level-2 readers), which
+      # should normally be preferred for operational use.
+      #
+      # The generic reader may also be useful when investigating new
+      # NetCDF4/HDF5 products or validating reader behaviour on products
+      # that do not yet have dedicated Satpy reader support.
+      #
+      # Example:
+      #
+      #     from satpy import Scene
+      #
+      #     scn = Scene(
+      #         filenames=[filename],
+      #         reader="uvns_generic",
+      #     )
+      #
+      - "{filename:s}.nc"

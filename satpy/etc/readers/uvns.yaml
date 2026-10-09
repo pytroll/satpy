@@ -1,0 +1,55 @@
+reader:
+  name: uvns
+  short_name: uvns
+  long_name: Metadata-driven UVNS reader
+  description: >
+    Metadata-driven NetCDF4/HDF5 reader validated for Sentinel-4,
+    Sentinel-5, TROPOMI and GOME products.
+  status: Beta
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
+  sensors:
+    - uvn
+    - uvns
+
+file_types:
+  uvn:
+    file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
+
+    file_patterns:
+      # Sentinel-4 UVN products
+      - "{prefix:s}UVN{suffix:s}.nc"
+
+      # Sentinel-5 UVNS products
+      - "{prefix:s}SN5{suffix:s}.nc"
+
+      # GOME products
+      - "{prefix:s}GOME{suffix:s}.nc"
+
+      # Sentinel-5P/TROPOMI products are intentionally excluded from
+      # automatic discovery.
+      #
+      # The UVNS reader has been validated successfully on Sentinel-5P
+      # Level-1 and Level-2 products and can be used explicitly via:
+      #
+      #     Scene(files, reader="uvns")
+      #
+      # However, enabling automatic discovery for S5P products causes
+      # competition with the dedicated tropomi_l2 reader.
+      #
+      # - "{prefix:s}S5P{suffix:s}.nc"
+
+      # Generic NetCDF4/HDF5 matching is intentionally excluded from
+      # this discoverable reader configuration.
+      #
+      # For broader exploratory use on compatible NetCDF4/HDF5
+      # products, use the explicit-only 'uvns_generic' reader:
+      #
+      #     Scene(files, reader="uvns_generic")
+      #
+      # The uvns_generic configuration uses a generic filename pattern
+      # and is excluded from automatic reader discovery to avoid
+      # competing with dedicated mission-specific readers.
+      #
+      # - "{filename:s}.nc"
