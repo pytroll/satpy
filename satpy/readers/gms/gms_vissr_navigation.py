@@ -1,4 +1,4 @@
-"""GMS-5 VISSR Navigation.
+"""GMS VISSR Navigation.
 
 Reference: `GMS User Guide`_, Appendix E, S-VISSR Mapping.
 
