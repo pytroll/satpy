@@ -33,9 +33,10 @@ def filetype_info():
     return {}
 
 
-@pytest.fixture
-def sample_csv_file(tmp_path):
+@pytest.fixture(scope="module")
+def sample_csv_file(tmp_path_factory):
     """Create a minimal CSV FRP product."""
+    tmp_path = tmp_path_factory.mktemp("satpy-tests")
     filename = tmp_path / (
         "LSASAF-LISBON-509_MTG_MTFRPPIXEL-ListProduct_"
         "MTG-FD_202607311200.csv"
@@ -51,9 +52,10 @@ def sample_csv_file(tmp_path):
     return filename
 
 
-@pytest.fixture
-def sample_nc_file(tmp_path):
+@pytest.fixture(scope="module")
+def sample_nc_file(tmp_path_factory):
     """Create a minimal NetCDF FRP product with ListProduct group."""
+    tmp_path = tmp_path_factory.mktemp("satpy-tests")
     filename = tmp_path / (
         "W_PT-LSASAF-LISBON,SATELLITE,LSA-509_MTG_MTFRPPIXEL_"
         "MTG-FD_C_LPMG_20260731120000.nc"

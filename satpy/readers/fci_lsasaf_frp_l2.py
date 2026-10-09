@@ -109,7 +109,7 @@ class _FRPBaseHandler:
         rows_int = rows.astype(int).compute()
         cols_int = cols.astype(int).compute()
 
-        values = data_array.data.compute() if hasattr(data_array.data, "compute") else data_array.values
+        values = data_array.values
 
         # Use a NumPy array here because the indices and values are
         # computed immediately anyway.
