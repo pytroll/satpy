@@ -829,14 +829,6 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
 
         if area is not None:
             ds.attrs["area"] = area
-            print()
-            print("LOAD_DATASET_WITH_AREA")
-            print("DSID:", dsid)
-            print("AREA:", area)
-            print("AREA TYPE:", type(area))
-
-            if hasattr(area, "defs"):
-                print("N DEFS:", len(area.defs))
             ds = add_crs_xy_coords(ds, area)
         return ds
 
@@ -975,19 +967,16 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
 
         return cids
 
+
 def _load_area_def(dsid, file_handlers):
-
+    """Load the area definition of *dsid*."""
     area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
-    area_defs = [a for a in area_defs if a is not None]
-
-    if not area_defs:
-        return None
-
-    if len(area_defs) == 1:
-        return area_defs[0]
+    area_defs = [area_def for area_def in area_defs
+                 if area_def is not None]
 
     final_area = StackedAreaDefinition(*area_defs)
     return final_area.squeeze()
+
 
 def _set_orientation(dataset, upper_right_corner):
     """Set the orientation of geostationary datasets.
