@@ -101,6 +101,7 @@ The following people have made contributions to this project:
 - [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
+- [Malcolm Taberner](https://github.com/mataeui) - Atmospheric Chemistry Group EUMETSAT
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
 - [Antonio Valentino](https://github.com/avalentino)
