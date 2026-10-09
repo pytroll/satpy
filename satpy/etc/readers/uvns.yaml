@@ -2,11 +2,13 @@ reader:
   name: uvns
   short_name: uvns
   long_name: Metadata-driven UVNS reader
-  description: Metadata-driven (generic) NetCDFi/HDF5 reader validated with Sentinel-4, Sentinel-5, TROPOMI and GOME products
+  description: >
+    Metadata-driven NetCDF4/HDF5 reader validated for Sentinel-4,
+    Sentinel-5, TROPOMI and GOME products.
   status: Beta
   supports_fsspec: false
-  discoverable: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
   sensors:
     - uvn
     - uvns
@@ -14,6 +16,7 @@ reader:
 file_types:
   uvn:
     file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
+
     file_patterns:
       # Sentinel-4 UVN products
       - "{prefix:s}UVN{suffix:s}.nc"
@@ -24,8 +27,8 @@ file_types:
       # GOME products
       - "{prefix:s}GOME{suffix:s}.nc"
 
-      # Sentinel-5P/TROPOMI products intentionally excluded from
-      # automatic reader discovery.
+      # Sentinel-5P/TROPOMI products are intentionally excluded from
+      # automatic discovery.
       #
       # The UVNS reader has been validated successfully on Sentinel-5P
       # Level-1 and Level-2 products and can be used explicitly via:
@@ -33,59 +36,20 @@ file_types:
       #     Scene(files, reader="uvns")
       #
       # However, enabling automatic discovery for S5P products causes
-      # competition with the dedicated tropomi_l2 reader. In addition,
-      # the tropomi_l2 reader currently only supports Level-2 products;
-      # Level-1 products are not handled correctly and may raise errors
-      # during dataset discovery.
-      #
-      # Future work may introduce a non-discoverable/manual-only reader
-      # mode, allowing broader filename matching without affecting
-      # automatic reader selection.
+      # competition with the dedicated tropomi_l2 reader.
       #
       # - "{prefix:s}S5P{suffix:s}.nc"
 
-      # MTG FCI products have been tested in a limited fashion and were
-      # successfully opened by the metadata-driven UVNS reader.
+      # Generic NetCDF4/HDF5 matching is intentionally excluded from
+      # this discoverable reader configuration.
       #
-      # However, Satpy already provides dedicated FCI readers (for example
-      # fci_l1c_nc and the FCI Level-2 readers). FCI products are therefore
-      # intentionally excluded from UVNS automatic discovery to avoid
-      # competing with specialised reader implementations.
+      # For broader exploratory use on compatible NetCDF4/HDF5
+      # products, use the explicit-only 'uvns_generic' reader:
       #
-      # Users wishing to evaluate FCI products with the UVNS reader may do
-      # so explicitly:
+      #     Scene(files, reader="uvns_generic")
       #
-      #     Scene(files, reader="uvns")
-      #
-      # Example tested product:
-      #
-      #     W_XX-EUMETSAT-Darmstadt,IMG+SAT,
-      #     MTI1+FCI-1C-RRAD-FDHSI-FD--...
-      #
-      # - "{prefix:s}FCI{suffix:s}.nc"
-      #
-      # Generic NetCDF/HDF5 matching intentionally excluded.
-      #
-      # The metadata-driven UVNS reader can successfully read many NetCDF4
-      # and HDF5 products beyond the UVNS-family datasets for which it was
-      # originally developed. During validation it was successfully exercised
-      # on a variety of unrelated products, including exploratory tests with
-      # MTG FCI data.
-      #
-      # However, a fully generic pattern such as:
-      #
-      # - "{filename:s}.nc"
-      #
-      # would cause the UVNS reader to participate in automatic discovery for
-      # essentially every NetCDF product visible to Satpy. Since reader
-      # selection is filename-pattern based and occurs before metadata
-      # inspection, this can interfere with dedicated mission-specific
-      # readers that should normally be selected instead.
-      #
-      # Future work may introduce support for non-discoverable or
-      # manual-only readers, allowing broad generic matching without
-      # affecting automatic reader selection.
-      #
-      # Example generic pattern (not enabled):
+      # The uvns_generic configuration uses a generic filename pattern
+      # and is excluded from automatic reader discovery to avoid
+      # competing with dedicated mission-specific readers.
       #
       # - "{filename:s}.nc"
