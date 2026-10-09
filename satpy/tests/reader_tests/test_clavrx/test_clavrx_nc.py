@@ -142,7 +142,6 @@ class TestCLAVRXNetCDFReader2DXY:
 
             filename_info = {"platform_shortname": "G16", "resolution": "2004m"}
             filetype_info = {"file_type": "clavrx_nc"}
-            
             handler = CLAVRXNetCDFFileHandler("fake_clavrx.nc", filename_info, filetype_info)
 
             if has_2d_xy:
@@ -171,7 +170,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
-        [[[ABI_FILE], 1]]
+        [([ABI_FILE], 1)]
     )
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
@@ -186,8 +185,8 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
-        [[[ABI_FILE], ["variable1", "refl_0_65um_nom", "C02", "var_flags",
-                       "out_of_range_flags", "longitude", "latitude"]], ]
+        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "C02", "var_flags",
+                       "out_of_range_flags", "longitude", "latitude"]), ]
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
@@ -203,7 +202,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [[[ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]], ]
+        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
     )
     def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
@@ -264,7 +263,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
-        [[[ABI_FILE], 1]]
+        [([ABI_FILE], 1)]
     )
     def test_yaml_datasets(self, filenames, expected_loadables):
         """Test available_datasets with fake variables from YAML."""
@@ -315,7 +314,7 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [[[ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]], ]
+        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
     )
     def test_scale_data(self, filenames, loadable_ids):
         """Test that data is scaled when necessary and not scaled data are flags."""
