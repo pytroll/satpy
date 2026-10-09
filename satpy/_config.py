@@ -33,6 +33,10 @@ _CONFIG_DEFAULTS = {
     "data_dir": _satpy_dirs.user_data_dir,
     "demo_data_dir": ".",
     "download_aux": True,
+    # 8< v1.0
+    "scene_iter_keys": None,
+    # >8 v1.0
+    # "scene_iter_keys": True,
     "sensor_angles_position_preference": "actual",
     "readers": {
         "clip_negative_radiances": False,
