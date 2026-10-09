@@ -5,6 +5,7 @@ reader:
   description: Metadata-driven (generic) NetCDFi/HDF5 reader validated with Sentinel-4, Sentinel-5, TROPOMI and GOME products
   status: Beta
   supports_fsspec: false
+  discoverable: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors:
     - uvn
@@ -14,7 +15,6 @@ file_types:
   uvn:
     file_reader: !!python/name:satpy.readers.uvns.UVNSFileHandler
     file_patterns:
-
       # Sentinel-4 UVN products
       - "{prefix:s}UVN{suffix:s}.nc"
 
