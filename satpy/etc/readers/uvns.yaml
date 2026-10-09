@@ -2,7 +2,7 @@ reader:
   name: uvns
   short_name: uvns
   long_name: Metadata-driven UVNS reader
-  description: Metadata-driven NetCDF4/HDF5 reader validated for Sentinel-4, Sentinel-5, TROPOMI and GOME products
+  description: Metadata-driven (generic) NetCDFi/HDF5 reader validated with Sentinel-4, Sentinel-5, TROPOMI and GOME products
   status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
@@ -43,3 +43,49 @@ file_types:
       # automatic reader selection.
       #
       # - "{prefix:s}S5P{suffix:s}.nc"
+
+      # MTG FCI products have been tested in a limited fashion and were
+      # successfully opened by the metadata-driven UVNS reader.
+      #
+      # However, Satpy already provides dedicated FCI readers (for example
+      # fci_l1c_nc and the FCI Level-2 readers). FCI products are therefore
+      # intentionally excluded from UVNS automatic discovery to avoid
+      # competing with specialised reader implementations.
+      #
+      # Users wishing to evaluate FCI products with the UVNS reader may do
+      # so explicitly:
+      #
+      #     Scene(files, reader="uvns")
+      #
+      # Example tested product:
+      #
+      #     W_XX-EUMETSAT-Darmstadt,IMG+SAT,
+      #     MTI1+FCI-1C-RRAD-FDHSI-FD--...
+      #
+      # - "{prefix:s}FCI{suffix:s}.nc"
+      #
+      # Generic NetCDF/HDF5 matching intentionally excluded.
+      #
+      # The metadata-driven UVNS reader can successfully read many NetCDF4
+      # and HDF5 products beyond the UVNS-family datasets for which it was
+      # originally developed. During validation it was successfully exercised
+      # on a variety of unrelated products, including exploratory tests with
+      # MTG FCI data.
+      #
+      # However, a fully generic pattern such as:
+      #
+      # - "{filename:s}.nc"
+      #
+      # would cause the UVNS reader to participate in automatic discovery for
+      # essentially every NetCDF product visible to Satpy. Since reader
+      # selection is filename-pattern based and occurs before metadata
+      # inspection, this can interfere with dedicated mission-specific
+      # readers that should normally be selected instead.
+      #
+      # Future work may introduce support for non-discoverable or
+      # manual-only readers, allowing broad generic matching without
+      # affecting automatic reader selection.
+      #
+      # Example generic pattern (not enabled):
+      #
+      # - "{filename:s}.nc"
