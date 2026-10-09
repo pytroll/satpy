@@ -7,6 +7,7 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
+from satpy.readers.clavrx import CLAVRXNetCDFFileHandler
 from satpy.readers.core.loading import load_reader
 
 ABI_FILE = "clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc"
@@ -28,7 +29,7 @@ ABI_FILE = f"{L1B_FILE}.level2.nc"
 FILL_VALUE = -32768
 
 
-def fake_test_content(filename, **kwargs):
+def fake_test_content(filename, has_2d_xy=False, **kwargs):
     """Mimic reader input file content."""
     attrs = {
         "platform": "G16",
@@ -108,10 +109,53 @@ def fake_test_content(filename, **kwargs):
         "var_flags": var_flags,
         "out_of_range_flags": out_of_range_flags,
     }
+
+    if has_2d_xy:
+        # Add 2D x and y variables (sharing the same dimensions or non-dim 2D coords)
+        x_2d = xr.DataArray(
+            np.tile(np.linspace(-0.15, 0.15, DEFAULT_FILE_SHAPE[1]), (DEFAULT_FILE_SHAPE[0], 1)),
+            dims=("scan_lines_along_track_direction", "pixel_elements_along_scan_direction")
+        )
+        y_2d = xr.DataArray(
+            np.tile(np.linspace(0.15, -0.15, DEFAULT_FILE_SHAPE[0]), (DEFAULT_FILE_SHAPE[1], 1)).T,
+            dims=("scan_lines_along_track_direction", "pixel_elements_along_scan_direction")
+        )
+        ds_vars["x"] = x_2d
+        ds_vars["y"] = y_2d
+
     ds = xr.Dataset(ds_vars, attrs=attrs)
     ds = ds.assign_coords({"latitude": latitude, "longitude": longitude})
 
     return ds
+
+
+class TestCLAVRXNetCDFReader2DXY:
+    """Test 2D x/y variable handling in CLAVRXNetCDFFileHandler."""
+
+    @pytest.mark.parametrize("has_2d_xy", [True, False])
+    def test_2d_xy_renaming(self, has_2d_xy):
+        """Test that 2D x/y variables are renamed to columns/rows when present."""
+        def mock_nc_factory(filename, **kwargs):
+            return fake_test_content(filename, has_2d_xy=has_2d_xy, **kwargs)
+
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=mock_nc_factory):
+
+            filename_info = {"platform_shortname": "G16", "resolution": "2004m"}
+            filetype_info = {"file_type": "clavrx_nc"}
+            handler = CLAVRXNetCDFFileHandler("fake_clavrx.nc", filename_info, filetype_info)
+
+            if has_2d_xy:
+                # 2D x and y variables should be renamed to 'columns' and 'rows'
+                assert "columns" in handler.nc.variables
+                assert "rows" in handler.nc.variables
+                assert "x" not in handler.nc.variables
+                assert "y" not in handler.nc.variables
+            else:
+                # x and y should not exist in variables at all
+                assert "columns" not in handler.nc.variables
+                assert "rows" not in handler.nc.variables
+                assert "x" not in handler.nc.variables
+                assert "y" not in handler.nc.variables
 
 
 class TestCLAVRXReaderGeo:
