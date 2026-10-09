@@ -337,7 +337,7 @@ class TestFileHandler:
         mjd = real_world.COORDINATE_CONVERSION["scheduled_observation_time"]
         expected_start = dt.datetime(1858, 11, 17) + dt.timedelta(days=mjd)
         assert file_handler.start_time == expected_start
-        assert dt.timedelta(0) <= file_handler.end_time - file_handler.start_time < dt.timedelta(seconds=1)
+        assert file_handler.end_time == expected_start + dt.timedelta(minutes=25)
 
     def test_sensor_names(self, file_handler):
         """Test that the sensor name is the one defined in the YAML file."""

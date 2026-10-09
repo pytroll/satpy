@@ -152,8 +152,6 @@ hemisphere. On demand a special Typhoon schedule would be activated between
 
 """
 
-import datetime as dt
-
 import dask.array as da
 import numpy as np
 import xarray as xr
@@ -164,6 +162,7 @@ from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.utils import generic_open
 from satpy.readers.gms.gms_vissr_common import (
     FILL_VALUE,
+    USUAL_SCAN_DURATION,
     AreaDefEstimator,
     Calibrator,
     get_earth_mask,
@@ -314,9 +313,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
     def _get_time_parameters(self):
         start_time = self._get_start_time()
-        end_time = start_time + dt.timedelta(
-            minutes=25
-        )  # Source: GMS User Guide, section 3.3.1
+        end_time = start_time + USUAL_SCAN_DURATION
         return {
             "nominal_start_time": start_time,
             "nominal_end_time": end_time,

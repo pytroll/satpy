@@ -194,12 +194,8 @@ class GmsVissrFileHandler(BaseFileHandler):
 
     @property
     def end_time(self):
-        """Nominal end time of the scan, from the last valid per-line scan_time in the LCW."""
-        if self._l1b.scan_times.size:
-            last_valid = self._l1b.scan_times[np.isfinite(self._l1b.scan_times)]
-            if last_valid.size:
-                return _mjd_to_datetime(float(last_valid.max()))
-        return self.start_time
+        """Nominal end time of the scan: start time plus the usual scan duration."""
+        return self.start_time + common.USUAL_SCAN_DURATION
 
     @property
     def sensor_names(self):
@@ -277,43 +273,41 @@ class GmsVissrL1bFile:
 
     def __init__(self, path):
         """Detect the file's channel (VIS/IR) and parse its header blocks."""
-        name = os.path.basename(os.fspath(path)).upper()
-        if name.startswith("VS"):
-            self.channel = fmt.VIS_CHANNEL
-        elif name.startswith("IR"):
-            self.channel = fmt.IR_CHANNEL
-        else:
-            try:
-                size = os.path.getsize(path)
-            except (TypeError, OSError):
-                with generic_open(path, "rb") as f:
-                    size = len(f.read())
-            self.channel = (fmt.VIS_CHANNEL
-                             if size % fmt.VIS_BLOCK_LEN == 0
-                             else fmt.IR_CHANNEL)
-
         self.path = path
+        self.channel = self._detect_channel(path)
         with generic_open(path, "rb") as f:
             self._raw = f.read()
-
         spec = fmt.IMAGE_DATA[self.channel]
-        params = spec["params"]
-
-        self.mode = _read_struct(self._raw, params["mode"]["offset"], params["mode"]["dtype"])
-        self.coord = _read_struct(self._raw, params["coordinate_conversion"]["offset"],
-                                   params["coordinate_conversion"]["dtype"])
-        self.attitude = _read_struct(self._raw, params["attitude_prediction"]["offset"],
-                                      params["attitude_prediction"]["dtype"])
-        self.orbit1 = _read_struct(self._raw, params["orbit_prediction_1"]["offset"],
-                                    params["orbit_prediction_1"]["dtype"])
-        self.orbit2 = _read_struct(self._raw, params["orbit_prediction_2"]["offset"],
-                                    params["orbit_prediction_2"]["dtype"])
-
-        cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
-        self.calibration = _read_struct(self._raw, params[cal_key]["offset"],
-                                         params[cal_key]["dtype"])
-
+        self._read_header_blocks(spec["params"])
         self._parse_image_data(spec)
+
+    @staticmethod
+    def _detect_channel(path):
+        """Detect the channel from the filename prefix, falling back to the file size."""
+        name = os.path.basename(os.fspath(path)).upper()
+        if name.startswith("VS"):
+            return fmt.VIS_CHANNEL
+        if name.startswith("IR"):
+            return fmt.IR_CHANNEL
+        try:
+            size = os.path.getsize(path)
+        except (TypeError, OSError):
+            with generic_open(path, "rb") as f:
+                size = len(f.read())
+        return fmt.VIS_CHANNEL if size % fmt.VIS_BLOCK_LEN == 0 else fmt.IR_CHANNEL
+
+    def _read_header_blocks(self, params):
+        """Read the mode, coordinate conversion, navigation prediction and calibration blocks."""
+        self.mode = self._read_block(params, "mode")
+        self.coord = self._read_block(params, "coordinate_conversion")
+        self.attitude = self._read_block(params, "attitude_prediction")
+        self.orbit1 = self._read_block(params, "orbit_prediction_1")
+        self.orbit2 = self._read_block(params, "orbit_prediction_2")
+        cal_key = "ir_calibration" if self.channel == fmt.IR_CHANNEL else "vis_calibration"
+        self.calibration = self._read_block(params, cal_key)
+
+    def _read_block(self, params, key):
+        return _read_struct(self._raw, params[key]["offset"], params[key]["dtype"])
 
     def _parse_image_data(self, spec):
         data_dtype = spec["dtype"]

@@ -7,6 +7,8 @@ readers. Navigation is shared as well, see
 :mod:`satpy.readers.gms.gms_vissr_navigation`.
 """
 
+import datetime as dt
+
 import numba
 import numpy as np
 
@@ -14,11 +16,11 @@ import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms_vissr_navigation as nav
 
 FILL_VALUE = -1  # scanline not intersecting the earth
+USUAL_SCAN_DURATION = dt.timedelta(minutes=25)  # Source: GMS User Guide, section 3.3.1
 # Calibration levels for which the lookup table yields fractions that need to be converted to percent.
-# "reflectance" is the deprecated name of "unnormalized_reflectance" (GMS-5).
 PERCENT_CALIBRATIONS = (
     # 8< v1.0
-    "reflectance",
+    "reflectance",  # deprecated name of "unnormalized_reflectance" (GMS-5)
     # >8 v1.0
     "unnormalized_reflectance"
 )
