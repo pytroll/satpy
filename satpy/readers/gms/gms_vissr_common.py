@@ -16,7 +16,12 @@ import satpy.readers.gms.gms_vissr_navigation as nav
 FILL_VALUE = -1  # scanline not intersecting the earth
 # Calibration levels for which the lookup table yields fractions that need to be converted to percent.
 # "reflectance" is the deprecated name of "unnormalized_reflectance" (GMS-5).
-PERCENT_CALIBRATIONS = ("reflectance", "unnormalized_reflectance")
+PERCENT_CALIBRATIONS = (
+    # 8< v1.0
+    "reflectance",
+    # >8 v1.0
+    "unnormalized_reflectance"
+)
 
 
 def _lookup_calibration_value(counts, calib_table):
