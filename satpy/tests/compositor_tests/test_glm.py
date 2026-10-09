@@ -1,5 +1,9 @@
 """Tests for GLM compositors."""
 
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - include_test_etc
+
 
 class TestGLMComposites:
     """Test GLM-specific composites."""
@@ -9,7 +13,7 @@ class TestGLMComposites:
         from satpy.composites.config_loader import load_compositor_configs_for_sensors
         load_compositor_configs_for_sensors(["glm"])
 
-    def test_highlight_compositor(self):
+    def test_highlight_compositor(self, include_test_etc):
         """Test creating a highlight composite."""
         import dask.array as da
         import numpy as np
@@ -49,5 +53,8 @@ class TestGLMComposites:
         assert isinstance(res.data, da.Array)
         assert res.attrs["name"] == "c14_highlight"
         data = res.compute()
-        np.testing.assert_almost_equal(data.values.min(), -0.04)
-        np.testing.assert_almost_equal(data.values.max(), 1.04)
+        # background is 303.15-312.15K statically stretched from 200-330K
+        # (see satpy/tests/etc/enhancements/generic.yaml), then the blue
+        # channel is dimmed by up to 0.04 while alpha stays at 1.0
+        np.testing.assert_almost_equal(data.values.min(), (303.15 - 200) / 130 - 0.04)
+        np.testing.assert_almost_equal(data.values.max(), 1.0)

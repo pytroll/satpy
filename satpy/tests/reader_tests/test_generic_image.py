@@ -138,6 +138,7 @@ def _save_image(dset, fname, writer, fill_value=None):
     scn = Scene()
     scn["data"] = dset
     scn["data"].attrs["area"] = AREA_DEFINITION
+    scn["data"].attrs["standard_name"] = "image_ready"
     scn.save_dataset("data", str(fname), writer=writer, fill_value=fill_value)
 
 

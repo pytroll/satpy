@@ -23,21 +23,27 @@ def test_group_results_by_output_file(tmp_path):
     later).
     """
     from pyresample import create_area_def
+    from trollimage.xrimage import XRImage
 
     from satpy.tests.utils import make_fake_scene
     from satpy.writers.core.compute import group_results_by_output_file
 
     x = 10
     fake_area = create_area_def("sargasso", 4326, resolution=1, width=x, height=x, center=(0, 0))
+    # stretch ahead of time so the scale/offset tags are lazy, then mark
+    # it as image_ready so the writer doesn't enhance it again
+    img = XRImage(xr.DataArray(dims=("y", "x"), data=da.arange(x * x).reshape((x, x))))
+    img.stretch("linear")
+    dat = img.data
     fake_scene = make_fake_scene(
         {
-            "dragon_top_height": (dat := xr.DataArray(dims=("y", "x"), data=da.arange(x * x).reshape((x, x)))),
+            "dragon_top_height": dat,
             "penguin_bottom_height": dat,
             "kraken_depth": dat,
         },
         daskify=True,
         area=fake_area,
-        common_attrs={"start_time": dt.datetime(2022, 11, 16, 13, 27)},
+        common_attrs={"start_time": dt.datetime(2022, 11, 16, 13, 27), "standard_name": "image_ready"},
     )
     # NB: even if compute=False, ``save_datasets`` creates (empty) files
     (sources, targets) = fake_scene.save_datasets(
@@ -84,7 +90,12 @@ def fake_scene():
     ds1 = xr.DataArray(
         da.arange(100 * 200).reshape((100, 200)).rechunk(50),
         dims=("y", "x"),
-        attrs={"name": "test", "start_time": dt.datetime(2018, 1, 1, 0, 0, 0), "area": adef},
+        attrs={
+            "name": "test",
+            "standard_name": "image_ready",
+            "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
+            "area": adef,
+        },
     )
     scn = Scene()
     scn["test"] = ds1
