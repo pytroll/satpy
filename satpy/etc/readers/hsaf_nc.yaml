@@ -3,7 +3,7 @@ reader:
   short_name: Hydrology SAF
   long_name: "H SAF products in NetCDF4 format"
   description: |
-    Reader configuration for H SAF H60/H60B, H63 and H90 NetCDF files
+    Reader configuration for H SAF H60/H60B, H63, H90 and H40B NetCDF files
     containing rain rate (rr and acc_rr) and quality index (qind).
   status: Alpha
   supports_fsspec: false
@@ -53,6 +53,16 @@ file_types:
     resolution: 3000
     end_time_delta_min: 15
     file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
+  hsaf_h40b_nc:
+    file_patterns:
+    # internally compressed
+      - 'W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_{start_time:%Y%m%d%H%M}_PINFCI.nc'
+    # externally compressed
+      - 'W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_{start_time:%Y%m%d%H%M}_PINFCI.nc.gz'
+    area: mtg_fci_fdss_2km
+    resolution: 2000
+    end_time_delta_min: 10
+    file_reader: !!python/name:satpy.readers.hsaf_nc.HSAFNCFileHandler
 
 datasets:
   acc_rr:
@@ -66,7 +76,7 @@ datasets:
   rr:
     name: rr
     file_key: rr
-    file_type: [hsaf_h60_nc, hsaf_h63_nc]
+    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h40b_nc]
     standard_name: instantaneous_rain_rate
     long_name: "Instantaneous Rain Rate"
     units: "mm/h"
@@ -74,7 +84,7 @@ datasets:
   qind:
     name: qind
     file_key: qind
-    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h90_nc]
+    file_type: [hsaf_h60_nc, hsaf_h63_nc, hsaf_h90_nc, hsaf_h40b_nc]
     standard_name: quality_index
     long_name: "Pixel Quality Index"
     units: "%"
