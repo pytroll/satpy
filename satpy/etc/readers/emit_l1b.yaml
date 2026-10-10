@@ -1,0 +1,154 @@
+reader:
+  name: emit_l1b
+  short_name: EMIT L1B NetCDF4
+  long_name: Earth Surface Mineral Dust Source Investigation (EMIT) Level 1B data in netCDF4 format
+  description: >
+    Reader for EMIT Level 1B files in NetCDF4 format.
+  status: Beta
+  supports_fsspec: false
+  sensors: [emit]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  emit_l1b_rad:
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL1BFileHandler
+    file_patterns: ['{sensor:4s}_{level:3s}_RAD_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
+    requires: [emit_l1b_obs]
+  emit_l1b_obs:
+    file_reader: !!python/name:satpy.readers.emit_l1b.EMITL1BFileHandler
+    file_patterns: ['{sensor:4s}_{level:3s}_OBS_{product_version:s}_{start_time:%Y%m%dT%H%M%S}_{orbit:s}_{scene:s}.nc']
+
+datasets:
+  elev:
+    name: elev
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: elev
+    long_name: surface elevation
+    units: m
+    nc_group: location
+    _FillValue: -9999.0
+
+  glt_x:
+    name: glt_x
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: glt_x
+    long_name: GLT sample Lookup
+    units: pixel location
+    nc_group: location
+    _FillValue: -9999
+
+  glt_y:
+    name: glt_y
+    file_type: [emit_l1b_rad, emit_l1b_obs]
+    standard_name: glt_y
+    long_name: GLT sample Lookup
+    units: pixel location
+    nc_group: location
+    _FillValue: -9999
+
+  radiance:
+    name: radiance
+    file_type: [emit_l1b_rad]
+    standard_name: radiance
+    units: uW cm-2 sr-1 nm-1
+    nc_group:
+    _FillValue: -9999.0
+
+  sza:
+    name: sza
+    file_type: [emit_l1b_obs]
+    standard_name: solar_zenith_angle
+    long_name: To-sun zenith (0 to 90 degrees from zenith)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  saa:
+    name: saa
+    file_type: [emit_l1b_obs]
+    standard_name: solar_azimuth_angle
+    long_name: To-sun azimuth (0 to 360 degrees CW from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  vza:
+    name: vza
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_zenith_angle
+    long_name: To-sensor zenith (0 to 90 degrees from zenith)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  vaa:
+    name: vaa
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_azimuth_angle
+    long_name: To-sensor azimuth (0 to 360 degrees CW from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  path_length:
+    name: path_length
+    file_type: [emit_l1b_obs]
+    standard_name: sensor_height
+    long_name: Path length (sensor-to-ground in meters)
+    units: m
+    nc_group:
+    _FillValue: -9999.0
+
+  solar_phase:
+    name: solar_phase
+    file_type: [emit_l1b_obs]
+    standard_name: solar_phase
+    long_name: Solar phase (degrees between to-sensor and to-sun vectors in principal plane)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  surface_slope:
+    name: surface_slope
+    file_type: [emit_l1b_obs]
+    standard_name: surface_slope
+    long_name: Slope (local surface slope as derived from DEM in degrees)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  surface_aspect:
+    name: surface_aspect
+    file_type: [emit_l1b_obs]
+    standard_name: surface_aspect
+    long_name: Aspect (local surface aspect 0 to 360 degrees clockwise from N)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  cosine_i:
+    name: cosine_i
+    file_type: [emit_l1b_obs]
+    standard_name: cosine_i
+    long_name: Cosine(i) (apparent local illumination factor based on DEM slope and aspect and to sun vector)
+    units: degree
+    nc_group:
+    _FillValue: -9999.0
+
+  time:
+    name: time
+    file_type: [emit_l1b_obs]
+    standard_name: time
+    long_name: UTC Time (decimal hours for mid-line pixels)
+    units:
+    nc_group:
+    _FillValue: -9999.0
+
+  earth_sun_distance:
+    name: earth_sun_distance
+    file_type: [emit_l1b_obs]
+    standard_name: earth_sun_distance
+    long_name: Earth-sun distance (AU)
+    units: AU
+    nc_group:
+    _FillValue: -9999.0
