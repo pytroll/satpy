@@ -73,11 +73,13 @@ Documentation
     dev_guide/index
     readers_formats
 
+
 .. toctree::
     :maxdepth: 1
 
     Satpy API <api/modules>
     faq
+    performance_test
     Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
     Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
