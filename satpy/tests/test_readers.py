@@ -220,6 +220,21 @@ class TestDatasetDict(unittest.TestCase):
         assert list(d.keys()) == list(self.regular_dict.keys())
         assert all(isinstance(x, DataID) for x in d.keys())
 
+    # 8< v1.0
+    def test_keys_names_wavelengths_deprecated(self):
+        """Test the deprecated names and wavelengths kwargs of the keys method."""
+        d = self.test_dict
+        with pytest.warns(UserWarning, match="'names' and 'wavelengths'"):
+            name_keys = d.keys(names=True)
+        assert sorted(set(name_keys))[:4] == ["test", "test2", "test3", "test4"]
+        with pytest.warns(UserWarning, match="'names' and 'wavelengths'"):
+            wl_keys = tuple(d.keys(wavelengths=True))
+        assert (0, 0.5, 1) in wl_keys
+        assert (1, 1.5, 2, "µm") in wl_keys
+        assert (1.2, 1.7, 2.2, "µm") in wl_keys
+        assert None in wl_keys
+    # >8 v1.0
+
     def test_setitem(self):
         """Test setitem method of DatasetDict."""
         d = self.test_dict

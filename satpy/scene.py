@@ -581,9 +581,14 @@ class Scene:
 
         return datasets_by_area.items()
 
-    def keys(self):
+    # 8< v1.0
+    def keys(self, **kwargs):
         """Get DataID keys for the underlying data container."""
-        return self._datasets.keys()
+        return self._datasets.keys(**kwargs)
+    # >8 v1.0
+    # def keys(self):
+    #     """Get DataID keys for the underlying data container."""
+    #     return self._datasets.keys()
 
     def values(self):
         """Get values for the underlying data container."""
@@ -1345,7 +1350,7 @@ class Scene:
         new_scn = self.copy()
         datasets = compute(*(new_scn._datasets.values()), **kwargs)
 
-        for k, ds in zip(list(new_scn._datasets.keys()), datasets):
+        for k, ds in zip(new_scn._datasets.keys(), datasets):
             new_scn[k] = ds
 
         return new_scn
@@ -1359,7 +1364,7 @@ class Scene:
         new_scn = self.copy()
         datasets = persist(*(new_scn._datasets.values()), **kwargs)
 
-        for k, ds in zip(list(new_scn._datasets.keys()), datasets):
+        for k, ds in zip(new_scn._datasets.keys(), datasets):
             new_scn[k] = ds
 
         return new_scn
@@ -1370,7 +1375,7 @@ class Scene:
         See :meth:`xarray.DataArray.chunk` for more details.
         """
         new_scn = self.copy()
-        for k in list(new_scn._datasets.keys()):
+        for k in new_scn._datasets.keys():
             new_scn[k] = new_scn[k].chunk(**kwargs)
 
         return new_scn
