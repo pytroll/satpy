@@ -143,7 +143,7 @@ class MWSL1BFile(NetCDF4FileHandler):
         super().__init__(filename, filename_info,
                          filetype_info,
                          cache_var_size=10000,
-                         cache_handle=True)
+                         open_strategy="file_handle")
         logger.debug("Reading: {}".format(self.filename))
         logger.debug("Start: {}".format(self.start_time))
         logger.debug("End: {}".format(self.end_time))

@@ -20,7 +20,7 @@ dependencies = [
     "pyyaml>=5.1",
     "trollimage>=1.24",
     "trollsift",
-    "xarray>=0.14.1",
+    "xarray>=2025.9.0",
     "zarr",
     "universal_pathlib",
 ]
