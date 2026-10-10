@@ -98,6 +98,15 @@ class TestDataAccessMethods:
             objs = list(scene)
         _assert_same_objects(objs, list(scene.values()), xr.DataArray)
 
+    # 8< v1.0
+    def test_keys_names_deprecated(self):
+        """Test the deprecated names kwarg of Scene.keys."""
+        scene = _scene_with_three_datasets()
+        with pytest.warns(UserWarning, match="'names' and 'wavelengths'"):
+            names = list(scene.keys(names=True))
+        assert names == ["1", "2", "3"]
+    # >8 v1.0
+
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""
         from pyresample.geometry import SwathDefinition
