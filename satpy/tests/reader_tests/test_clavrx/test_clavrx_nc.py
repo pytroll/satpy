@@ -7,7 +7,7 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.clavrx import CLAVRXNetCDFFileHandler
+from satpy.readers.clavrx import CLAVRXNetCDFFileHandler, _CLAVRxHelper
 from satpy.readers.core.loading import load_reader
 
 ABI_FILE = "clavrx_OR_ABI-L1b-RadC-M6C01_G16_s20231021601173.level2.nc"
@@ -127,6 +127,36 @@ def fake_test_content(filename, has_2d_xy=False, **kwargs):
     ds = ds.assign_coords({"latitude": latitude, "longitude": longitude})
 
     return ds
+
+
+class TestVerifyFlagValues:
+    """Test _verify_flag_values validation logic. 
+       Courtesy: Gemini 3.6
+    """
+
+    @pytest.mark.parametrize(
+        ("flag_values", "expected_invalid"),
+        [
+            # Valid cases: strictly increasing
+            ([0, 1, 2, 3], False),
+            (np.array([0, 1, 2, 3]), False),
+            
+            # Invalid cases: repeated/corrupted values (e.g., 0b, 0b, 0b)
+            ([0, 0, 0, 0], True),
+            (np.array([0, 0, 0, 0]), True),
+            ([0, 1, 1, 2], True),      # non-strictly increasing
+            ([3, 2, 1, 0], True),      # decreasing
+            
+            # Edge case: single value.
+            ([0], False),
+        ]
+    )
+
+    def test_verify_flag_values(self, flag_values, expected_invalid):
+        # Call the actual static method directly on the class
+        is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
+        
+        assert is_invalid == expected_invalid
 
 
 class TestCLAVRXNetCDFReader2DXY:
@@ -351,3 +381,8 @@ class TestCLAVRXReaderGeo:
             with mock.patch("satpy.readers.clavrx._scale_data", wraps=_scale_data) as scale_data2:
                 r.load(ds_no_scale)
                 scale_data2.assert_not_called()
+
+            with mock.patch.object(_CLAVRxHelper, "_verify_flag_values", 
+                                   wraps=_CLAVRxHelper._verify_flag_values) as mock_verify:
+                r.load(ds_scale)
+                mock_verify.assert_not_called()

@@ -9,6 +9,7 @@ from typing import Optional
 
 import netCDF4
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 from pyresample import geometry
 
@@ -129,18 +130,12 @@ class _CLAVRxHelper:
 
 
     @staticmethod
-    def _verify_flag_values(flag_values) -> bool:
+    def _verify_flag_values(flag_values: npt.NDArray[np.int]) -> bool:
         # Fix invalid/corrupted flag_values (e.g., [0, 0, 0, ...] instead of [0, 1, 2, ...])
-        if flag_values is None:
-            return False
+        flag_values = np.asarray(flag_values)
 
-        if flag_values[0] is not None:
-            flag_values = np.asarray(flag_values)
-
-            # Check if flag_values has duplicates or is not strictly increasing
-            is_invalid = len(flag_values) > 1 and np.any(np.diff(flag_values) <= 0)
-        else:
-            is_invalid = False
+        # Check if flag_values has duplicates or is not strictly increasing
+        is_invalid = len(flag_values) > 1 and np.any(np.diff(flag_values) <= 0)
 
         return is_invalid
 
@@ -156,19 +151,24 @@ class _CLAVRxHelper:
         # don't need these attributes after applied.
         factor = attrs.pop("scale_factor", (np.ones(1, dtype=data.dtype))[0])
         offset = attrs.pop("add_offset", (np.zeros(1, dtype=data.dtype))[0])
-        flag_values = data.attrs.get("flag_values", [None])
+        flag_values = data.attrs.get("flag_values", None)
         valid_range = attrs.get("valid_range", [None])
 
         if isinstance(valid_range, np.ndarray):
             valid_range = valid_range.tolist()
             attrs["valid_range"] = valid_range
 
-        flags = not data.attrs.get("SCALED", 1) and any(flag_values)
-        if flags:
+        has_flags = (
+                flag_values is not None
+                and len(flag_values) > 0
+                and flag_values[0] is not None
+        )
+
+        if not attrs.get("SCALED", 1) and has_flags:
             fill = attrs.get("_FillValue", None)
             is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
 
-            if is_invalid and flag_values[0] is not None:
+            if is_invalid:
                 # Fall back to sequential values [0, 1, 2, ...] based on length
                 num_flags = len(flag_values)
                 flag_values = np.arange(num_flags, dtype=data.dtype)
@@ -181,7 +181,7 @@ class _CLAVRxHelper:
             data = data.where(data != fill)
             data = _scale_data(data, factor, offset)
 
-            if valid_range[0] is not None:
+            if any(valid_range):
                 valid_min = _scale_data(valid_range[0], factor, offset)
                 valid_max = _scale_data(valid_range[1], factor, offset)
                 data = data.where((data >= valid_min) & (data <= valid_max))
