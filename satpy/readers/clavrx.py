@@ -130,7 +130,7 @@ class _CLAVRxHelper:
 
 
     @staticmethod
-    def _verify_flag_values(flag_values: npt.NDArray[np.int]) -> bool:
+    def _verify_flag_values(flag_values: npt.NDArray[int]) -> bool:
         # Fix invalid/corrupted flag_values (e.g., [0, 0, 0, ...] instead of [0, 1, 2, ...])
         flag_values = np.asarray(flag_values)
 
