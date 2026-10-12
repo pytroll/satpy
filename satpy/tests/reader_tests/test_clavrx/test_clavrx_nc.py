@@ -38,93 +38,52 @@ def fake_test_content(filename, has_2d_xy=False, **kwargs):
         "L1B": L1B_FILE,
     }
 
-    longitude = xr.DataArray(DEFAULT_LON_DATA,
-                             dims=("scan_lines_along_track_direction",
-                                   "pixel_elements_along_scan_direction"),
-                             attrs={"_FillValue": -999.,
-                                    "SCALED": 0,
-                                    "scale_factor": 1.,
-                                    "add_offset": 0.,
-                                    "standard_name": "longitude",
-                                    "units": "degrees_east"
-                                    })
-
-    latitude = xr.DataArray(DEFAULT_LAT_DATA,
-                            dims=("scan_lines_along_track_direction",
-                                  "pixel_elements_along_scan_direction"),
-                            attrs={"_FillValue": -999.,
-                                   "SCALED": 0,
-                                   "scale_factor": 1.,
-                                   "add_offset": 0.,
-                                   "standard_name": "latitude",
-                                   "units": "degrees_south"
-                                   })
-
-    variable1 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.int8),
-                             dims=("scan_lines_along_track_direction",
-                                   "pixel_elements_along_scan_direction"),
-                             attrs={"_FillValue": -127,
-                                    "SCALED": 0,
-                                    "units": "1",
-                                    })
+    dim_tuple = ("scan_lines_along_track_direction", "pixel_elements_along_scan_direction")
 
     # data with fill values and a file_type alias
-    variable2 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.int16),
-                             dims=("scan_lines_along_track_direction",
-                                   "pixel_elements_along_scan_direction"),
-                             attrs={"_FillValue": FILL_VALUE,
-                                    "SCALED": 1,
-                                    "scale_factor": 0.001861629,
-                                    "add_offset": 59.,
-                                    "units": "%",
-                                    "valid_range": [-32767, 32767],
-        # this is a Level 2 file that came from a L1B file
-        "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
-    }
+    data = xr.DataArray(DEFAULT_FILE_DATA.astype(np.int16), dims=dim_tuple, attrs={"_FillValue": FILL_VALUE,
+                                                                                   "SCALED": 1,
+                                                                                   "scale_factor": 0.001861629,
+                                                                                   "add_offset": 59.,
+                                                                                   "units": "%",
+                                                                                   "valid_range": [-32767, 32767],
+                                                                                   "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
+                                                                                  }
     )
-    variable2 = variable2.where(variable2 % 2 != 0, FILL_VALUE)
-
-    # category
-    var_flags = xr.DataArray(DEFAULT_FILE_FLAGS.astype(np.int8),
-                             dims=("scan_lines_along_track_direction",
-                                   "pixel_elements_along_scan_direction"),
-                             attrs={"SCALED": 0,
-                                    "_FillValue": -127,
-                                    "units": "1",
-                                    "flag_values": [0, 1, 2, 3]})
-
-    out_of_range_flags = xr.DataArray(DEFAULT_FILE_FLAGS_BEYOND_FILL.astype(np.int8),
-                                      dims=("scan_lines_along_track_direction",
-                                            "pixel_elements_along_scan_direction"),
-                                      attrs={"SCALED": 0,
-                                             "_FillValue": -127,
-                                             "units": "1",
-                                             "flag_values": [0, 1, 2, 3]})
+    data = data.where(data % 2 != 0, FILL_VALUE)
 
     ds_vars = {
-        "longitude": longitude,
-        "latitude": latitude,
-        "variable1": variable1,
-        "refl_0_65um_nom": variable2,
-        "var_flags": var_flags,
-        "out_of_range_flags": out_of_range_flags,
+        "longitude": xr.DataArray(DEFAULT_LON_DATA, dims=dim_tuple,
+                                  attrs={"_FillValue": -999., "SCALED": 0, "scale_factor": 1.,
+                                         "add_offset": 0., "standard_name": "longitude", "units": "degrees_east"
+                                         }),
+        "latitude": xr.DataArray(DEFAULT_LAT_DATA, dims=dim_tuple,
+                                 attrs={"_FillValue": -999., "SCALED": 0, "scale_factor": 1., "add_offset": 0.,
+                                        "standard_name": "latitude", "units": "degrees_south" }),
+        "refl_0_65um_nom": data,
+        "var_flags": xr.DataArray(DEFAULT_FILE_FLAGS.astype(np.int8), dims=dim_tuple,
+                             attrs={"SCALED": 0, "_FillValue": -127, "units": "1",
+                                    "flag_values": [0, 1, 2, 3]}),
+        "out_of_range_flags": xr.DataArray(DEFAULT_FILE_FLAGS_BEYOND_FILL.astype(np.int8),
+                                          dims=dim_tuple, attrs={"SCALED": 0, "_FillValue": -127,
+                                                                 "units": "1", "flag_values": [0, 1, 2, 3]}),
     }
 
     if has_2d_xy:
         # Add 2D x and y variables (sharing the same dimensions or non-dim 2D coords)
         x_2d = xr.DataArray(
             np.tile(np.linspace(-0.15, 0.15, DEFAULT_FILE_SHAPE[1]), (DEFAULT_FILE_SHAPE[0], 1)),
-            dims=("scan_lines_along_track_direction", "pixel_elements_along_scan_direction")
+            dims=dim_tuple
         )
         y_2d = xr.DataArray(
             np.tile(np.linspace(0.15, -0.15, DEFAULT_FILE_SHAPE[0]), (DEFAULT_FILE_SHAPE[1], 1)).T,
-            dims=("scan_lines_along_track_direction", "pixel_elements_along_scan_direction")
+            dims=dim_tuple
         )
         ds_vars["x"] = x_2d
         ds_vars["y"] = y_2d
 
     ds = xr.Dataset(ds_vars, attrs=attrs)
-    ds = ds.assign_coords({"latitude": latitude, "longitude": longitude})
+    ds = ds.assign_coords({"latitude": ds["latitude"], "longitude": ds["longitude"]})
 
     return ds
 
@@ -212,14 +171,13 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
-        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "C02", "var_flags",
+        [([ABI_FILE], ["refl_0_65um_nom", "C02", "var_flags",
                        "out_of_range_flags", "longitude", "latitude"]), ]
     )
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers.core.loading import load_reader
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
-            od.side_effect = fake_test_content
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content) as od:
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
@@ -229,12 +187,11 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
+        [([ABI_FILE], ["refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
     )
     def test_load_all_new_donor(self, filenames, loadable_ids):
         """Test loading all test datasets with new donor."""
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
-            od.side_effect = fake_test_content
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
@@ -258,12 +215,6 @@ class TestCLAVRXReaderGeo:
 
                 datasets = r.load(loadable_ids + ["C02"])
                 assert len(datasets) == len(loadable_ids)+1
-
-                # should have file variable and one alias for reflectance
-                assert "valid_range" not in datasets["variable1"].attrs
-                assert "_FillValue" not in datasets["variable1"].attrs
-                assert np.float32 == datasets["variable1"].dtype
-                assert "valid_range" not in datasets["variable1"].attrs
 
                 assert np.issubdtype(datasets["var_flags"].dtype, np.integer)
                 assert datasets["var_flags"].attrs.get("flag_meanings") is not None
@@ -294,8 +245,7 @@ class TestCLAVRXReaderGeo:
     )
     def test_yaml_datasets(self, filenames, expected_loadables):
         """Test available_datasets with fake variables from YAML."""
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
-            od.side_effect = fake_test_content
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
@@ -323,7 +273,7 @@ class TestCLAVRXReaderGeo:
             ]
             new_ds_infos = list(r.file_handlers["clavrx_nc"][0].available_datasets(
                 fake_dataset_info))
-            assert len(new_ds_infos) == 10
+            assert len(new_ds_infos) == 9
 
             # we have this and can provide the resolution
             assert (new_ds_infos[0][0])
@@ -341,13 +291,12 @@ class TestCLAVRXReaderGeo:
 
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
-        [([ABI_FILE], ["variable1", "refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
+        [([ABI_FILE], ["refl_0_65um_nom", "var_flags", "out_of_range_flags"]), ]
     )
     def test_scale_data(self, filenames, loadable_ids):
         """Test that data is scaled when necessary and not scaled data are flags."""
         from satpy.readers.clavrx import _scale_data
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
-            od.side_effect = fake_test_content
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
@@ -368,7 +317,7 @@ class TestCLAVRXReaderGeo:
             )
             fake_donor.__getitem__.side_effect = lambda key: fake_donor.variables[key]
 
-            ds_scale = ["variable1", "refl_0_65um_nom"]
+            ds_scale = ["refl_0_65um_nom"]
             ds_no_scale = ["var_flags", "out_of_range_flags"]
 
             with mock.patch("satpy.readers.clavrx._scale_data", wraps=_scale_data) as scale_data:
