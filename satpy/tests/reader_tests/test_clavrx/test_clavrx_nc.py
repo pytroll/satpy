@@ -47,7 +47,6 @@ def fake_test_content(filename, has_2d_xy=False, **kwargs):
                                                                                    "add_offset": 59.,
                                                                                    "units": "%",
                                                                                    "valid_range": [-32767, 32767],
-                                                                                   "L1B": "clavrx_H08_20210603_1500_B01_FLDK_R",
                                                                                   }
     )
     data = data.where(data % 2 != 0, FILL_VALUE)
@@ -160,8 +159,7 @@ class TestCLAVRXReaderGeo:
     )
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset") as od:
-            od.side_effect = fake_test_content
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             assert len(loadables) == expected_loadables
@@ -177,7 +175,7 @@ class TestCLAVRXReaderGeo:
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers.core.loading import load_reader
-        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content) as od:
+        with mock.patch("satpy.readers.clavrx.xr.open_dataset", side_effect=fake_test_content):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
