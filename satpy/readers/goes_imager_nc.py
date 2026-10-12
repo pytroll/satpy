@@ -636,11 +636,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     @staticmethod
     def _get_platform_name(ncattr):
         """Determine name of the platform."""
-        match = re.match(r"G-(\d+)", ncattr)
+        # At some point NOAA CLASS changed the netCDF attribute
+        # from G-15 to GOES-15. Data downloaded before that
+        # still have the G-15 attribute.
+        match = re.match(r"G(?:OES)?-(\d+)", ncattr.strip())
         if match:
             return SPACECRAFTS.get(int(match.groups()[0]))
-
-        return None
+        raise ValueError(f"Unknown platform name: {ncattr}")
 
     def _get_sector(self, channel, nlines, ncols):
         """Determine which sector was scanned."""

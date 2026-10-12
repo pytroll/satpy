@@ -321,13 +321,16 @@ class TestMetadata:
         xr.testing.assert_allclose(earth_mask_tst, earth_mask_ref)
 
 
-class GOESNCFileHandlerTest(unittest.TestCase):
+class TestGOESNCFileHandler:
     """Test the file handler."""
 
-    longMessage = True
+    @pytest.fixture(params=["G-15     ", "GOES-15"])
+    def satellite_attr(self, request):
+        """Get satellite attribute."""
+        return request.param
 
-    @mock.patch("satpy.readers.goes_imager_nc.xr")
-    def setUp(self, xr_):
+    @pytest.fixture(autouse=True)
+    def setup_reader(self, satellite_attr):
         """Set up the tests."""
         from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESNCFileHandler
 
@@ -347,19 +350,18 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         self.lon = np.zeros((nrows, ncols))  # Dummy
         self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
             nrows, ncols)  # Includes invalid values to be masked
-
-        xr_.open_dataset.return_value = xr.Dataset(
+        dataset = xr.Dataset(
             {"data": xr.DataArray(data=self.counts, dims=("time", "yc", "xc")),
              "lon": xr.DataArray(data=self.lon, dims=("yc", "xc")),
              "lat": xr.DataArray(data=self.lat, dims=("yc", "xc")),
              "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([1]))},
-            attrs={"Satellite Sensor": "G-15"})
-
-        # Instantiate reader using the mocked open_dataset() method
-        self.reader = GOESNCFileHandler(filename="dummy", filename_info={},
-                                        filetype_info={})
+            attrs={"Satellite Sensor": satellite_attr}
+        )
+        with mock.patch("satpy.readers.goes_imager_nc.xr.open_dataset", return_value=dataset):
+            self.reader = GOESNCFileHandler(filename="dummy", filename_info={},
+                                            filetype_info={})
 
     def test_get_dataset_coords(self):
         """Test whether coordinates returned by get_dataset() are correct."""
