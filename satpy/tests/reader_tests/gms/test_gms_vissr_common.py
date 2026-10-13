@@ -1,5 +1,7 @@
 """Unit tests for the calibration, space masking and area definition shared by the GMS VISSR readers."""
 
+import collections
+
 import dask.array as da
 import numpy as np
 import pytest
@@ -110,6 +112,11 @@ class TestEarthMask:
         np.testing.assert_array_equal(res, [-1, 5])
 
 
+ExtentReference = collections.namedtuple(
+    "ExtentReference", ["name", "resolution", "size", "stepping_angle", "extent"]
+)
+
+
 class TestAreaDefEstimator:
     """Test estimating a full disk area definition with uniform sampling."""
 
@@ -161,13 +168,13 @@ class TestAreaDefEstimator:
         assert fine.area_extent[2] == pytest.approx(coarse.area_extent[2] / 4, rel=1e-6)
 
     @pytest.mark.parametrize(
-        ("name", "resolution", "size", "stepping_angle", "expected_extent"),
+        "reference",
         [
-            ("IR1", 5000, 2366, 0.00014000005, (-20438.1468, -20438.1468, 20455.4306, 20455.4306)),
-            ("VIS", 1250, 9464, 3.5000005e-05, (-20444.6235, -20444.6235, 20448.9445, 20448.9445)),
+            ExtentReference("IR1", 5000, 2366, 0.00014000005, (-20438.1468, -20438.1468, 20455.4306, 20455.4306)),
+            ExtentReference("VIS", 1250, 9464, 3.5000005e-05, (-20444.6235, -20444.6235, 20448.9445, 20448.9445)),
         ],
     )
-    def test_extent_matches_reference(self, name, resolution, size, stepping_angle, expected_extent):
+    def test_extent_matches_reference(self, reference):
         """Test the computed extent against explicit reference values.
 
         The reference is the extent of the GMS-5 full disk areas (the nominal
@@ -177,10 +184,12 @@ class TestAreaDefEstimator:
             platform_name="GMS-5", sensor_name="VISSR", ssp_lon=140.0, satellite_height=123456.0
         )
         area_def = estimator.get_area_def_uniform_sampling(
-            make_dataid(name=name, resolution=resolution), size=size, stepping_angle=stepping_angle
+            make_dataid(name=reference.name, resolution=reference.resolution),
+            size=reference.size,
+            stepping_angle=reference.stepping_angle,
         )
-        assert area_def.shape == (size, size)
-        np.testing.assert_allclose(area_def.area_extent, expected_extent, atol=1e-3)
+        assert area_def.shape == (reference.size, reference.size)
+        np.testing.assert_allclose(area_def.area_extent, reference.extent, atol=1e-3)
 
 
 class TestFullDiskSize:
