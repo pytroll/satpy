@@ -172,6 +172,12 @@ from satpy.readers.hrit_jma import mjd2datetime64
 from satpy.utils import datetime64_to_pydatetime, get_legacy_chunk_size
 
 CHUNK_SIZE = get_legacy_chunk_size()
+# Fixed full disk sizes, so that the area definition always covers the same area, even if the scan was aborted
+# or only covers one hemisphere.
+FULL_DISK_SIZE = {
+    "IR": 2366,
+    "VIS": 9464,
+}
 
 
 def _recarr2dict(arr, preserve=None):
@@ -416,7 +422,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         )
         return estimator.get_area_def_uniform_sampling(
             dataset_id,
-            size=self._get_nominal_shape()[0],
+            size=FULL_DISK_SIZE[fmt.CHANNEL_TYPES[dataset_id["name"]]],
             stepping_angle=coord_conv["stepping_angle_along_line"][_get_alternative_channel_name(dataset_id)],
         )
 

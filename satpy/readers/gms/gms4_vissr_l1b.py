@@ -238,13 +238,8 @@ class GmsVissrFileHandler(BaseFileHandler):
         return data_array
 
     def _get_area_def_uniform_sampling(self, dataset_id):
-        size = self._l1b.n_lines
-        if size <= 1:
-            raise ValueError(
-                f"Implausible dataset shape (n_lines={size}) -- can't "
-                f"build a uniform-sampling area definition from this."
-            )
         suffix = "ir" if self._l1b.channel == "IR" else "vis"
+        stepping_angle = float(self._l1b.coord[f"stepping_angle_{suffix}"])
         estimator = common.AreaDefEstimator(
             platform_name=self._platform_name(),
             sensor_name=INSTRUMENT,
@@ -253,8 +248,9 @@ class GmsVissrFileHandler(BaseFileHandler):
         )
         return estimator.get_area_def_uniform_sampling(
             dataset_id,
-            size=size,
-            stepping_angle=float(self._l1b.coord[f"stepping_angle_{suffix}"]),
+            # Always the full disk, even for partial scans
+            size=common.get_full_disk_size(stepping_angle),
+            stepping_angle=stepping_angle,
         )
 
     def _platform_name(self):

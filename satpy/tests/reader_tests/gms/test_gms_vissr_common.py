@@ -159,3 +159,40 @@ class TestAreaDefEstimator:
         coarse = estimator.get_area_def_uniform_sampling(dataset_id, size=100, stepping_angle=1.4e-4)
         fine = estimator.get_area_def_uniform_sampling(dataset_id, size=100, stepping_angle=3.5e-5)
         assert fine.area_extent[2] == pytest.approx(coarse.area_extent[2] / 4, rel=1e-6)
+
+    @pytest.mark.parametrize(
+        ("name", "resolution", "size", "stepping_angle", "expected_extent"),
+        [
+            ("IR1", 5000, 2366, 0.00014000005, (-20438.1468, -20438.1468, 20455.4306, 20455.4306)),
+            ("VIS", 1250, 9464, 3.5000005e-05, (-20444.6235, -20444.6235, 20448.9445, 20448.9445)),
+        ],
+    )
+    def test_extent_matches_reference(self, name, resolution, size, stepping_angle, expected_extent):
+        """Test the computed extent against explicit reference values.
+
+        The reference is the extent of the GMS-5 full disk areas (the nominal
+        satellite height of 123456 m is the one of the GMS-5 test data).
+        """
+        estimator = common.AreaDefEstimator(
+            platform_name="GMS-5", sensor_name="VISSR", ssp_lon=140.0, satellite_height=123456.0
+        )
+        area_def = estimator.get_area_def_uniform_sampling(
+            make_dataid(name=name, resolution=resolution), size=size, stepping_angle=stepping_angle
+        )
+        assert area_def.shape == (size, size)
+        np.testing.assert_allclose(area_def.area_extent, expected_extent, atol=1e-3)
+
+
+class TestFullDiskSize:
+    """Test the size of the full disk area."""
+
+    @pytest.mark.parametrize(
+        ("stepping_angle", "expected_size"),
+        [
+            (0.00014000005, 2366),  # GMS-5 IR
+            (3.5000005e-05, 9464),  # GMS-5 VIS
+        ],
+    )
+    def test_matches_gms5_full_disk(self, stepping_angle, expected_size):
+        """Test that the sizes of the GMS-5 full disk areas are reproduced."""
+        assert common.get_full_disk_size(stepping_angle) == expected_size

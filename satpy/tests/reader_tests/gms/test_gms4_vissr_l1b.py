@@ -252,10 +252,20 @@ def _expected_lons_lats(channel):
 
 
 def _expected_area_def(dataset_id, channel):
-    """Get the expected area definition: full disk, square, one pixel per scan step."""
-    suffix = "ir" if channel == fmt.IR_CHANNEL else "vis"
-    pixel_size = real_world.COORDINATE_CONVERSION[f"stepping_angle_{suffix}"] * real_world.MODE["satellite_height"]
-    resolution = "5km" if channel == fmt.IR_CHANNEL else "1km"
+    """Get the expected area definition: full disk, square, one pixel per scan step.
+
+    The size is independent of the number of lines of the test image. The extent
+    is a snapshot of the estimator for the real stepping angles of the test
+    data and the real satellite height, not an independent reference.
+    """
+    if channel == fmt.IR_CHANNEL:
+        resolution = "5km"
+        size = 2365
+        extent = (-5942506.2162, -5942506.2162, 5947533.7173, 5947533.7173)
+    else:
+        resolution = "1km"
+        size = 9461
+        extent = (-5945017.4957, -5945017.4957, 5946274.3705, 5946274.3705)
     return AreaDefinition(
         f"gms-4_vissr_western-pacific_{resolution}",
         f"GMS-4 VISSR Western Pacific area definition with {resolution[:-2]} km resolution",
@@ -268,9 +278,9 @@ def _expected_area_def(dataset_id, channel):
             "b": nav.EARTH_POLAR_RADIUS,
             "units": "m",
         },
-        NUM_TEST_LINES,
-        NUM_TEST_LINES,
-        (-0.5 * pixel_size, -0.5 * pixel_size, 1.5 * pixel_size, 1.5 * pixel_size),
+        size,
+        size,
+        extent,
     )
 
 
@@ -316,7 +326,7 @@ class TestFileHandler:
         assert area_def.description == expected_area_def.description
         assert area_def.shape == expected_area_def.shape
         assert area_def.crs == expected_area_def.crs
-        np.testing.assert_allclose(area_def.area_extent, expected_area_def.area_extent, rtol=1e-6)
+        np.testing.assert_allclose(area_def.area_extent, expected_area_def.area_extent, atol=1e-3)
 
     def test_coordinate_attributes(self, file_handler, dataset_id, ds_info):
         """Test that lon/lat coords are tagged for Satpy's generic SwathDefinition auto-building."""

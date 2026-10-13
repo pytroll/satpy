@@ -188,10 +188,9 @@ class TestFileHandler:
         mode["observation_time_mjd"] = 50000.0
         mode["ssp_longitude"] = 140.0
         mode["satellite_height"] = 123456.0
-        # Real full disk number of lines (the test images only have two lines)
-        mode["ir_frame_parameters"]["number_of_lines"] = 2366
+        mode["ir_frame_parameters"]["number_of_lines"] = 2
         mode["ir_frame_parameters"]["number_of_pixels"] = 2
-        mode["vis_frame_parameters"]["number_of_lines"] = 9464
+        mode["vis_frame_parameters"]["number_of_lines"] = 2
         mode["vis_frame_parameters"]["number_of_pixels"] = 2
         return mode
 

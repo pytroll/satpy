@@ -16,6 +16,9 @@ import satpy.readers.core._geos_area as geos_area
 import satpy.readers.gms.gms_vissr_navigation as nav
 
 FILL_VALUE = -1  # scanline not intersecting the earth
+# Angle between the first and the last line of the full disk area definitions (2366 IR lines and 9464 VIS lines
+# for GMS-5), in radians.
+FULL_DISK_ANGLE = 0.33124
 USUAL_SCAN_DURATION = dt.timedelta(minutes=25)  # Source: GMS User Guide, section 3.3.1
 # Calibration levels for which the lookup table yields fractions that need to be converted to percent.
 PERCENT_CALIBRATIONS = (
@@ -101,6 +104,16 @@ def get_earth_mask(shape, earth_edges, fill_value=FILL_VALUE):
             continue
         mask[line, first:last+1] = 1
     return mask
+
+
+def get_full_disk_size(stepping_angle):
+    """Get the number of lines and pixels of a full disk area for the given stepping angle (in radians).
+
+    Using a fixed size for the full disk instead of the number of scanlines of the
+    scan ensures that the area definition always covers the same area, even
+    if the scan was aborted or covers only one hemisphere.
+    """
+    return int(round(FULL_DISK_ANGLE / stepping_angle))
 
 
 class AreaDefEstimator:
