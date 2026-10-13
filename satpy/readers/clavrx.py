@@ -9,7 +9,6 @@ from typing import Optional
 
 import netCDF4
 import numpy as np
-import numpy.typing as npt
 import xarray as xr
 from pyresample import geometry
 
@@ -122,7 +121,7 @@ class _CLAVRxHelper:
     def _remove_attributes(attrs: dict) -> dict:
         """Remove attributes that described data before scaling."""
         old_attrs = ["unscaled_missing", "SCALED_MIN", "SCALED_MAX",
-                     "SCALED_MISSING", 'scale_factor', 'add_offset']
+                     "SCALED_MISSING", "scale_factor", "add_offset"]
 
         for attr_key in old_attrs:
             attrs.pop(attr_key, None)

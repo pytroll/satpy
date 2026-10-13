@@ -114,7 +114,7 @@ class TestFlagProcessing:
         result = _CLAVRxHelper._process_flags(data, input_flags)
 
         if expected_invalid:
-            # Check that attributes were repaired sequential flags when appropriate (defined in expected_invalid of the test)
+            # Check sequential flags repair cases
             assert result.attrs["flag_values"] == output_flags
             # Verify data.where used updated range [0, 2] -> 999 masked out to NaN
             assert result.values[-1] == data.attrs["_FillValue"]
