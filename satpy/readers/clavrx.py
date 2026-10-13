@@ -122,7 +122,7 @@ class _CLAVRxHelper:
     def _remove_attributes(attrs: dict) -> dict:
         """Remove attributes that described data before scaling."""
         old_attrs = ["unscaled_missing", "SCALED_MIN", "SCALED_MAX",
-                     "SCALED_MISSING"]
+                     "SCALED_MISSING", 'scale_factor', 'add_offset']
 
         for attr_key in old_attrs:
             attrs.pop(attr_key, None)
@@ -130,14 +130,40 @@ class _CLAVRxHelper:
 
 
     @staticmethod
-    def _verify_flag_values(flag_values: npt.NDArray[int]) -> bool:
-        # Fix invalid/corrupted flag_values (e.g., [0, 0, 0, ...] instead of [0, 1, 2, ...])
-        flag_values = np.asarray(flag_values)
+    def _process_flags(data, input_flags):
+        """Process the flag values from the file with fallback logic for bad or repeating flag values."""
+        fill = data.attrs.get("_FillValue", -999)
+        data.attrs["_FillValue"] = fill
+        input_flags = np.asarray(input_flags)
+        num_flags = len(input_flags)
 
-        # Check if flag_values has duplicates or is not strictly increasing
-        is_invalid = len(flag_values) > 1 and np.any(np.diff(flag_values) <= 0)
+        if num_flags == 1:
+            # Assuming this is a valid flag, pass the data back.
+            return data.where(data == input_flags[0], fill)
 
-        return is_invalid
+        repeating_flags = len(np.unique(input_flags)) != len(input_flags)
+        if repeating_flags:
+            # Fall back to sequential values [0, 1, 2, ...] based on length
+            flag_values = np.arange(num_flags, dtype=data.dtype)
+            data.attrs["flag_values"] = flag_values.tolist()
+
+        return data.where((data >= np.min(input_flags)) & (data <= np.max(input_flags)), fill)
+
+
+    @staticmethod
+    def _process_scaled_data(data, factor, offset, valid_range, ):
+        """Process unscaled data conversion with valid range and fill values."""
+        fill = data.attrs.pop("_FillValue", None)
+        data = data.where(data != fill)
+        data = _scale_data(data, factor, offset)
+
+        if valid_range is not None:
+            valid_min = _scale_data(valid_range[0], factor, offset)
+            valid_max = _scale_data(valid_range[1], factor, offset)
+            data = data.where((data >= valid_min) & (data <= valid_max))
+            data.attrs["valid_range"] = [valid_min, valid_max]
+
+        return data
 
 
     @staticmethod
@@ -146,48 +172,28 @@ class _CLAVRxHelper:
         if dataset_id.get("resolution"):
             data.attrs["resolution"] = dataset_id["resolution"]
 
-        attrs = data.attrs.copy()
-
         # don't need these attributes after applied.
-        factor = attrs.pop("scale_factor", (np.ones(1, dtype=data.dtype))[0])
-        offset = attrs.pop("add_offset", (np.zeros(1, dtype=data.dtype))[0])
+        factor = data.attrs.pop("scale_factor", (np.ones(1, dtype=data.dtype))[0])
+        offset = data.attrs.pop("add_offset", (np.zeros(1, dtype=data.dtype))[0])
         flag_values = data.attrs.get("flag_values", None)
-        valid_range = attrs.get("valid_range", [None])
+        valid_range = data.attrs.get("valid_range", None)
 
         if isinstance(valid_range, np.ndarray):
             valid_range = valid_range.tolist()
-            attrs["valid_range"] = valid_range
+            data.attrs["valid_range"] = valid_range
 
         has_flags = (
                 flag_values is not None
                 and len(flag_values) > 0
-                and flag_values[0] is not None
         )
+        is_raw = not data.attrs.get("SCALED", 1)
 
-        if not attrs.get("SCALED", 1) and has_flags:
-            fill = attrs.get("_FillValue", None)
-            is_invalid = _CLAVRxHelper._verify_flag_values(flag_values)
-
-            if is_invalid:
-                # Fall back to sequential values [0, 1, 2, ...] based on length
-                num_flags = len(flag_values)
-                flag_values = np.arange(num_flags, dtype=data.dtype)
-                attrs["flag_values"] = flag_values.tolist()
-
-            if isinstance(flag_values, np.ndarray) or isinstance(flag_values, list):
-                data = data.where((data >= flag_values[0]) & (data <= flag_values[-1]), fill)
+        if is_raw and has_flags:
+            data = _CLAVRxHelper._process_flags(data, flag_values)
         else:
-            fill = attrs.pop("_FillValue", None)
-            data = data.where(data != fill)
-            data = _scale_data(data, factor, offset)
+            data = _CLAVRxHelper._process_scaled_data(data, factor, offset, valid_range)
 
-            if any(valid_range):
-                valid_min = _scale_data(valid_range[0], factor, offset)
-                valid_max = _scale_data(valid_range[1], factor, offset)
-                data = data.where((data >= valid_min) & (data <= valid_max))
-                attrs["valid_range"] = [valid_min, valid_max]
-
-        data.attrs = _CLAVRxHelper._remove_attributes(attrs)
+        data.attrs = _CLAVRxHelper._remove_attributes(data.attrs)
 
         return data
 
@@ -448,10 +454,11 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   chunks=CHUNK_SIZE)
         # Check if x,y are variables within the clavrx file (this is a clavrx option)
         # and if they are 2d.  If so, rename them so that the y,x dimension can be 1d
-        if "x" in self.nc.variables and "x" not in self.nc.dims and self.nc["x"].ndim > 1:
-            self.nc = self.nc.rename({"x": "columns"})
-        if "y" in self.nc.variables and "y" not in self.nc.dims and self.nc["y"].ndim > 1:
-            self.nc = self.nc.rename({"y": "rows"})
+        rename_map = {"x": "columns", "y": "rows"}
+        for var, new_name in rename_map.items():
+            if var in self.nc.variables and var not in self.nc.dims and self.nc[var].ndim > 1:
+                self.nc = self.nc.rename({var: new_name})
+
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({"scan_lines_along_track_direction": "y",
                                        "pixel_elements_along_scan_direction": "x"})
