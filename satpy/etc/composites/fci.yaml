@@ -740,3 +740,9 @@ composites:
       - method: equal
         value: Undefined by Cloud Mask
         transparency: 100
+
+  fire_radiative_power:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+      - name: frp
+    standard_name: colorized_frp
