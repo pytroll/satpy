@@ -39,6 +39,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.remote import open_file_or_filename
 from satpy.readers.core.utils import np2str
 from satpy.utils import angle2xyz, get_legacy_chunk_size, lonlat2xyz, xyz2angle, xyz2lonlat
 
@@ -79,7 +80,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(VIIRSCompactFileHandler, self).__init__(filename, filename_info,
                                                       filetype_info)
-        self.h5f = h5py.File(self.filename, "r")
+        open_file = open_file_or_filename(self.filename)
+        self.h5f = h5py.File(open_file, "r")
         self.finfo = filename_info
         self.lons = None
         self.lats = None
