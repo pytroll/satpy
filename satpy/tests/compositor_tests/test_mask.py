@@ -92,8 +92,43 @@ class TestLowCloudCompositor:
             da.from_array(np.array([[0., 0., 0.], [1., 1., 1.], [0., 1., 0.]], dtype=self.dtype)),
             dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
         )
+        self.btd2 = xr.DataArray(
+            da.from_array(np.array([[4.5, 4.5, 4.5], [4.5, 4.5, 4.5], [4.5, 4.5, 4.5]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
+        self.satz = xr.DataArray(
+            da.from_array(np.array([[0., 20., 60.], [0., 20., 60.], [0., 20., 60.]], dtype=self.dtype)),
+            dims=("y", "x"), coords={"y": [0, 1, 2], "x": [0, 1, 2]}
+        )
 
-    def test_low_cloud_compositor(self):
+    def add_attrs(self):
+        """Add attributes needed to compute satz from data array."""
+        import datetime as dt
+
+        from pyresample.geometry import AreaDefinition
+        stime = dt.datetime(2020, 1, 1, 12, 0, 0)
+        orbital_parameters = {
+            "satellite_actual_latitude": 0.0,
+            "satellite_actual_longitude": 0.0,
+            "satellite_actual_altitude": 35786400
+        }
+        area = AreaDefinition(
+            "test", "", "",
+            {"proj": "merc"},
+            3, 3,
+            (-10000000, -10000000, 10000000, 10000000),
+        )
+        attrs = {
+            "start_time": stime,
+            "orbital_parameters": orbital_parameters,
+            "area": area,
+        }
+        self.btd.attrs = attrs
+        self.bt_win.attrs = attrs
+        self.lsm.attrs = attrs
+        self.btd2.attrs = attrs
+
+    def test_low_cloud_compositor_default(self):
         """Test general default functionality of compositor."""
         from satpy.composites.mask import LowCloudCompositor
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
@@ -101,9 +136,50 @@ class TestLowCloudCompositor:
             res = comp([self.btd, self.bt_win, self.lsm])
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        expexted_alpha = np.array([[0.0, 0.25, 1.0], [0.0, 0.25, 1.0], [0.0, 0.0, 0.0]])
-        expected = np.stack([self.btd, expexted_alpha])
-        np.testing.assert_equal(res.values, expected)
+        expected_alpha = np.array([[0.0, 0.2, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expected_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+    def test_low_cloud_compositor_custom(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites.mask import LowCloudCompositor
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = LowCloudCompositor(name="test", threshold_land=0.0, threshold_water=0.5, transition_max=2.0)
+            res = comp([self.btd, self.bt_win, self.lsm])
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expected_alpha = np.array([[0.0, 0.5, 1.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expected_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+    def test_low_cloud_compositor_with_optional_datasets(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites.mask import LowCloudCompositor
+        required_datasets = [self.btd, self.bt_win, self.lsm]
+        optional_datasets = [self.btd2, self.satz]
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = LowCloudCompositor(name="test")
+            res = comp(required_datasets, optional_datasets=optional_datasets)
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expected_alpha = np.array([[0.0, 0.2, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expected_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
+
+    def test_low_cloud_compositor_with_optional_datasets_no_satz(self):
+        """Test general default functionality of compositor."""
+        from satpy.composites.mask import LowCloudCompositor
+        self.add_attrs()
+        required_datasets = [self.btd, self.bt_win, self.lsm]
+        optional_datasets = [self.btd2]
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = LowCloudCompositor(name="test")
+            res = comp(required_datasets, optional_datasets=optional_datasets)
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        expected_alpha = np.array([[0.0, 0.2, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
+        expected = np.stack([self.btd, expected_alpha])
+        np.testing.assert_almost_equal(res.values, expected)
 
     def test_low_cloud_compositor_dtype(self):
         """Test that the datatype is not altered by the compositor."""
@@ -116,15 +192,19 @@ class TestLowCloudCompositor:
         """Test that errors are raised for invalid input data and settings."""
         from satpy.composites.mask import LowCloudCompositor
 
-        with pytest.raises(ValueError, match="Expected 2 `range_land` values, got 1"):
-            _ = LowCloudCompositor("test", range_land=(2.0, ))
-
-        with pytest.raises(ValueError, match="Expected 2 `range_water` values, got 1"):
-            _ = LowCloudCompositor("test", range_water=(2.0,))
-
         comp = LowCloudCompositor("test")
         with pytest.raises(ValueError, match="Expected 3 datasets, got 2"):
             _ = comp([self.btd, self.lsm])
+
+    def test_low_cloud_compositor_deprecation_warnings(self):
+        """Test that errors are raised for invalid input data and settings."""
+        from satpy.composites.mask import LowCloudCompositor
+
+        with pytest.warns(UserWarning, match="'range_land' is deprecated and will be removed in a future version"):
+            _ = LowCloudCompositor("test", range_land=(0.0, 4.0))
+
+        with pytest.warns(UserWarning, match="'range_water' is deprecated and will be removed in a future version"):
+            _ = LowCloudCompositor("test", range_water=(1.5, 2.0))
 
 
 class TestMaskingCompositor:
