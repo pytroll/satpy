@@ -1,0 +1,6 @@
+writer:
+  name: zarr
+  description: Generic Zarr Writer (xarray.Dataset.to_zarr)
+  writer: !!python/name:satpy.writers.zarr.ZarrWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.zarr'
+  # zarr_format: 2   # optional deployment default for save_datasets(zarr_format=...)
