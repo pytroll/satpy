@@ -1,9 +1,12 @@
 """Unittests for NWC SAF reader."""
 
+from unittest.mock import Mock, patch
+
 import h5netcdf
 import numpy as np
 import pytest
 import xarray as xr
+from pyproj import CRS
 
 from satpy.readers.nwcsaf_nc import V2025_PERSPECTIVE_POINT_HEIGHT, NcNWCSAF, read_nwcsaf_time
 from satpy.tests.utils import RANDOM_GEN
@@ -97,6 +100,56 @@ COT_OFFSET = 0.0
 CRE_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
 COT_ARRAY = RANDOM_GEN.integers(0, 65535, size=(928, 1530), dtype=np.uint16)
 PAL_ARRAY = RANDOM_GEN.integers(0, 255, size=(250, 3), dtype=np.uint8)
+
+
+
+@pytest.fixture
+def cf_projected_dataset():
+    """Make a CF projected dataset for testing."""
+    nx = 593
+    ny = 668
+
+    xmin = -1060122.0
+    ymin = -1332566.0
+    xmax = 1309878.0
+    ymax = 1337434.0
+
+    dx = (xmax - xmin) / nx
+    dy = (ymax - ymin) / ny
+
+    x = xmin + (np.arange(nx) + 0.5) * dx
+    y = ymax - (np.arange(ny) + 0.5) * dy
+
+    data = xr.DataArray(
+        np.zeros((ny, nx)),
+        dims=("ny", "nx"),
+        attrs={"grid_mapping": "lambert_conformal_conic"},
+    )
+
+    grid_mapping = xr.DataArray(
+        0,
+        attrs={
+            "grid_mapping_name": "lambert_conformal_conic",
+            "longitude_of_central_meridian": 15.0,
+            "latitude_of_projection_origin": 63.3,
+            "standard_parallel": np.array([63.3, 63.3]),
+            "false_easting": 0.0,
+            "false_northing": 0.0,
+            "semi_major_axis": 6378137.0,
+            "inverse_flattening": 298.257223563,
+        },
+    )
+
+    return xr.Dataset(
+        {
+            "ctth_tempe": data,
+            "lambert_conformal_conic": grid_mapping,
+        },
+        coords={
+            "x": ("nx", x),
+            "y": ("ny", y),
+        },
+    )
 
 
 @pytest.fixture(scope="module")
@@ -580,8 +633,7 @@ class TestNcNWCSAFFileKeyPrefix:
 
 
 def _check_filehandler_area_def(file_handler, dsid, version="v2021"):
-    from pyproj import CRS
-
+    """Check file hander area definition."""
     area_definition = file_handler.get_area_def(dsid)
 
     if version == "v2025":
@@ -600,3 +652,156 @@ def _check_filehandler_area_def(file_handler, dsid, version="v2021"):
 
     assert area_definition.crs == expected_crs
     assert area_definition.area_extent == correct_extent
+
+
+def test_get_cf_area_def(cf_projected_dataset):
+    """Test get CF area definition."""
+    reader = NcNWCSAF.__new__(NcNWCSAF)
+    reader.nc = cf_projected_dataset
+
+    area = reader._get_cf_area_def(reader.nc["ctth_tempe"])
+
+    assert area.shape == (668, 593)
+
+    np.testing.assert_allclose(
+        area.area_extent,
+        (
+            -1060122.0,
+            -1332566.0,
+            1309878.0,
+            1337434.0,
+        ),
+    )
+
+    cf = area.crs.to_cf()
+
+    assert cf["grid_mapping_name"] == "lambert_conformal_conic"
+    assert cf["longitude_of_central_meridian"] == 15.0
+    assert cf["latitude_of_projection_origin"] == 63.3
+    np.testing.assert_allclose(cf["standard_parallel"], [63.3, 63.3])
+
+    assert area.crs.ellipsoid.semi_major_metre == pytest.approx(6378137.0)
+
+
+def test_get_area_def_uses_cf_projection(cf_projected_dataset):
+    """Test get area definition uses CF projection."""
+    reader = NcNWCSAF.__new__(NcNWCSAF)
+    reader.nc = cf_projected_dataset
+    reader.pps = False
+
+    cf_area = object()
+
+    with (
+        patch.object(reader, "_get_cf_area_def", return_value=cf_area) as mocked_cf,
+        patch.object(reader, "_get_projection") as mocked_gdal,
+    ):
+        result = reader.get_area_def({"name": "ctth_tempe"})
+
+    assert result is cf_area
+    mocked_cf.assert_called_once()
+    mocked_gdal.assert_not_called()
+
+
+def test_get_area_def_without_grid_mapping_uses_existing_projection():
+    """Test get area definition without grid-mapping uses existing projection."""
+    reader = NcNWCSAF.__new__(NcNWCSAF)
+    reader.nc = xr.Dataset(
+        {
+            "ctth_tempe": xr.DataArray(
+                np.zeros((2, 3)),
+                dims=("y", "x"),
+            )
+        }
+    )
+    reader.pps = False
+
+    crs = CRS.from_epsg(4326)
+    area_extent = (-10.0, -20.0, 10.0, 20.0)
+
+    with (
+        patch.object(reader, "_get_projection",
+                     return_value=(crs, area_extent),
+                     ) as mocked_projection,
+            patch.object(
+                reader,
+                "_ensure_crs_extents_in_meters",
+                return_value=(crs, area_extent),
+            ) as mocked_ensure,
+    ):
+        area = reader.get_area_def({"name": "ctth_tempe"})
+
+    mocked_projection.assert_called_once()
+    mocked_ensure.assert_called_once_with(crs, area_extent)
+
+    assert area.shape == (2, 3)
+    assert area.area_extent == area_extent
+
+    with (
+        patch.object(reader, "_get_cf_area_def") as mocked_cf,
+        patch.object(
+            reader,
+            "_get_projection",
+            return_value=(crs, area_extent),
+        ) as mocked_projection,
+        patch.object(
+            reader,
+            "_ensure_crs_extents_in_meters",
+            return_value=(crs, area_extent),
+        ),
+    ):
+        reader.get_area_def({"name": "ctth_tempe"})
+
+    mocked_cf.assert_not_called()
+    mocked_projection.assert_called_once()
+
+
+def test_get_lonlat_from_cf_projection(cf_projected_dataset):
+    """Test get the lo/lat coordinates from CF projection info."""
+    reader = NcNWCSAF.__new__(NcNWCSAF)
+    reader.nc = cf_projected_dataset
+    reader.pps = False
+    reader.cache = {}
+    reader._unzipped = None
+
+    lon = reader.get_dataset({"name": "lon"}, {})
+    lat = reader.get_dataset({"name": "lat"}, {})
+
+    assert lon.shape == (668, 593)
+    assert lat.shape == (668, 593)
+
+    assert lon.dims == ("y", "x")
+    assert lat.dims == ("y", "x")
+
+    assert lon.attrs["standard_name"] == "longitude"
+    assert lat.attrs["standard_name"] == "latitude"
+
+
+def test_lonlat_uses_reduced_geolocation_when_available():
+    """Test lon/lat uses reduced geolocation when available."""
+    reader = NcNWCSAF.__new__(NcNWCSAF)
+
+    reader.nc = xr.Dataset(
+        {
+            "nx_reduced": ("nx_reduced", [0, 2]),
+            "ny_reduced": ("ny_reduced", [0, 2]),
+            "lon_reduced": (
+                ("ny_reduced", "nx_reduced"),
+                np.zeros((2, 2)),
+            ),
+            "lat_reduced": (
+                ("ny_reduced", "nx_reduced"),
+                np.zeros((2, 2)),
+            ),
+        }
+    )
+
+    reader.pps = False
+    reader.cache = {}
+    reader._unzipped = None
+
+    reader.upsample_geolocation = Mock(return_value=("lon", "lat"))
+
+    result = reader.get_dataset({"name": "lon"}, {})
+
+    assert result == "lon"
+    reader.upsample_geolocation.assert_called_once()
