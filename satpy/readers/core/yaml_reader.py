@@ -967,12 +967,17 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
 
         return cids
 
-
 def _load_area_def(dsid, file_handlers):
     """Load the area definition of *dsid*."""
     area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
     area_defs = [area_def for area_def in area_defs
                  if area_def is not None]
+
+    if not area_defs:
+        return None
+
+    if len(area_defs) == 1:
+        return area_defs[0]
 
     final_area = StackedAreaDefinition(*area_defs)
     return final_area.squeeze()
