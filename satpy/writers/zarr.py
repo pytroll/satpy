@@ -27,9 +27,10 @@ Options of :meth:`xarray.Dataset.to_zarr` that the writer does not expose direct
     >>> scn.save_datasets(writer="zarr", xarray_kwargs={"write_empty_chunks": False, "safe_chunks": False})
 
 Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
-converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists), drops the
-``crs`` coordinate, adds CF ``standard_name``/``units`` to ``x`` and ``y``, discards any encoding
-carried over from the reader and rechunks irregular dask chunks, which zarr cannot store.
+converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
+ranges become strings as in the ``cf`` writer), drops the ``crs`` coordinate, adds CF
+``standard_name``/``units`` to ``x`` and ``y`` and rechunks irregular dask chunks, which zarr cannot
+store.
 
 Separate stores and remote targets
 ----------------------------------
@@ -58,6 +59,57 @@ Instead of a filename, ``store`` accepts any zarr ``StoreLike`` (for example
 must be a dictionary of stores keyed by dataset name. A plain ``dict`` is always interpreted as this
 mapping; wrap a dict-backed store in :class:`zarr.storage.MemoryStore`.
 
+Encoding
+--------
+
+Each variable is encoded with its ``DataArray.encoding``, overridden key by key by the ``fill_value``
+argument and then by the ``encoding`` argument:
+
+    >>> scn["C13"].encoding = {"dtype": "int16", "scale_factor": 0.01, "add_offset": 200.0, "_FillValue": -1}
+    >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr", encoding={"C13": {"chunks": (512, 512)}})
+
+Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
+reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
+returns unchanged are stored with the dtype, scaling and fill value of the input file; operations that
+change the values, such as calibration or resampling, drop the encoding. Call
+``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
+``serializer``) must suit the zarr format being written.
+
+Geolocation
+-----------
+
+Data on an ``AreaDefinition`` get the attributes of the ``proj`` and ``spatial`` conventions (version
+0.1) of the `Zarr conventions framework <https://github.com/zarr-conventions>`_ used by `GeoZarr
+<https://geozarr.org>`_: the CRS as ``proj:wkt2``, ``proj:projjson`` and, if it has one, ``proj:code``,
+and the affine ``spatial:transform``, ``spatial:bbox`` and ``spatial:shape`` of the ``y``/``x`` grid.
+When all variables share one CRS, the ``proj:`` attributes are also written to the root group. The
+conventions are defined for zarr format 3 but are written for format 2 as well, so validators may reject
+format 2 stores. ``include_geozarr=False`` leaves them out.
+
+``include_grid_mapping=True`` adds a CF grid mapping coordinate named ``spatial_ref``, the layout that
+rioxarray reads and writes:
+
+    >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr", include_grid_mapping=True)
+
+Swath data get 2D ``longitude`` and ``latitude`` coordinates instead, because the conventions do not
+cover them. ``include_lonlats=True`` adds these coordinates to gridded data as well and
+``include_lonlats=False`` never adds them.
+
+CF conventions
+--------------
+
+``convert_to_cf=True`` prepares the data with the CF conversion of the ``cf`` writer instead, including
+its grid mapping variable, longitude/latitude coordinates and attribute encoding, and ignores
+``include_lonlats``, ``include_grid_mapping`` and ``include_geozarr``. It requires the netCDF4 or
+h5netcdf package. Options of :func:`~satpy.cf.datasets.collect_cf_datasets` are passed with
+``cf_kwargs``:
+
+    >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr", convert_to_cf=True,
+    ...                   cf_kwargs={"include_lonlats": False, "exclude_attrs": ["raw_metadata"]})
+
+``cf_kwargs["epoch"]`` sets the units of times that exist before the conversion and defaults to the units
+described under Appending. ``time_bnds`` is encoded like ``time``.
+
 Zarr format and consolidated metadata
 -------------------------------------
 
@@ -78,8 +130,8 @@ is created, so the same call works for the first and every following write:
     ...     scn.load(["C13"])
     ...     scn.save_datasets(writer="zarr", filename="/data/zarr/abi_c13.zarr", append_dim="time")
 
-Times are stored as microseconds since 1970-01-01, so later appends with sub-second times round-trip
-exactly; pass ``encoding={"time": {...}}`` to override. When appending, the zarr format and the
+Times are stored as microseconds since 1970-01-01 unless the ``time`` encoding sets other units, so later
+appends with sub-second times round-trip exactly. When appending, the zarr format and the
 consolidated metadata setting are taken from the existing store and ``zarr_format`` is ignored. New data
 are rechunked to the store's chunks (``align_chunks=True``). Appending the same time twice is not
 detected.
@@ -131,9 +183,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from packaging.version import Version
+from pyresample.geometry import AreaDefinition, SwathDefinition
 from trollsift import compose
 
+from satpy.cf.area import add_lonlat_coords
 from satpy.cf.coords import add_xy_coords_attrs
+from satpy.dataset.dataid import DataID
 from satpy.dataset.metadata import combine_metadata
 from satpy.utils import chunks_are_irregular, regular_chunks_from_irregular_chunks
 from satpy.writers.core.base import Writer
@@ -157,6 +212,29 @@ _TIME_ENCODING = {
     "units": "microseconds since 1970-01-01 00:00:00",
     "calendar": "proleptic_gregorian",
     "dtype": "int64",
+}
+# Keys of DataArray.encoding that Dataset.to_zarr understands; others, such as the netCDF "zlib" or
+# "chunksizes" a reader may leave, are dropped.
+_ZARR_ENCODING_KEYS = frozenset({
+    "dtype", "scale_factor", "add_offset", "_FillValue", "missing_value", "units", "calendar",
+    "chunks", "shards", "compressor", "compressors", "filters", "serializer", "write_empty_chunks",
+    "chunk_key_encoding",
+})
+_ZARR_CONVENTIONS = {
+    "proj": {
+        "schema_url": "https://raw.githubusercontent.com/zarr-conventions/proj/refs/tags/v0.1/schema.json",
+        "spec_url": "https://github.com/zarr-conventions/proj/blob/v0.1/README.md",
+        "uuid": "f17cb550-5864-4468-aeb7-f3180cfb622f",
+        "name": "proj",
+        "description": "Coordinate reference system information for geospatial data",
+    },
+    "spatial": {
+        "schema_url": "https://raw.githubusercontent.com/zarr-conventions/spatial/refs/tags/v0.1/schema.json",
+        "spec_url": "https://github.com/zarr-conventions/spatial/blob/v0.1/README.md",
+        "uuid": "689b58e2-cf7b-45e0-9fff-9cfc0883d6b4",
+        "name": "spatial",
+        "description": "Spatial coordinate information",
+    },
 }
 
 
@@ -234,6 +312,11 @@ class ZarrWriter(Writer):
             zarr_format: int | None = None,
             consolidated: bool | None = None,
             encoding: dict[str, dict] | None = None,
+            include_lonlats: bool | None = None,
+            include_grid_mapping: bool = False,
+            include_geozarr: bool = True,
+            convert_to_cf: bool = False,
+            cf_kwargs: dict | None = None,
             xarray_kwargs: dict | None = None,
             **kwargs,
     ) -> list[Delayed] | list[Any]:
@@ -254,15 +337,27 @@ class ZarrWriter(Writer):
             split_variables: Write every dataset to its own store instead of all datasets to one store.
             commit: Commit message for Icechunk sessions passed as ``store``. The commit happens after
                 the data are written.
-            fill_value: ``_FillValue`` encoding of all data variables.
+            fill_value: ``_FillValue`` encoding of all data variables, overriding their own ``encoding``.
             append_dim: Dimension to append along. ``"time"`` is added from ``start_time`` when missing.
             mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends
                 when ``append_dim`` is given.
             zarr_format: Zarr format (2 or 3) of new stores.
             consolidated: Write consolidated metadata. Defaults to ``True`` for format 2 and ``False``
                 for format 3, or to the existing store's state when appending.
-            encoding: Per-variable encoding for :meth:`xarray.Dataset.to_zarr`, merged over the
-                writer's defaults. Variables with ``chunks`` here are not rechunked by the writer.
+            encoding: Per-variable encoding for :meth:`xarray.Dataset.to_zarr`, merged over each
+                variable's own ``encoding`` and the writer's defaults. Variables with ``chunks`` in either
+                are not rechunked by the writer.
+            include_lonlats: Add 2D ``longitude`` and ``latitude`` coordinates. ``None`` adds them to swath
+                data only, ``True`` also to gridded data.
+            include_grid_mapping: Add a CF ``spatial_ref`` grid mapping coordinate to data on an
+                ``AreaDefinition``.
+            include_geozarr: Add the attributes of the GeoZarr ``proj`` and ``spatial`` conventions to data
+                on an ``AreaDefinition``.
+            convert_to_cf: Prepare the data with Satpy's CF conversion, like the ``cf`` writer, instead of
+                the writer's own preparation. ``include_lonlats``, ``include_grid_mapping`` and
+                ``include_geozarr`` are not used then. Requires netCDF4 or h5netcdf.
+            cf_kwargs: Keyword arguments for :func:`~satpy.cf.datasets.collect_cf_datasets` when
+                ``convert_to_cf`` is ``True``. ``pretty`` defaults to ``True``.
             xarray_kwargs: Other :meth:`xarray.Dataset.to_zarr` keyword arguments. They override the
                 arguments chosen by the writer, so ``encoding`` passed here replaces the writer's
                 encoding entirely.
@@ -285,7 +380,13 @@ class ZarrWriter(Writer):
             existing = None
             if append_dim is not None or mode in _APPEND_MODES or "region" in xarray_kwargs:
                 existing = _existing_store_state(target.store, xarray_kwargs.get("group"), target_storage_options)
-            ds = _build_dataset(target.data_arrays)
+            if convert_to_cf:
+                LOG.debug("convert_to_cf=True: include_lonlats, include_grid_mapping and include_geozarr are "
+                          "not used.")
+                ds = _build_cf_dataset(target.data_arrays, cf_kwargs)
+            else:
+                ds = _build_dataset(target.data_arrays, include_lonlats=include_lonlats,
+                                    include_grid_mapping=include_grid_mapping, include_geozarr=include_geozarr)
             ds = _maybe_expand_append_dim(ds, append_dim, target.attrs)
             ds = _regularize_chunks(ds, encoding)
             target_encoding = _build_encoding(ds, encoding, fill_value, existing)
@@ -474,13 +575,16 @@ def _existing_store_state(store, group: str | None, storage_options: dict | None
                        frozenset(zarr_group.array_keys()))
 
 
-def _build_dataset(data_arrays: list[xr.DataArray]) -> xr.Dataset:
+def _build_dataset(data_arrays: list[xr.DataArray], *, include_lonlats: bool | None, include_grid_mapping: bool,
+                   include_geozarr: bool) -> xr.Dataset:
     prepared: dict[str, xr.DataArray] = {}
     for data_arr in data_arrays:
         name = _variable_name(data_arr)
         if name in prepared:
             raise ValueError(f"More than one dataset named {name!r} in one store.")
-        prepared[name] = _prepare_data_array(data_arr)
+        prepared[name] = _prepare_data_array(data_arr, include_lonlats=include_lonlats,
+                                             include_grid_mapping=include_grid_mapping,
+                                             include_geozarr=include_geozarr)
     try:
         xr.align(*prepared.values(), join="exact")
         ds = xr.Dataset(prepared)
@@ -489,15 +593,104 @@ def _build_dataset(data_arrays: list[xr.DataArray]) -> xr.Dataset:
                          "differ. Resample them to a common area, use split_variables=True, or save them with "
                          "separate save_datasets calls.") from err
     ds.attrs["history"] = f"Created by pytroll/satpy on {dt.datetime.now(dt.timezone.utc)}"
-    return ds.drop_encoding()
+    if include_geozarr:
+        ds.attrs.update(_root_geozarr_attrs(list(prepared.values())))
+    return _filter_encodings(ds)
 
 
-def _prepare_data_array(data_arr: xr.DataArray) -> xr.DataArray:
+def _build_cf_dataset(data_arrays: list[xr.DataArray], cf_kwargs: dict | None) -> xr.Dataset:
+    from satpy.cf.datasets import collect_cf_datasets
+
+    cf_kwargs = {"pretty": True, "epoch": _TIME_ENCODING["units"], **(cf_kwargs or {})}
+    datasets, _ = collect_cf_datasets(list_dataarrays=data_arrays, groups=None, **cf_kwargs)
+    ds = datasets[None]
+    ds.attrs = _json_safe(ds.attrs)
+    for var in ds.variables.values():
+        var.attrs = _json_safe(var.attrs)
+    return _filter_encodings(ds)
+
+
+def _filter_encodings(ds: xr.Dataset) -> xr.Dataset:
+    for name, var in ds.variables.items():
+        dropped = sorted(set(var.encoding) - _ZARR_ENCODING_KEYS)
+        if dropped:
+            LOG.debug("Dropping encoding keys %s of %r that zarr does not use.", dropped, name)
+        var.encoding = {key: val for key, val in var.encoding.items() if key in _ZARR_ENCODING_KEYS}
+    ds.encoding = {}
+    return ds
+
+
+def _prepare_data_array(data_arr: xr.DataArray, *, include_lonlats: bool | None, include_grid_mapping: bool,
+                        include_geozarr: bool) -> xr.DataArray:
+    area = data_arr.attrs.get("area")
     data_arr = add_xy_coords_attrs(data_arr.copy(deep=False))
-    data_arr.attrs = _sanitize_attrs(data_arr.attrs)
+    if _wants_lonlats(data_arr, area, include_lonlats):
+        data_arr = add_lonlat_coords(data_arr)
+    if include_grid_mapping and _is_gridded(data_arr, area, "a 'spatial_ref' coordinate"):
+        data_arr = _add_spatial_ref(data_arr, area)
+    attrs = dict(data_arr.attrs)
+    if include_geozarr and _is_gridded(data_arr, area, "GeoZarr attributes"):
+        attrs.update(_geozarr_attrs(area))
+    data_arr.attrs = _sanitize_attrs(attrs)
     for coord in data_arr.coords.values():
         coord.attrs = _json_safe(coord.attrs)
     return data_arr
+
+
+def _wants_lonlats(data_arr: xr.DataArray, area, include_lonlats: bool | None) -> bool:
+    if area is None or include_lonlats is False:
+        return False
+    if include_lonlats is None and not isinstance(area, SwathDefinition):
+        return False
+    if {"longitude", "latitude"}.issubset(data_arr.coords):
+        return False
+    if not {"y", "x"}.issubset(data_arr.dims):
+        LOG.debug("Not adding longitude/latitude to %r, it does not have both 'y' and 'x' dimensions.",
+                  data_arr.attrs.get("name"))
+        return False
+    return True
+
+
+def _is_gridded(data_arr: xr.DataArray, area, addition: str) -> bool:
+    if isinstance(area, AreaDefinition) and {"y", "x"}.issubset(data_arr.dims):
+        return True
+    LOG.debug("Not adding %s to %r, it is not on an AreaDefinition with 'y' and 'x' dimensions.", addition,
+              data_arr.attrs.get("name"))
+    return False
+
+
+def _add_spatial_ref(data_arr: xr.DataArray, area: AreaDefinition) -> xr.DataArray:
+    data_arr = data_arr.assign_coords(spatial_ref=xr.Variable((), 0, attrs=area.crs.to_cf()))
+    data_arr.attrs["grid_mapping"] = "spatial_ref"
+    return data_arr
+
+
+def _geozarr_attrs(area: AreaDefinition) -> dict:
+    x_min, y_min, x_max, y_max = area.area_extent
+    return {
+        "zarr_conventions": [_ZARR_CONVENTIONS["proj"], _ZARR_CONVENTIONS["spatial"]],
+        **_proj_attrs(area.crs),
+        "spatial:dimensions": ["y", "x"],
+        "spatial:transform": [area.pixel_size_x, 0.0, x_min, 0.0, -area.pixel_size_y, y_max],
+        "spatial:bbox": [x_min, y_min, x_max, y_max],
+        "spatial:shape": list(area.shape),
+        "spatial:registration": "pixel",
+    }
+
+
+def _proj_attrs(crs) -> dict:
+    attrs = {"proj:wkt2": crs.to_wkt(), "proj:projjson": crs.to_json_dict()}
+    authority = crs.to_authority()
+    if authority is not None:
+        attrs["proj:code"] = ":".join(authority)
+    return attrs
+
+
+def _root_geozarr_attrs(data_vars: list[xr.DataArray]) -> dict:
+    proj_attrs = [{key: val for key, val in var.attrs.items() if key.startswith("proj:")} for var in data_vars]
+    if not proj_attrs[0] or any(attrs != proj_attrs[0] for attrs in proj_attrs[1:]):
+        return {}
+    return {"zarr_conventions": [dict(_ZARR_CONVENTIONS["proj"])], **proj_attrs[0]}
 
 
 def _sanitize_attrs(attrs: dict) -> dict:
@@ -513,7 +706,20 @@ def _sanitize_attrs(attrs: dict) -> dict:
 
 
 def _json_safe(attrs: dict) -> dict:
-    return json.loads(json.dumps(attrs, default=_json_default))
+    return json.loads(json.dumps(_to_json_types(attrs), default=_json_default))
+
+
+def _to_json_types(obj):
+    """Convert the objects that json would encode as arrays or objects before ``_json_default`` sees them."""
+    if hasattr(obj, "to_cf"):
+        return obj.to_cf()
+    if isinstance(obj, DataID):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {key: _to_json_types(val) for key, val in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_json_types(item) for item in obj]
+    return obj
 
 
 def _json_default(obj):
@@ -557,7 +763,7 @@ def _regularize_chunks(ds: xr.Dataset, encoding: dict | None) -> xr.Dataset:
     encoding = encoding or {}
     data_vars, coords = {}, {}
     for name, var in ds.variables.items():
-        if not isinstance(var.data, da.Array) or "chunks" in encoding.get(name, {}):
+        if not isinstance(var.data, da.Array) or "chunks" in {**var.encoding, **encoding.get(name, {})}:
             continue
         if not chunks_are_irregular(var.data.chunks):
             continue
@@ -573,15 +779,32 @@ def _build_encoding(ds: xr.Dataset, user_encoding: dict | None, fill_value, exis
     user_encoding = copy.deepcopy(user_encoding or {})
     # xarray refuses encoding for variables that already exist in the store
     stored = existing.variables if existing is not None else frozenset()
+    writer_encoding = _writer_encoding(ds, fill_value, user_encoding)
+    writer_encoding = {name: var_encoding for name, var_encoding in writer_encoding.items() if name not in stored}
+    # An entry passed to to_zarr replaces the variable's own encoding, so it is merged in here
+    encoding = {}
+    for name in [*writer_encoding, *(name for name in user_encoding if name not in writer_encoding)]:
+        own_encoding = ds[name].encoding if name in ds.variables and name not in stored else {}
+        encoding[name] = {**own_encoding, **writer_encoding.get(name, {}), **user_encoding.get(name, {})}
+    return encoding
+
+
+def _writer_encoding(ds: xr.Dataset, fill_value, user_encoding: dict) -> dict[str, dict]:
     encoding: dict[str, dict] = {}
-    if _is_datetime_variable(ds, "time") and "time" not in user_encoding and "time" not in stored:
-        encoding["time"] = dict(_TIME_ENCODING)
+    if _is_datetime_variable(ds, "time"):
+        time_encoding = {**ds["time"].encoding, **user_encoding.get("time", {})}
+        if "units" not in time_encoding:
+            time_encoding = {**_TIME_ENCODING, **time_encoding}
+        encoding["time"] = time_encoding
+        if _is_datetime_variable(ds, "time_bnds"):
+            encoding["time_bnds"] = {key: val for key, val in time_encoding.items() if key in _TIME_ENCODING}
     if fill_value is not None:
         for name, var in ds.data_vars.items():
-            if name not in stored:
-                encoding[name] = {"_FillValue": np.asarray(fill_value, dtype=var.dtype).item()}
-    for name, var_encoding in user_encoding.items():
-        encoding.setdefault(name, {}).update(var_encoding)
+            if var.ndim > 0 and not _is_datetime_variable(ds, name):
+                fill = np.asarray(fill_value, dtype=var.dtype).item()
+                encoding[name] = {"_FillValue": fill}
+                if "missing_value" in var.encoding:
+                    encoding[name]["missing_value"] = fill
     return encoding
 
 
@@ -592,7 +815,7 @@ def _is_datetime_variable(ds: xr.Dataset, name: str) -> bool:
 def _drop_conflicting_fill_value_attrs(ds: xr.Dataset, encoding: dict, existing: _StoreState | None) -> xr.Dataset:
     stored = existing.variables if existing is not None else frozenset()
     for name, var in ds.variables.items():
-        if name in stored or "_FillValue" in encoding.get(name, {}):
+        if name in stored or "_FillValue" in encoding.get(name, var.encoding):
             var.attrs.pop("_FillValue", None)
     return ds
 
