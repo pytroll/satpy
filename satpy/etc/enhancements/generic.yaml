@@ -1576,7 +1576,7 @@ enhancements:
       method: !!python/name:satpy.enhancements.colormap.palettize
       kwargs:
         palettes:
-            - {'values': [-127,# Fill Value
+            - {'values': [
                              0, # Clear
                              1, # Water
                              2, # Supercooled
@@ -1584,7 +1584,7 @@ enhancements:
                              4, # Ice
                              5, # unknown
                          ],
-               'colors': [[0, 0, 0], # black,-127 = Fill Value
+               'colors': [
                           [0, 0, 0], # black,0 clear
                           [0, 0, 255], # blue, water
                           [0, 255, 255], # cyan, supercooled
