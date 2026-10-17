@@ -145,8 +145,9 @@ class _CLAVRxHelper:
             # Fall back to sequential values [0, 1, 2, ...] based on length
             flag_values = np.arange(num_flags, dtype=data.dtype)
             data.attrs["flag_values"] = flag_values.tolist()
+            #data.attrs["valid_range"] = [flag_values[0], flag_values[-1]]
 
-        return data.where((data >= np.min(input_flags)) & (data <= np.max(input_flags)), fill)
+        return data.where((data >= np.min(flag_values)) & (data <= np.max(flag_values)), fill)
 
 
     @staticmethod
@@ -451,17 +452,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   decode_coords=True,
                                   decode_timedelta=False,
                                   chunks=CHUNK_SIZE)
-        # Check if x,y are variables within the clavrx file (this is a clavrx option)
-        # and if they are 2d.  If so, rename them so that the y,x dimension can be 1d
-        rename_map = {"x": "columns", "y": "rows"}
-        for var, new_name in rename_map.items():
-            if var in self.nc.variables and var not in self.nc.dims and self.nc[var].ndim > 1:
-                self.nc = self.nc.rename({var: new_name})
 
-        # y,x is used in satpy, bands rather than channel using in xrimage
-        self.nc = self.nc.rename_dims({"scan_lines_along_track_direction": "y",
-                                       "pixel_elements_along_scan_direction": "x"})
-
+        self._resolve_dims()
         self.platform = _get_platform(
             self.filename_info.get("platform_shortname", None))
         self.sensor = _get_sensor(self.nc.attrs.get("sensor", None))
@@ -472,6 +464,22 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                                              {"name": "latitude"})
         self.nc.coords["longitude"] = _CLAVRxHelper._get_data(self.nc.coords["longitude"],
                                                               {"name": "longitude"})
+
+
+    def _resolve_dims(self):
+        """Set the dimensions to x, y."""
+        # Check if x,y are variables within the clavrx file (this is a clavrx option)
+        # and if they are 2d.  If so, rename them so that the y,x dimension can be 1d
+        rename_map = {"x": "columns", "y": "rows"}
+        for var, new_name in rename_map.items():
+            if var in self.nc.variables:
+                if var not in self.nc.dims and self.nc[var].ndim > 1:
+                    self.nc = self.nc.rename({var: new_name})
+
+        # y,x is used in satpy, bands rather than channel using in xrimage
+        self.nc = self.nc.rename_dims({"scan_lines_along_track_direction": "y",
+                                       "pixel_elements_along_scan_direction": "x"})
+
 
     def _dynamic_dataset_info(self, var_name):
         """Set data name and, if applicable, aliases."""

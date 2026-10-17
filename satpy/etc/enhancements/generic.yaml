@@ -289,29 +289,6 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
 
-  four_level_cloud_mask:
-    standard_name: cloud_mask
-    reader: clavrx
-    operations:
-      - name: palettize
-        method: !!python/name:satpy.enhancements.colormap.palettize
-        kwargs:
-          palettes:
-            - {'values': [-127,# Fill Value
-                             0, # Clear
-                             1, # Probably Clear
-                             2, # Probably Cloudy
-                             3, # Cloudy
-                         ],
-               'colors': [[0, 0, 0], # black,-127 = Fill Value
-                          [94, 79, 162], # blue,    0 = Clear
-                          [73, 228, 242], # cyan,    1 = Probably Clear
-                          [158, 1, 66], # red,     2 = Probably Cloudy
-                          [255, 255, 255], # white,   3 = Cloudy
-                         ],
-               'color_scale': 255,
-              }
-
   sar-ice:
     standard_name: sar-ice
     operations:
@@ -1566,3 +1543,54 @@ enhancements:
         stretch: crude
         min_stretch: 300
         max_stretch: 215
+
+  # ====== CLAVRx Products =======
+  four_level_cloud_mask:
+    standard_name: cloud_mask
+    reader: clavrx
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
+      kwargs:
+        palettes:
+          - {'values': [
+                        0, # Clear
+                        1, # Probably Clear
+                        2, # Probably Cloudy
+                        3, # Cloudy
+                    ],
+             'colors': [
+                        [94, 79, 162], # blue,    0 = Clear
+                        [73, 228, 242], # cyan,    1 = Probably Clear
+                        [158, 1, 66], # red,     2 = Probably Cloudy
+                        [255, 255, 255], # white,   3 = Cloudy
+                    ],
+             'color_scale': 255,
+            }
+
+  clavrx_cloud_phase:
+    standard_name: cloud_phase
+    reader: clavrx
+    operations:
+    - name: palettize
+      method: !!python/name:satpy.enhancements.colormap.palettize
+      kwargs:
+        palettes:
+            - {'values': [-127,# Fill Value
+                             0, # Clear
+                             1, # Water
+                             2, # Supercooled
+                             3, # Mixed
+                             4, # Ice
+                             5, # unknown
+                         ],
+               'colors': [[0, 0, 0], # black,-127 = Fill Value
+                          [0, 0, 0], # black,0 clear
+                          [0, 0, 255], # blue, water
+                          [0, 255, 255], # cyan, supercooled
+                          [0, 255, 0], # green, mixed
+                          [255, 255, 0], # yellow, ice
+                          [220, 220, 220], # unknown
+                         ],
+               'color_scale': 255,
+              }
