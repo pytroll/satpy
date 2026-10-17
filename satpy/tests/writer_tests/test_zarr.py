@@ -51,6 +51,12 @@ def _data_array(name="test", *, ndim=2, area=AREA, start_time=START_TIME, chunks
     return xr.DataArray(data, dims=dims, coords=coords, attrs={"name": name, "units": "K", "area": area, **attrs})
 
 
+def _masked_data_array(**attrs):
+    """Create float32 data whose first row of chunks is all NaN."""
+    data_arr = _data_array(**attrs)
+    return data_arr.copy(data=da.where(da.arange(4)[:, None] < 2, np.float32(np.nan), data_arr.data))
+
+
 def _swath_definition():
     lons = xr.DataArray(da.linspace(0.0, 10.0, 24).reshape(4, 6).rechunk(2), dims=("y", "x"))
     lats = xr.DataArray(da.linspace(40.0, 50.0, 24).reshape(4, 6).rechunk(2), dims=("y", "x"))
@@ -203,7 +209,7 @@ def test_existing_store_raises_unless_mode_w(writer, tmp_path):
 
 @pytest.mark.parametrize("zarr_format", [2, 3])
 def test_append_time(writer, tmp_path, zarr_format):
-    """Test appending along a time dimension created from start_time."""
+    """Test appending along a time dimension created from start_time, keeping the first write's attributes."""
     store = tmp_path / "out.zarr"
     first = _data_array()
     second = _data_array(start_time=dt.datetime(2026, 1, 1, 12, 10, 0, 654321, tzinfo=dt.timezone.utc), chunks=3)
@@ -213,6 +219,7 @@ def test_append_time(writer, tmp_path, zarr_format):
     assert list(ds.time.values) == _times("2026-01-01T12:00:00.123456", "2026-01-01T12:10:00.654321")
     assert ds["test"].dims == ("time", "y", "x")
     np.testing.assert_array_equal(ds["test"].values, np.stack([first.values, second.values]))
+    assert ds["test"].attrs["start_time"] == first.attrs["start_time"].isoformat()
     metadata = zarr.open_group(store, mode="r").metadata
     assert metadata.zarr_format == zarr_format
     assert (metadata.consolidated_metadata is not None) == (zarr_format == 2)
@@ -255,6 +262,7 @@ def test_append_with_fill_value(writer, tmp_path):
     assert stored.sizes["time"] == 2
     assert stored.encoding["dtype"] == np.int16
     assert stored.encoding["_FillValue"] == -5
+    assert zarr.open_group(store, mode="r")["test"].fill_value == -5
 
 
 @pytest.mark.parametrize(
@@ -365,6 +373,41 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
     writer.save_datasets([second], filename=store, append_dim="time")
     assert zarr.open_group(store, mode="r")["test"].dtype == np.int16
     np.testing.assert_array_equal(_open(store)["test"].values, np.stack([first.values, second.values]))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "variable_encoding", "fill_attr", "kwargs", "expected_fill", "stored_chunks"),
+    [
+        (np.float32, {}, None, {}, np.nan, 3),
+        (np.float32, {}, -999.0, {}, np.nan, 3),
+        (np.float32, {}, None, {"fill_value": -9}, -9, 3),
+        (np.float32, {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, {}, -1, 3),
+        (np.int16, {}, -1, {}, -1, 3),
+        (np.int16, {}, -1, {"convert_to_cf": True}, -1, 3),
+        (np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {}, -9, 3),
+        (np.float32, {}, None, {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}}, 0, 6),
+        (np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {"fill_value": -9, "zarr_format": 2}, -9, 3),
+    ],
+    ids=["float_nan", "float_fill_value_attribute", "fill_value_argument", "packed_encoding",
+         "integer_fill_value_attribute", "integer_fill_value_attribute_cf", "variable_encoding_fill_value_dropped",
+         "encoding_argument", "format_2"],
+)
+def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, kwargs, expected_fill,
+                         stored_chunks):
+    """Test that new format 3 arrays get their _FillValue as zarr fill_value, so fill-only chunks are skipped."""
+    data_arr = _masked_data_array()
+    if fill_attr is not None:
+        data_arr.attrs["_FillValue"] = fill_attr
+    if np.issubdtype(dtype, np.integer):
+        data_arr = data_arr.fillna(fill_attr).astype(dtype)
+    data_arr.encoding = variable_encoding
+    input_encoding = copy.deepcopy(variable_encoding)
+    writer.save_datasets([data_arr], filename=tmp_path / "out.zarr", **{"zarr_format": 3, **kwargs})
+    assert data_arr.encoding == input_encoding
+    array = zarr.open_group(tmp_path / "out.zarr", mode="r")["test"]
+    np.testing.assert_equal(array.fill_value, expected_fill)
+    assert array.nchunks_initialized == stored_chunks
+    np.testing.assert_array_equal(_open(tmp_path / "out.zarr")["test"].values, _masked_data_array().values)
 
 
 @pytest.mark.parametrize(

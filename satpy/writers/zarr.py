@@ -75,6 +75,12 @@ change the values, such as calibration or resampling, drop the encoding. Call
 ``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
 ``serializer``) must suit the zarr format being written.
 
+Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
+written, from the ``_FillValue`` attribute that marks missing data. The writer sets the ``fill_value`` of
+new format 3 arrays to the ``_FillValue`` encoding or, for integer data, to the ``_FillValue`` attribute,
+so zarr skips chunks that contain only fill values, as it does for chunks of float data that are all NaN.
+A ``fill_value`` in the ``encoding`` argument takes precedence; one in ``DataArray.encoding`` is dropped.
+
 Geolocation
 -----------
 
@@ -143,6 +149,10 @@ consolidated metadata setting are taken from the existing store and ``zarr_forma
 are rechunked to the store's chunks (``align_chunks=True``). Appending the same time twice is not
 detected.
 
+Attributes of variables that are already in the store keep the values of the first write, so their
+``start_time`` and ``end_time`` describe the first time step; the ``time`` coordinate holds the
+``start_time`` of every step. The attributes of the root group are replaced by those of the latest write.
+
 Without ``append_dim``, ``mode`` keeps xarray's default: a new store is created and writing to an
 existing one fails. Use ``mode="w"`` to overwrite.
 
@@ -193,19 +203,14 @@ not with ``dask.distributed``.
       ``Session.rebase()`` with ``icechunk.BasicConflictSolver()`` resolves this for region writes of
       different time steps from separate processes, but not for concurrent appends, which both resize the
       arrays.
-    - Fill values in zarr format 3: xarray stores ``_FillValue`` as an attribute and leaves the zarr
-      ``fill_value`` at NaN for floats and 0 for integers. Zarr skips chunks that equal its ``fill_value``,
-      so chunks holding only another ``_FillValue`` (for example from ``fill_value=``) are still stored.
-      Setting the ``fill_value`` encoding to the ``_FillValue`` would skip them.
     - Sharding: a default ``shards`` encoding for zarr format 3, so that small chunks for fast partial
       reads are not stored as one object each; ``shards`` can currently only be set with ``encoding``.
     - obstore: URL filenames are opened with fsspec. A :class:`zarr.storage.ObjectStore` can already be
       passed as ``store``; creating one from the URL and credentials would let ``filename`` use obstore.
-    - Time bounds: when ``append_dim="time"`` adds the ``time`` dimension, each step keeps only its
-      ``start_time`` as the coordinate, and the variable attributes keep the ``start_time``/``end_time``
-      of the first write. A ``time_bnds`` variable from ``start_time``/``end_time``, as
-      :func:`satpy.cf.coords.add_time_bounds_dimension` adds for data that already have a ``time``
-      dimension, would keep every step's period, with or without ``convert_to_cf``.
+    - Time bounds: when ``append_dim="time"`` adds the ``time`` dimension, only the ``start_time`` of each
+      step is kept, as its ``time`` coordinate (see Appending). A ``time_bnds`` variable from
+      ``start_time``/``end_time``, as :func:`satpy.cf.coords.add_time_bounds_dimension` adds for data that
+      already have a ``time`` dimension, would keep every step's period, with or without ``convert_to_cf``.
 
 """
 from __future__ import annotations
@@ -257,7 +262,7 @@ _TIME_ENCODING = {
     "dtype": "int64",
 }
 # Keys of DataArray.encoding that Dataset.to_zarr understands; others, such as the netCDF "zlib" or
-# "chunksizes" a reader may leave, are dropped.
+# "chunksizes" a reader may leave, are dropped. "fill_value" is set from _FillValue instead.
 _ZARR_ENCODING_KEYS = frozenset({
     "dtype", "scale_factor", "add_offset", "_FillValue", "missing_value", "units", "calendar",
     "chunks", "shards", "compressor", "compressors", "filters", "serializer", "write_empty_chunks",
@@ -381,6 +386,7 @@ class ZarrWriter(Writer):
             commit: Commit message for Icechunk sessions passed as ``store``. The commit happens after
                 the data are written.
             fill_value: ``_FillValue`` encoding of all data variables, overriding their own ``encoding``.
+                For zarr format 3, also the zarr ``fill_value`` of new arrays.
             append_dim: Dimension to append along. ``"time"`` is added from ``start_time`` when missing.
             mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends
                 when ``append_dim`` is given.
@@ -432,12 +438,14 @@ class ZarrWriter(Writer):
                                     include_grid_mapping=include_grid_mapping, include_geozarr=include_geozarr)
             ds = _maybe_expand_append_dim(ds, append_dim, target.attrs)
             ds = _regularize_chunks(ds, encoding)
-            target_encoding = _build_encoding(ds, encoding, fill_value, existing)
-            ds = _drop_conflicting_fill_value_attrs(ds, target_encoding, existing)
             to_zarr_kwargs = self._resolve_to_zarr_kwargs(
                 target, existing, mode=mode, append_dim=append_dim, zarr_format=zarr_format,
-                consolidated=consolidated, storage_options=target_storage_options, encoding=target_encoding,
-                xarray_kwargs=xarray_kwargs)
+                consolidated=consolidated, storage_options=target_storage_options, xarray_kwargs=xarray_kwargs)
+            target_encoding = _build_encoding(ds, encoding, fill_value, existing)
+            ds = _drop_conflicting_fill_value_attrs(ds, target_encoding, existing)
+            if to_zarr_kwargs["zarr_format"] == 3:
+                ds = _set_zarr_fill_values(ds, target_encoding, existing)
+            to_zarr_kwargs.setdefault("encoding", target_encoding)
             delayeds.append(_write(ds, target.store, to_zarr_kwargs))
         delayeds = _chain_commits(delayeds, targets, commit)
         if compute:
@@ -472,12 +480,12 @@ class ZarrWriter(Writer):
                              ) from err
 
     def _resolve_to_zarr_kwargs(self, target: _Target, existing: _StoreState | None, *, mode, append_dim,
-                                zarr_format, consolidated, storage_options, encoding, xarray_kwargs) -> dict:
+                                zarr_format, consolidated, storage_options, xarray_kwargs) -> dict:
         is_icechunk = _is_icechunk(target.store)
         if is_icechunk and zarr_format == 2:
             raise ValueError(f"Icechunk only supports zarr format 3, but zarr_format=2 was requested for "
                              f"{target.name!r}.")
-        kwargs: dict[str, Any] = {"mode": mode, "encoding": encoding, "align_chunks": True, "compute": False}
+        kwargs: dict[str, Any] = {"mode": mode, "align_chunks": True, "compute": False}
         if storage_options is not None:
             kwargs["storage_options"] = storage_options
         # xarray fails to append to a store that does not exist yet or that has another zarr_format
@@ -657,7 +665,7 @@ def _filter_encodings(ds: xr.Dataset) -> xr.Dataset:
     for name, var in ds.variables.items():
         dropped = sorted(set(var.encoding) - _ZARR_ENCODING_KEYS)
         if dropped:
-            LOG.debug("Dropping encoding keys %s of %r that zarr does not use.", dropped, name)
+            LOG.debug("Dropping encoding keys %s of %r that the zarr writer does not use.", dropped, name)
         var.encoding = {key: val for key, val in var.encoding.items() if key in _ZARR_ENCODING_KEYS}
     ds.encoding = {}
     return ds
@@ -860,6 +868,22 @@ def _drop_conflicting_fill_value_attrs(ds: xr.Dataset, encoding: dict, existing:
     for name, var in ds.variables.items():
         if name in stored or "_FillValue" in encoding.get(name, var.encoding):
             var.attrs.pop("_FillValue", None)
+    return ds
+
+
+def _set_zarr_fill_values(ds: xr.Dataset, encoding: dict, existing: _StoreState | None) -> xr.Dataset:
+    stored = existing.variables if existing is not None else frozenset()
+    for name, var in ds.variables.items():
+        # Variables without an entry in the to_zarr encoding are written with their own encoding
+        var_encoding = encoding.get(name, var.encoding)
+        if name in stored or "fill_value" in var_encoding or var.dtype.kind in "mM":
+            continue
+        dtype = np.dtype(var_encoding.get("dtype", var.dtype))
+        fill = var_encoding.get("_FillValue")
+        if "_FillValue" not in var_encoding and dtype.kind in "iu":
+            fill = var.attrs.get("_FillValue")
+        if fill is not None:
+            var_encoding["fill_value"] = np.asarray(fill, dtype=dtype).item()
     return ds
 
 
