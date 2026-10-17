@@ -255,7 +255,7 @@ _SATPY_KWARGS = ("overlay", "decorate", "config_files")
 _APPEND_MODES = ("a", "a-", "r+")
 _MIN_VERSIONS = {"zarr": Version("3.0.0"), "xarray": Version("2025.6.0")}
 # Without explicit units, xarray picks "days since <first time>" and later sub-second appends
-# cannot be decoded anymore (specs/zarr-writer.md, Background item 3).
+# cannot be decoded anymore.
 _TIME_ENCODING = {
     "units": "microseconds since 1970-01-01 00:00:00",
     "calendar": "proleptic_gregorian",
