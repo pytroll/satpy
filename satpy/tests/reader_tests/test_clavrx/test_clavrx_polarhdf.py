@@ -21,6 +21,8 @@ DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
+BAD_FLAGS = [0, 0, 2, 0, 4, 5]
+
 
 class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
     """Swap-in HDF4 File Handler."""
@@ -86,6 +88,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
             })
         file_content["variable3/shape"] = DEFAULT_FILE_SHAPE
 
+
         file_content["refl_1_38um_nom"] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
@@ -99,6 +102,18 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
                 "actual_missing": -999.0
             })
         file_content["refl_1_38um_nom/shape"] = DEFAULT_FILE_SHAPE
+
+        # category
+        file_content["variable3_bad_values"] = xr.DataArray(
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
+            attrs={
+                "SCALED": 0,
+                "_FillValue": -128,
+                "flag_meanings": "clear water supercooled mixed ice unknown",
+                "flag_values": BAD_FLAGS,
+                "units": "none",
+            })
+        file_content["variable3_bad_values/shape"] = DEFAULT_FILE_SHAPE
 
         return file_content
 
@@ -229,7 +244,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             ])
             r.create_filehandlers(loadables)
 
-        var_list = ["M09", "variable2", "variable3"]
+        var_list = ["M09", "variable2", "variable3", "variable3_bad_values"]
         datasets = r.load(var_list)
         assert len(datasets) == len(var_list)
         for v in datasets.values():
@@ -240,3 +255,4 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             assert v.attrs["area"].lons.attrs["rows_per_scan"] == 16
             assert v.attrs["area"].lats.attrs["rows_per_scan"] == 16
         assert isinstance(datasets["variable3"].attrs.get("flag_meanings"), list)
+        assert datasets["variable3_bad_values"].attrs.get("flag_values") != BAD_FLAGS
