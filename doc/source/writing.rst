@@ -55,6 +55,10 @@ One common parameter across almost all Writers is ``filename`` and
       - :class:`ninjogeotiff <satpy.writers.ninjogeotiff.NinJoGeoTIFFWriter>`
       - Beta
       -
+    * - Zarr
+      - :class:`zarr <satpy.writers.zarr.ZarrWriter>`
+      - Beta
+      - :mod:`Usage example <satpy.writers.zarr>`
 
 Available Writers
 =================
@@ -63,6 +67,36 @@ To get a list of available writers use the `available_writers` function::
 
     >>> from satpy import available_writers
     >>> available_writers()
+
+Writing and appending to Zarr stores
+====================================
+
+The ``zarr`` writer saves datasets as variables of a `Zarr <https://zarr.dev>`_ store with
+:meth:`xarray.Dataset.to_zarr`, without enhancing them. All datasets of one ``save_datasets`` call
+go into one store, so they must share a grid. The default filename pattern needs the ``name`` of a
+single dataset, so specify a ``filename`` when saving several::
+
+    >>> scn.save_datasets(writer="zarr", filename="/data/zarr/{platform_name}_{start_time:%Y%m%d_%H%M%S}.zarr")
+
+``split_variables=True`` writes one store per dataset instead. ``append_dim="time"`` adds a ``time``
+dimension from ``start_time`` and appends to the store, creating it on the first call, to build a
+time series from many Scenes::
+
+    >>> for filenames in files_per_time_step:
+    ...     scn = Scene(filenames, reader="abi_l1b")
+    ...     scn.load(["C13"])
+    ...     scn.save_datasets(writer="zarr", filename="/data/zarr/abi_c13.zarr", append_dim="time")
+
+Gridded data get the ``proj:`` and ``spatial:`` attributes of GeoZarr and swath data get
+``longitude`` and ``latitude`` coordinates. Stores can also be fsspec URLs such as ``s3://``, zarr
+store objects or `Icechunk <https://icechunk.io>`_ sessions. See :mod:`satpy.writers.zarr` for all
+options.
+
+Zarr format 3 stores are written without consolidated metadata by default, so open them with
+``consolidated=False`` to avoid a ``RuntimeWarning`` from xarray::
+
+    >>> import xarray as xr
+    >>> ds = xr.open_zarr("/data/zarr/abi_c13.zarr", consolidated=False)
 
 
 Colorizing and Palettizing using user-supplied colormaps

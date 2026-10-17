@@ -116,7 +116,14 @@ Zarr format and consolidated metadata
 ``zarr_format`` defaults to the ``zarr_format`` of the writer YAML configuration, if set, and otherwise
 to the default of the installed zarr-python (3 for zarr-python 3). Consolidated metadata is written for
 zarr format 2 and not for format 3, where it is not part of the specification. Both can be changed
-with ``zarr_format=`` and ``consolidated=``.
+with ``zarr_format=`` and ``consolidated=``. Consolidated metadata mainly speeds up opening stores with
+many variables on object storage such as S3.
+
+:func:`xarray.open_zarr` looks for consolidated metadata by default and emits a ``RuntimeWarning`` when a
+store has none, so open format 3 stores written with the defaults with ``consolidated=False``:
+
+    >>> import xarray as xr
+    >>> ds = xr.open_zarr("/data/zarr/abi_c13.zarr", consolidated=False)
 
 Appending
 ---------
@@ -163,6 +170,42 @@ Without ``commit`` the changes stay uncommitted; call ``session.commit("message"
 computing. A committed session is read-only, so every append needs a new ``repo.writable_session()``.
 The writable session cannot be pickled, so Icechunk targets only work with dask's threaded scheduler,
 not with ``dask.distributed``.
+
+.. todo::
+
+    - GeoZarr: set ``include_grid_mapping=True`` by default once the GeoZarr core text is normative;
+      adopt the next release of the ``proj``/``spatial`` conventions once rioxarray and geozarr-toolkit
+      use the same convention names as the published schemas (v0.1 uses ``proj``/``spatial``, both tools
+      use the pre-release ``proj:``/``spatial:``) and build the attributes with geozarr-toolkit then;
+      ``proj:``/``spatial:`` attributes for swath data when a convention exists; follow the
+      crs/geotransform/time/bands conformance classes of the GeoZarr spec.
+    - Multiscales: optional pyramid levels (native resampler or dask coarsen) as child groups with the
+      ``multiscales`` layout attribute; one Delayed per level.
+    - Region writes: ``region={"time": slice(i, i + 1)}`` into a pre-allocated time axis for out-of-order
+      or parallel appends (needs a helper that creates the store with the full time axis but no data).
+    - Icechunk with ``dask.distributed``: a writable ``Session`` cannot be pickled, so only the threaded
+      scheduler works. ``Session.fork()`` returns a picklable ``ForkSession`` for the workers to write to
+      and ``Session.merge()`` collects their changes before the commit. ``icechunk.xarray.to_icechunk``
+      does both but computes immediately, so it only fits ``compute=True``; ``compute=False`` needs the
+      merge inside the returned dask graph.
+    - Icechunk with concurrent writers: ``Session.commit()`` raises ``icechunk.ConflictError`` when another
+      session committed to the branch after this one was created. ``commit(rebase_with=...)`` or
+      ``Session.rebase()`` with ``icechunk.BasicConflictSolver()`` resolves this for region writes of
+      different time steps from separate processes, but not for concurrent appends, which both resize the
+      arrays.
+    - Fill values in zarr format 3: xarray stores ``_FillValue`` as an attribute and leaves the zarr
+      ``fill_value`` at NaN for floats and 0 for integers. Zarr skips chunks that equal its ``fill_value``,
+      so chunks holding only another ``_FillValue`` (for example from ``fill_value=``) are still stored.
+      Setting the ``fill_value`` encoding to the ``_FillValue`` would skip them.
+    - Sharding: a default ``shards`` encoding for zarr format 3, so that small chunks for fast partial
+      reads are not stored as one object each; ``shards`` can currently only be set with ``encoding``.
+    - obstore: URL filenames are opened with fsspec. A :class:`zarr.storage.ObjectStore` can already be
+      passed as ``store``; creating one from the URL and credentials would let ``filename`` use obstore.
+    - Time bounds: when ``append_dim="time"`` adds the ``time`` dimension, each step keeps only its
+      ``start_time`` as the coordinate, and the variable attributes keep the ``start_time``/``end_time``
+      of the first write. A ``time_bnds`` variable from ``start_time``/``end_time``, as
+      :func:`satpy.cf.coords.add_time_bounds_dimension` adds for data that already have a ``time``
+      dimension, would keep every step's period, with or without ``convert_to_cf``.
 
 """
 from __future__ import annotations
