@@ -144,10 +144,18 @@ is created, so the same call works for the first and every following write:
     ...     scn.save_datasets(writer="zarr", filename="/data/zarr/abi_c13.zarr", append_dim="time")
 
 Times are stored as microseconds since 1970-01-01 unless the ``time`` encoding sets other units, so later
-appends with sub-second times round-trip exactly. When appending, the zarr format and the
-consolidated metadata setting are taken from the existing store and ``zarr_format`` is ignored. New data
-are rechunked to the store's chunks (``align_chunks=True``). Appending the same time twice is not
-detected.
+appends with sub-second times round-trip exactly. When appending, or adding a group to an existing store
+with ``mode="a"``, the zarr format and the consolidated metadata setting are taken from the root of the
+existing store and ``zarr_format`` is ignored. New data are rechunked to the store's chunks
+(``align_chunks=True``). Entries of the ``encoding`` argument for variables that are already in the store
+are not used.
+
+Appended steps are added at the end of the store in the order they are written; the writer does not
+compare their times with the stored ones. Appending a ``start_time`` that is already stored neither
+replaces nor skips the stored step: the store then holds two steps with that time, and ``sel`` returns
+both. Appending an earlier time leaves the ``time`` coordinate unsorted, so slicing it by time raises a
+``KeyError``. To avoid both, check the stored times, for example
+``xr.open_zarr(store, consolidated=False)["time"]``, before appending.
 
 Attributes of variables that are already in the store keep the values of the first write, so their
 ``start_time`` and ``end_time`` describe the first time step; the ``time`` coordinate holds the
@@ -299,11 +307,13 @@ class _Target:
 
 @dataclass(frozen=True)
 class _StoreState:
-    """Metadata of an existing store that an append has to match."""
+    """Metadata of an existing store that a write to it has to match."""
 
     zarr_format: int
     consolidated: bool
     variables: frozenset[str]
+    # False when the store exists but the group written to does not
+    group_exists: bool
 
 
 class ZarrWriter(Writer):
@@ -392,10 +402,11 @@ class ZarrWriter(Writer):
                 when ``append_dim`` is given.
             zarr_format: Zarr format (2 or 3) of new stores.
             consolidated: Write consolidated metadata. Defaults to ``True`` for format 2 and ``False``
-                for format 3, or to the existing store's state when appending.
+                for format 3, or to the existing store's state when writing to an existing store.
             encoding: Per-variable encoding for :meth:`xarray.Dataset.to_zarr`, merged over each
                 variable's own ``encoding`` and the writer's defaults. Variables with ``chunks`` in either
-                are not rechunked by the writer.
+                are not rechunked by the writer. Each store gets the entries of its own variables, except
+                for variables that are already in the store; names of no written variable raise an error.
             include_lonlats: Add 2D ``longitude`` and ``latitude`` coordinates. ``None`` adds them to swath
                 data only, ``True`` also to gridded data.
             include_grid_mapping: Add a CF ``spatial_ref`` grid mapping coordinate to data on an
@@ -423,7 +434,7 @@ class ZarrWriter(Writer):
         targets = _make_targets(datasets, split_variables)
         self._resolve_stores(targets, filename, store, split_variables)
         _check_commit(targets, commit)
-        delayeds = []
+        prepared = []
         for target in targets:
             target_storage_options = _target_storage_options(target, storage_options)
             existing = None
@@ -446,7 +457,11 @@ class ZarrWriter(Writer):
             if to_zarr_kwargs["zarr_format"] == 3:
                 ds = _set_zarr_fill_values(ds, target_encoding, existing)
             to_zarr_kwargs.setdefault("encoding", target_encoding)
-            delayeds.append(_write(ds, target.store, to_zarr_kwargs))
+            prepared.append((target, ds, to_zarr_kwargs))
+        _check_encoding_names(encoding, [ds for _, ds, _ in prepared])
+        # to_zarr(compute=False) already writes the store metadata, so nothing is written before every store is
+        # prepared and checked
+        delayeds = [_write(ds, target.store, to_zarr_kwargs) for target, ds, to_zarr_kwargs in prepared]
         delayeds = _chain_commits(delayeds, targets, commit)
         if compute:
             return compute_writer_results([delayeds])
@@ -488,13 +503,14 @@ class ZarrWriter(Writer):
         kwargs: dict[str, Any] = {"mode": mode, "align_chunks": True, "compute": False}
         if storage_options is not None:
             kwargs["storage_options"] = storage_options
-        # xarray fails to append to a store that does not exist yet or that has another zarr_format
+        # xarray fails to append to a store or group that does not exist yet, or to one with another zarr_format
         if existing is None:
             target_format = zarr_format or self.info.get("zarr_format") or _default_zarr_format()
             default_consolidated = target_format == 2
         else:
             target_format, default_consolidated = existing.zarr_format, existing.consolidated
-            kwargs["append_dim"] = append_dim
+            if existing.group_exists:
+                kwargs["append_dim"] = append_dim
         if consolidated is None:
             consolidated = default_consolidated
         if is_icechunk:
@@ -617,25 +633,35 @@ def _existing_store_state(store, group: str | None, storage_options: dict | None
     import zarr
 
     open_kwargs = {} if storage_options is None else {"storage_options": storage_options}
+    not_found = (FileNotFoundError, zarr.errors.NodeNotFoundError)
     try:
-        zarr_group = zarr.open_group(store, mode="r", path=group, **open_kwargs)
-    except (FileNotFoundError, zarr.errors.NodeNotFoundError):
+        # Read the root even when writing a group: with consolidated=True, xarray writes the consolidated metadata
+        # of the whole store only to the root, and a group that does not exist yet must get the root's zarr format
+        # because zarr-python cannot read a store whose groups mix formats
+        root_metadata = zarr.open_group(store, mode="r", **open_kwargs).metadata
+    except not_found:
         return None
-    metadata = zarr_group.metadata
-    return _StoreState(metadata.zarr_format, metadata.consolidated_metadata is not None,
-                       frozenset(zarr_group.array_keys()))
+    zarr_format = root_metadata.zarr_format
+    consolidated = root_metadata.consolidated_metadata is not None
+    try:
+        zarr_group = zarr.open_group(store, mode="r", path=group, zarr_format=zarr_format, use_consolidated=False,
+                                     **open_kwargs)
+    except not_found:
+        return _StoreState(zarr_format, consolidated, frozenset(), group_exists=False)
+    return _StoreState(zarr_format, consolidated, frozenset(zarr_group.array_keys()), group_exists=True)
 
 
 def _build_dataset(data_arrays: list[xr.DataArray], *, include_lonlats: bool | None, include_grid_mapping: bool,
                    include_geozarr: bool) -> xr.Dataset:
     prepared: dict[str, xr.DataArray] = {}
+    lonlats: list[tuple[Any, dict]] = []
     for data_arr in data_arrays:
         name = _variable_name(data_arr)
         if name in prepared:
             raise ValueError(f"More than one dataset named {name!r} in one store.")
         prepared[name] = _prepare_data_array(data_arr, include_lonlats=include_lonlats,
                                              include_grid_mapping=include_grid_mapping,
-                                             include_geozarr=include_geozarr)
+                                             include_geozarr=include_geozarr, lonlats=lonlats)
     try:
         xr.align(*prepared.values(), join="exact")
         ds = xr.Dataset(prepared)
@@ -672,11 +698,11 @@ def _filter_encodings(ds: xr.Dataset) -> xr.Dataset:
 
 
 def _prepare_data_array(data_arr: xr.DataArray, *, include_lonlats: bool | None, include_grid_mapping: bool,
-                        include_geozarr: bool) -> xr.DataArray:
+                        include_geozarr: bool, lonlats: list[tuple[Any, dict]]) -> xr.DataArray:
     area = data_arr.attrs.get("area")
     data_arr = add_xy_coords_attrs(data_arr.copy(deep=False))
     if _wants_lonlats(data_arr, area, include_lonlats):
-        data_arr = add_lonlat_coords(data_arr)
+        data_arr = _add_shared_lonlat_coords(data_arr, area, lonlats)
     if include_grid_mapping and _is_gridded(data_arr, area, "a 'spatial_ref' coordinate"):
         data_arr = _add_spatial_ref(data_arr, area)
     attrs = dict(data_arr.attrs)
@@ -700,6 +726,17 @@ def _wants_lonlats(data_arr: xr.DataArray, area, include_lonlats: bool | None) -
                   data_arr.attrs.get("name"))
         return False
     return True
+
+
+def _add_shared_lonlat_coords(data_arr: xr.DataArray, area, lonlats: list[tuple[Any, dict]]) -> xr.DataArray:
+    # Lon/lats made with the chunks of each dataset would differ in their dask names, so merging the datasets
+    # would compute them to compare them
+    for known_area, coords in lonlats:
+        if type(known_area) is type(area) and known_area == area:
+            return data_arr.assign_coords(coords)
+    data_arr = add_lonlat_coords(data_arr)
+    lonlats.append((area, {name: data_arr.coords[name].variable for name in ("longitude", "latitude")}))
+    return data_arr
 
 
 def _is_gridded(data_arr: xr.DataArray, area, addition: str) -> bool:
@@ -818,7 +855,8 @@ def _regularize_chunks(ds: xr.Dataset, encoding: dict | None) -> xr.Dataset:
             continue
         if not chunks_are_irregular(var.data.chunks):
             continue
-        rechunked = (var.dims, var.data.rechunk(regular_chunks_from_irregular_chunks(var.data.chunks)), var.attrs)
+        # Variable.chunk keeps the encoding
+        rechunked = var.chunk(dict(zip(var.dims, regular_chunks_from_irregular_chunks(var.data.chunks))))
         if name in ds.coords:
             coords[name] = rechunked
         else:
@@ -827,17 +865,30 @@ def _regularize_chunks(ds: xr.Dataset, encoding: dict | None) -> xr.Dataset:
 
 
 def _build_encoding(ds: xr.Dataset, user_encoding: dict | None, fill_value, existing: _StoreState | None) -> dict:
-    user_encoding = copy.deepcopy(user_encoding or {})
     # xarray refuses encoding for variables that already exist in the store
     stored = existing.variables if existing is not None else frozenset()
+    user_encoding = user_encoding or {}
+    ignored = sorted(name for name in user_encoding if name in stored)
+    if ignored:
+        LOG.debug("Not using the 'encoding' entries of %s, which are already in the store.", ignored)
+    # With split_variables, user_encoding holds the entries of every store
+    user_encoding = {name: copy.deepcopy(var_encoding) for name, var_encoding in user_encoding.items()
+                     if name in ds.variables and name not in stored}
     writer_encoding = _writer_encoding(ds, fill_value, user_encoding)
     writer_encoding = {name: var_encoding for name, var_encoding in writer_encoding.items() if name not in stored}
     # An entry passed to to_zarr replaces the variable's own encoding, so it is merged in here
     encoding = {}
     for name in [*writer_encoding, *(name for name in user_encoding if name not in writer_encoding)]:
-        own_encoding = ds[name].encoding if name in ds.variables and name not in stored else {}
-        encoding[name] = {**own_encoding, **writer_encoding.get(name, {}), **user_encoding.get(name, {})}
+        encoding[name] = {**ds[name].encoding, **writer_encoding.get(name, {}), **user_encoding.get(name, {})}
     return encoding
+
+
+def _check_encoding_names(encoding: dict | None, datasets: list[xr.Dataset]) -> None:
+    names = set().union(*(ds.variables for ds in datasets))
+    unknown = sorted(set(encoding or {}) - names)
+    if unknown:
+        raise ValueError(f"The 'encoding' argument has entries for {unknown}, which are not variables of the "
+                         "written data.")
 
 
 def _writer_encoding(ds: xr.Dataset, fill_value, user_encoding: dict) -> dict[str, dict]:

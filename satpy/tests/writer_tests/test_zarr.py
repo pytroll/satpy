@@ -82,7 +82,10 @@ def _messy_attrs():
 
 
 def _open(store, **kwargs):
-    return xr.open_zarr(store, consolidated=False, **kwargs)
+    """Open a store with xarray's defaults, which warn for stores without consolidated metadata."""
+    if zarr.open_group(store, mode="r").metadata.consolidated_metadata is None:
+        kwargs.setdefault("consolidated", False)
+    return xr.open_zarr(store, **kwargs)
 
 
 def _assert_roundtrip(store, expected, **open_kwargs):
@@ -265,6 +268,32 @@ def test_append_with_fill_value(writer, tmp_path):
     assert zarr.open_group(store, mode="r")["test"].fill_value == -5
 
 
+def test_append_with_encoding_argument(writer, tmp_path):
+    """Test that the same encoding argument works for the first and every following append."""
+    store = tmp_path / "out.zarr"
+    encoding = {"test": {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1},
+                "time": {"units": "seconds since 2000-01-01"}}
+    input_encoding = copy.deepcopy(encoding)
+    for hour in (12, 13):
+        writer.save_datasets([_data_array(start_time=dt.datetime(2026, 1, 1, hour))], filename=store,
+                             append_dim="time", encoding=encoding)
+    assert encoding == input_encoding
+    group = zarr.open_group(store, mode="r")
+    assert group["test"].dtype == np.int16
+    assert group["time"].attrs["units"] == "seconds since 2000-01-01"
+    assert list(_open(store).time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+
+
+@pytest.mark.parametrize("zarr_format", [2, 3])
+def test_append_in_group(writer, tmp_path, zarr_format):
+    """Test appending inside a group, which keeps the consolidated metadata in the root up to date."""
+    store = tmp_path / "out.zarr"
+    for hour in (12, 13):
+        writer.save_datasets([_data_array(start_time=dt.datetime(2026, 1, 1, hour))], filename=store,
+                             append_dim="time", zarr_format=zarr_format, xarray_kwargs={"group": "g"})
+    assert list(_open(store, group="g").time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+
+
 @pytest.mark.parametrize(
     ("zarr_format", "metadata_file", "consolidated"),
     [(2, ".zarray", True), (3, "zarr.json", False)],
@@ -297,12 +326,15 @@ def test_no_warnings(writer, tmp_path, zarr_format, consolidated):
 
 
 def test_irregular_chunks_rechunked(writer, tmp_path):
-    """Test that irregular dask chunks of variables and coordinates are rechunked to their largest chunk size."""
+    """Test that irregular dask chunks are rechunked to their largest chunk size, keeping the encoding."""
     data_arr = _data_array(area=_swath_definition())
     data_arr = data_arr.copy(data=data_arr.data.rechunk(((1, 2, 1), (6,))))
+    data_arr.encoding = {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
     group = zarr.open_group(tmp_path / "out.zarr", mode="r")
     assert group["test"].chunks == (2, 6)
+    assert group["test"].dtype == np.int16
+    assert group["test"].attrs["scale_factor"] == 0.25
     assert group["longitude"].chunks == (2, 6)
 
 
@@ -441,12 +473,15 @@ def test_multiple_datasets_use_combined_metadata(writer, tmp_path):
 
 
 def test_split_variables(writer, tmp_path):
-    """Test writing one store per dataset."""
+    """Test writing one store per dataset, each with the encoding argument entries of its dataset."""
     datasets = [_data_array("C01"), _data_array("C02")]
-    writer.save_datasets(datasets, split_variables=True)
-    for data_arr in datasets:
-        ds = _assert_roundtrip(tmp_path / f"{data_arr.attrs['name']}_20260101_120000.zarr", [data_arr])
+    writer.save_datasets(datasets, split_variables=True,
+                         encoding={"C01": {"dtype": "float64"}, "C02": {"dtype": "int16", "_FillValue": -1}})
+    for data_arr, dtype in zip(datasets, [np.float64, np.int16]):
+        store = tmp_path / f"{data_arr.attrs['name']}_20260101_120000.zarr"
+        ds = _assert_roundtrip(store, [data_arr])
         assert list(ds.data_vars) == [data_arr.attrs["name"]]
+        assert zarr.open_group(store, mode="r")[data_arr.attrs["name"]].dtype == dtype
 
 
 @pytest.mark.parametrize(
@@ -467,21 +502,48 @@ def test_filename_errors(writer, tmp_path, names, filename, split_variables, mat
                              split_variables=split_variables)
 
 
-def test_different_coordinates_raise(writer, tmp_path):
-    """Test that datasets on different grids cannot share a store."""
-    other_area = AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 4000.0))
+@pytest.mark.parametrize("swath", [False, True])
+def test_different_coordinates_raise(writer, tmp_path, swath):
+    """Test that datasets on different grids or swaths cannot share a store."""
+    if swath:
+        area = _swath_definition()
+        other_area = SwathDefinition(area.lons + 1, area.lats)
+    else:
+        area = AREA
+        other_area = AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 4000.0))
     with pytest.raises(ValueError, match="coordinates differ"):
-        writer.save_datasets([_data_array("C01"), _data_array("C02", area=other_area)],
+        writer.save_datasets([_data_array("C01", area=area), _data_array("C02", area=other_area)],
                              filename=tmp_path / "out.zarr")
 
 
-def test_groups_in_one_store(writer, tmp_path):
-    """Test writing datasets on different grids to groups of one store."""
+@pytest.mark.parametrize(
+    ("second_start_time", "encoding", "match"),
+    [
+        (None, None, "needs a 'start_time' attribute"),
+        (START_TIME, {"C03": {"dtype": "float64"}}, r"entries for \['C03'\]"),
+    ],
+    ids=["missing_start_time", "unknown_encoding_name"],
+)
+def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encoding, match):
+    """Test that no store is written when one is invalid, as to_zarr writes the metadata before computing."""
+    datasets = [_data_array("C01"), _data_array("C02", start_time=second_start_time)]
+    with pytest.raises(ValueError, match=match):
+        writer.save_datasets(datasets, filename=str(tmp_path / "{name}.zarr"), split_variables=True,
+                             append_dim="time", encoding=encoding, compute=False)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("zarr_format", [2, 3])
+@pytest.mark.parametrize("second_kwargs", [{"mode": "a"}, {"append_dim": "time"}], ids=["mode_a", "append"])
+def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
+    """Test writing datasets on different grids to groups of one store, all in the format of the store."""
     store = tmp_path / "out.zarr"
     fine = [_data_array("C01"), _data_array("C03")]
     coarse = _data_array("C13")
-    writer.save_datasets(fine, filename=store, xarray_kwargs={"group": "1km"})
-    writer.save_datasets([coarse], filename=store, mode="a", xarray_kwargs={"group": "2km"})
+    writer.save_datasets(fine, filename=store, zarr_format=zarr_format, xarray_kwargs={"group": "1km"})
+    writer.save_datasets([coarse], filename=store, zarr_format=5 - zarr_format, xarray_kwargs={"group": "2km"},
+                         **second_kwargs)
+    assert zarr.open_group(store, mode="r").metadata.zarr_format == zarr_format
     _assert_roundtrip(store, fine, group="1km")
     _assert_roundtrip(store, [coarse], group="2km")
 
@@ -701,7 +763,7 @@ def test_geozarr_attrs_skipped(writer, tmp_path, areas, include_geozarr, with_at
 def test_lonlats(writer, tmp_path, swath, include_lonlats, expected):
     """Test which data get longitude and latitude coordinates, without computing them early."""
     area = _swath_definition() if swath else AREA
-    datasets = [_data_array("C01", area=area), _data_array("C02", area=area)]
+    datasets = [_data_array("C01", area=area), _data_array("C02", area=area, chunks=3)]
     with assert_maximum_dask_computes(0):
         delayeds = writer.save_datasets(datasets, filename=tmp_path / "out.zarr", include_lonlats=include_lonlats,
                                         compute=False)
