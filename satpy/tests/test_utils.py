@@ -15,12 +15,14 @@ import xarray as xr
 
 from satpy.utils import (
     angle2xyz,
+    chunks_are_irregular,
     datetime64_to_pydatetime,
     get_legacy_chunk_size,
     get_satpos,
     import_error_helper,
     lonlat2xyz,
     proj_units_to_meters,
+    regular_chunks_from_irregular_chunks,
     xyz2angle,
     xyz2lonlat,
 )
@@ -424,6 +426,38 @@ def test_get_legacy_chunk_size():
     assert get_legacy_chunk_size() == 4096
     with dask.config.set({"array.chunk-size": "32MiB"}):
         assert get_legacy_chunk_size() == 2048
+
+
+@pytest.mark.parametrize(
+    ("chunks", "irregular"),
+    [
+        (((4,),), False),
+        (((2, 2), (6,)), False),
+        (((2, 2, 1),), False),
+        (((1, 2, 1), (6,)), True),
+        (((2, 2), (3, 2, 1)), True),
+        (((2, 3),), True),
+    ],
+    ids=["one_chunk", "equal_chunks", "smaller_last_chunk", "unequal_chunks", "unequal_second_dim",
+         "larger_last_chunk"],
+)
+def test_chunks_are_irregular(chunks, irregular):
+    """Test that chunks are regular only if all but a smaller last chunk have the same size."""
+    assert chunks_are_irregular(chunks) == irregular
+
+
+@pytest.mark.parametrize(
+    ("chunks", "expected"),
+    [
+        (((1, 2, 1), (6,)), ((2, 2), (6,))),
+        (((2, 3),), ((3, 2),)),
+        (((3, 1, 3), (2, 2)), ((3, 3, 1), (2, 2))),
+    ],
+    ids=["unequal_chunks", "larger_last_chunk", "regular_second_dim"],
+)
+def test_regular_chunks_from_irregular_chunks(chunks, expected):
+    """Test that the largest chunk of each dimension becomes its chunk size, keeping the shape."""
+    assert regular_chunks_from_irregular_chunks(chunks) == expected
 
 
 @pytest.mark.parametrize(
