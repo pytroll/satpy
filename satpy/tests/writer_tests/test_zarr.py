@@ -305,6 +305,34 @@ def test_append_existing_time_coordinate(writer, tmp_path, time_dims):
     assert list(_open(store).time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
 
+@pytest.mark.parametrize("swath", [pytest.param(True, id="swath"), pytest.param(False, id="area")])
+def test_append_coordinates(writer, tmp_path, swath):
+    """Test that appends store acq_time for every step, but the lon/lats for every step of swaths only."""
+    areas = [_swath_definition(0.0), _swath_definition(100.0)] if swath else [AREA, AREA]
+    data_arrays = [
+        _data_array(area=area, start_time=START_TIME + dt.timedelta(hours=hour)).assign_coords(
+            acq_time=("y", np.datetime64(f"2026-01-01T{12 + hour}:00", "ns") + np.arange(4) * np.timedelta64(1, "m")))
+        for hour, area in enumerate(areas)
+    ]
+    _save_steps(writer, tmp_path / "out.zarr", data_arrays, include_lonlats=True)
+    ds = _open(tmp_path / "out.zarr")
+    assert ds["acq_time"].dims == ("time", "y")
+    np.testing.assert_array_equal(ds["acq_time"].values, np.stack([data_arr["acq_time"] for data_arr in data_arrays]))
+    lons = np.stack([area.get_lonlats()[0] for area in areas])
+    assert ds["longitude"].dims == (("time", "y", "x") if swath else ("y", "x"))
+    np.testing.assert_allclose(ds["longitude"].values, lons if swath else lons[0])
+
+
+def test_append_keeps_stored_area_lonlats(writer, tmp_path):
+    """Test that appends leave the stored lon/lats of an area as the first write stored them."""
+    store = tmp_path / "out.zarr"
+    writer.save_datasets([_data_array()], filename=store, append_dim="time", include_lonlats=True)
+    open_group(store, mode="r+")["longitude"][:] = 0.0
+    writer.save_datasets([_data_array(start_time=START_TIME + dt.timedelta(hours=1))], filename=store,
+                         append_dim="time", include_lonlats=True)
+    np.testing.assert_array_equal(_open(store)["longitude"].values, 0.0)
+
+
 @pytest.mark.parametrize(
     ("start_time", "append_dim", "match"),
     [

@@ -175,6 +175,11 @@ Attributes of variables that are already in the store keep the values of the fir
 ``start_time`` and ``end_time`` describe the first time step; the ``time`` coordinate holds the
 ``start_time`` of every step. The attributes of the root group are replaced by those of the latest write.
 
+Coordinates that differ for every step, such as ``acq_time`` and the lon/lats of swath data, get the
+append dimension too. The ``x``, ``y``, and lon/lat coordinates of an area, and the other variables
+without the append dimension, keep the values of the first write, as appends default to xarray's
+``mode="a-"``. Pass ``mode="a"`` to rewrite them with every write.
+
 Without ``append_dim``, ``mode`` keeps xarray's default: a new store is created and writing to an
 existing one fails. Use ``mode="w"`` to overwrite. With ``append_dim="time"``, ``mode="w"`` replaces the
 store with one holding a single time step, which later appends extend.
@@ -401,8 +406,9 @@ class ZarrWriter(Writer):
             fill_value: ``_FillValue`` encoding of all data variables, overriding their own ``encoding``.
                 For zarr format 3, also the zarr ``fill_value`` of new arrays.
             append_dim: Dimension to append along. ``"time"`` is added from ``start_time`` when missing.
-            mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends
-                when ``append_dim`` is given. ``"w"`` overwrites the store, or only the group given in
+            mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends with
+                ``"a-"`` when ``append_dim`` is given, which leaves the stored variables without the append
+                dimension unchanged. ``"w"`` overwrites the store, or only the group given in
                 ``xarray_kwargs``.
             zarr_format: Zarr format (2 or 3) of new stores.
             consolidated: Write consolidated metadata. Defaults to ``True`` for format 2 and ``False``
@@ -522,11 +528,13 @@ def _default_zarr_format() -> int:
 
 
 def _resolve_mode(mode: str | None, append_dim: Hashable | None, region) -> str:
-    """Get the mode that ``to_zarr`` writes with, choosing a default for ``None`` the way xarray does."""
+    """Get the mode that ``to_zarr`` writes with, choosing a default for ``None`` like xarray, except for appends."""
     if mode is not None:
         return mode
     if append_dim is not None:
-        return "a"
+        # Unlike xarray's default "a", "a-" leaves the stored variables without the append dimension, such as the
+        # coordinates of an area, as the first write stored them
+        return "a-"
     if region is not None:
         return "r+"
     return "w-"
@@ -788,8 +796,11 @@ class _StoreMode:
         return replace(layout, append_dim=self.append_dim, stored=frozenset(zarr_group.array_keys()))
 
     def expand(self, ds: xr.Dataset, target: _Target) -> xr.Dataset:
-        """Add the append dimension to ``ds`` if it does not have it yet."""
-        return _maybe_expand_append_dim(ds, self.append_dim, target.attrs)
+        """Add the append dimension to ``ds`` and to its coordinates that differ for every step."""
+        if self.append_dim is None:
+            return ds
+        ds = _maybe_expand_append_dim(ds, self.append_dim, target.attrs)
+        return _expand_coords(ds, self.append_dim, target.variables.values())
 
     def to_zarr_kwargs(self, target: _Target, layout: _StoreLayout) -> dict:
         """Get the ``to_zarr`` keyword arguments of the write to ``target``, except ``encoding``."""
@@ -1035,8 +1046,8 @@ def _json_default(obj):
     return str(obj)
 
 
-def _maybe_expand_append_dim(ds: xr.Dataset, append_dim, attrs: dict) -> xr.Dataset:
-    if append_dim is None or append_dim in ds.dims:
+def _maybe_expand_append_dim(ds: xr.Dataset, append_dim: Hashable, attrs: dict) -> xr.Dataset:
+    if append_dim in ds.dims:
         return ds
     if append_dim in ds.coords:
         return _expand_dims(ds, append_dim)
@@ -1053,6 +1064,18 @@ def _expand_dims(ds: xr.Dataset, dim: Hashable | dict) -> xr.Dataset:
     # 0-d data variables, such as the CF grid mapping variable, describe every step, so they stay 0-d
     scalars = {name: ds.variables[name] for name, var in ds.data_vars.items() if var.ndim == 0}
     return ds.drop_vars(list(scalars)).expand_dims(dim).assign(scalars)
+
+
+def _expand_coords(ds: xr.Dataset, append_dim: Hashable, data_arrs: Iterable[xr.DataArray]) -> xr.Dataset:
+    # Dataset.expand_dims only expands the data variables, but coordinates such as acq_time and the lon/lats of a
+    # swath differ for every step too, while the lon/lats of an area, like its x and y, are the same for every step
+    fixed = set(ds.indexes)
+    if not any(isinstance(data_arr.attrs.get("area"), SwathDefinition) for data_arr in data_arrs):
+        fixed |= {"longitude", "latitude"}
+    sizes = {append_dim: ds.sizes[append_dim]}
+    return ds.assign_coords({name: coord.variable.set_dims({**sizes, **coord.sizes})
+                             for name, coord in ds.coords.items()
+                             if coord.ndim > 0 and name not in fixed and append_dim not in coord.dims})
 
 
 def _time_value(start_time) -> np.datetime64:
