@@ -16,7 +16,7 @@ import zarr
 from dask.delayed import Delayed
 from packaging.version import Version
 from pyproj import CRS
-from pyresample.geometry import AreaDefinition, SwathDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from zarr import open_group
 from zarr.storage import MemoryStore
 
@@ -66,6 +66,13 @@ def _swath_definition(lon_offset=0.0):
     lons = xr.DataArray(da.linspace(lon_offset, lon_offset + 10.0, 24).reshape(4, 6).rechunk(2), dims=("y", "x"))
     lats = xr.DataArray(da.linspace(40.0, 50.0, 24).reshape(4, 6).rechunk(2), dims=("y", "x"))
     return SwathDefinition(lons, lats)
+
+
+def _stacked_area_definition():
+    """Create two areas shifted in x, which pyresample cannot merge into one grid, like shifted SEVIRI HRV windows."""
+    upper = AreaDefinition("upper", "upper", "upper", "EPSG:3395", 6, 2, (-1000.0, 500.0, 5000.0, 1500.0))
+    lower = AreaDefinition("lower", "lower", "lower", "EPSG:3395", 6, 2, (0.0, -500.0, 6000.0, 500.0))
+    return StackedAreaDefinition(upper, lower)
 
 
 def _messy_attrs():
@@ -818,14 +825,36 @@ def test_lonlats(writer, tmp_path, swath, include_lonlats, expected):
         assert ds["longitude"].attrs["standard_name"] == "longitude"
 
 
-def test_existing_lonlats_kept(writer, tmp_path):
-    """Test that existing longitude and latitude coordinates are not replaced."""
-    data_arr = _data_array(area=_swath_definition())
+@pytest.mark.parametrize(
+    ("include_lonlats", "warns", "has_lonlats"),
+    [(None, True, False), (True, False, True), (False, False, False)],
+    ids=["default", "include_lonlats", "no_lonlats"],
+)
+def test_stacked_area(writer, tmp_path, caplog, include_lonlats, warns, has_lonlats):
+    """Test that data on a stack of shifted areas only get longitude/latitude, and a warning without them."""
+    stacked = _stacked_area_definition()
+    assert stacked.squeeze() is stacked
+    writer.save_datasets([_data_array(area=stacked)], filename=tmp_path / "out.zarr", include_lonlats=include_lonlats)
+    assert ("written without georeference" in caplog.text) == warns
+    ds = _open(tmp_path / "out.zarr")
+    assert ({"longitude", "latitude"} <= set(ds.coords)) == has_lonlats
+    assert not any(key.startswith(("proj:", "spatial:")) for key in ds["test"].attrs)
+    if has_lonlats:
+        lons, lats = stacked.get_lonlats()
+        np.testing.assert_allclose(ds["longitude"].values, lons)
+        np.testing.assert_allclose(ds["latitude"].values, lats)
+
+
+@pytest.mark.parametrize("make_area", [_swath_definition, _stacked_area_definition], ids=["swath", "stacked"])
+def test_existing_lonlats_kept(writer, tmp_path, caplog, make_area):
+    """Test that existing longitude and latitude coordinates are not replaced and count as georeference."""
+    data_arr = _data_array(area=make_area())
     data_arr = data_arr.assign_coords(longitude=data_arr * 0 + 1, latitude=data_arr * 0 + 2)
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
     ds = _open(tmp_path / "out.zarr")
     assert (ds["longitude"].values == 1).all()
     assert (ds["latitude"].values == 2).all()
+    assert "without georeference" not in caplog.text
 
 
 def test_lonlats_skipped_for_1d_data(writer, tmp_path):

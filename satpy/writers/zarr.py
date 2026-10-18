@@ -106,6 +106,11 @@ Swath data get 2D ``longitude`` and ``latitude`` coordinates instead, because th
 cover them. ``include_lonlats=True`` adds these coordinates to gridded data as well and
 ``include_lonlats=False`` never adds them.
 
+Data on other area types get neither and are written without georeference, with a warning. This
+includes a ``StackedAreaDefinition`` whose parts pyresample could not merge into one grid, such as SEVIRI
+HRV data whose upper and lower windows are shifted. Pass ``include_lonlats=True`` to add longitude and
+latitude coordinates to them, or resample the data first.
+
 CF conventions
 --------------
 
@@ -411,7 +416,7 @@ class ZarrWriter(Writer):
                 are not rechunked by the writer. Each store gets the entries of its own variables, except
                 for variables that are already in the store; names of no written variable raise an error.
             include_lonlats: Add 2D ``longitude`` and ``latitude`` coordinates. ``None`` adds them to swath
-                data only, ``True`` also to gridded data.
+                data only, ``True`` to data on any area.
             include_grid_mapping: Add a CF ``spatial_ref`` grid mapping coordinate to data on an
                 ``AreaDefinition``.
             include_geozarr: Add the attributes of the GeoZarr ``proj`` and ``spatial`` conventions to data
@@ -768,6 +773,8 @@ class _SatpyDatasetBuilder:
         data_arr = add_xy_coords_attrs(data_arr.copy(deep=False))
         if _wants_lonlats(data_arr, area, self.include_lonlats):
             data_arr = _add_shared_lonlat_coords(data_arr, area, lonlats)
+        elif self.include_lonlats is None:
+            _warn_if_not_georeferenced(data_arr, area)
         gridded_area = area if isinstance(area, AreaDefinition) and {"y", "x"}.issubset(data_arr.dims) else None
         if gridded_area is None and (self.include_grid_mapping or self.include_geozarr):
             LOG.debug("Not adding a 'spatial_ref' coordinate or GeoZarr attributes to %r, it is not on an "
@@ -810,6 +817,17 @@ def _drop_unused_encodings(ds: xr.Dataset) -> xr.Dataset:
         var.encoding = {key: val for key, val in var.encoding.items() if key in _ZARR_ENCODING_KEYS}
     ds.encoding = {}
     return ds
+
+
+def _warn_if_not_georeferenced(data_arr: xr.DataArray, area) -> None:
+    # By default only AreaDefinitions get a grid georeference and only swaths get longitude/latitude
+    if area is None or isinstance(area, (AreaDefinition, SwathDefinition)):
+        return
+    if {"longitude", "latitude"}.issubset(data_arr.coords):
+        return
+    LOG.warning("%r is on a %s, which the 'zarr' writer cannot describe as one grid, so it is written without "
+                "georeference. Pass include_lonlats=True to add longitude and latitude coordinates, or resample "
+                "the data first.", data_arr.attrs.get("name"), type(area).__name__)
 
 
 def _wants_lonlats(data_arr: xr.DataArray, area, include_lonlats: bool | None) -> bool:
