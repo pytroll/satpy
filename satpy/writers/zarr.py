@@ -24,7 +24,8 @@ A filename ending in ``.zarr`` selects this writer automatically:
 Options of :meth:`xarray.Dataset.to_zarr` that the writer does not expose directly can be passed with
 ``xarray_kwargs``; they override anything the writer chose:
 
-    >>> scn.save_datasets(writer="zarr", xarray_kwargs={"write_empty_chunks": False, "safe_chunks": False})
+    >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr",
+    ...                   xarray_kwargs={"write_empty_chunks": False, "safe_chunks": False})
 
 Options that are also arguments of ``save_datasets``, such as ``mode`` or ``encoding``, are used as these
 arguments, and passing one both ways raises an error.
@@ -53,9 +54,9 @@ the ``group`` option of :meth:`xarray.Dataset.to_zarr`:
     ...                   xarray_kwargs={"group": "2km"})
 
 Filenames may be fsspec URLs, for example on S3 (requires ``s3fs``), with ``storage_options`` passed to
-fsspec:
+fsspec. ``base_dir`` is not prepended to URLs:
 
-    >>> scn.save_datasets(writer="zarr", filename="s3://bucket/satpy/{name}.zarr",
+    >>> scn.save_datasets(writer="zarr", filename="s3://bucket/satpy/abi_{start_time:%Y%m%d_%H%M%S}.zarr",
     ...                   storage_options={"anon": False})
 
 Instead of a filename, ``store`` accepts any zarr ``StoreLike`` (for example
@@ -195,6 +196,12 @@ not with ``dask.distributed``.
 
 .. todo::
 
+    - Default filename: the pattern of the writer YAML configuration,
+      ``{name}_{start_time:%Y%m%d_%H%M%S}.zarr``, only works when saving one dataset, because ``name`` is
+      not available for stores with several datasets. ``scn.save_datasets(writer="zarr")`` therefore
+      raises for a Scene with more than one dataset unless ``filename`` or ``split_variables=True`` is
+      given. Decide on a default that works for both, such as a pattern without ``name`` or
+      ``split_variables=True`` by default.
     - GeoZarr: set ``include_grid_mapping=True`` by default once the GeoZarr core text is normative;
       adopt the next release of the ``proj``/``spatial`` conventions once rioxarray and geozarr-toolkit
       use the same convention names as the published schemas (v0.1 uses ``proj``/``spatial``, both tools
@@ -316,6 +323,12 @@ class ZarrWriter(Writer):
         """Initialize the writer and load its YAML configuration."""
         super().__init__(name=name, filename=filename, base_dir=base_dir,
                          default_config_filename="writers/zarr.yaml", **kwargs)
+
+    def create_filename_parser(self, base_dir):
+        """Create the filename parser, ignoring ``base_dir`` for URL patterns as it is for absolute paths."""
+        if _is_url(self.file_pattern):
+            base_dir = None
+        return super().create_filename_parser(base_dir)
 
     def get_filename(self, **kwargs):
         """Compose the output filename, without creating local directories for URL patterns."""

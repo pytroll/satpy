@@ -653,16 +653,17 @@ def test_arguments_also_in_xarray_kwargs_raise(writer, tmp_path, key, value):
 
 
 def test_memory_url(tmp_path):
-    """Test writing to an fsspec URL without creating local directories."""
+    """Test writing to an fsspec URL without prepending base_dir or creating local directories."""
     import fsspec
 
     root = f"satpy-test-{uuid.uuid4()}"
-    writer = ZarrWriter(filename=f"memory://{root}/{{name}}.zarr")
+    writer = ZarrWriter(base_dir=str(tmp_path), filename=f"memory://{root}/{{name}}.zarr")
     data_arr = _data_array()
     try:
         with mock.patch.object(os, "makedirs", wraps=os.makedirs) as makedirs:
             writer.save_datasets([data_arr], storage_options={})
         makedirs.assert_not_called()
+        assert list(tmp_path.iterdir()) == []
         _assert_roundtrip(f"memory://{root}/test.zarr", [data_arr])
     finally:
         fsspec.filesystem("memory").rm(f"/{root}", recursive=True)
