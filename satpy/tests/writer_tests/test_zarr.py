@@ -35,6 +35,8 @@ START_TIME = dt.datetime(2026, 1, 1, 12, 0, 0, 123456, tzinfo=dt.timezone.utc)
 AREA = AreaDefinition("test", "test", "test", "EPSG:3395", 6, 4, (-1000.0, -500.0, 5000.0, 1500.0))
 GEOS_AREA = AreaDefinition("geos", "geos", "geos", {"proj": "geos", "h": 35786023.0, "lon_0": -75.0, "sweep": "x"},
                            6, 4, (-3e6, -1e6, 3e6, 1e6))
+# AREA rotated by 180 degrees, like SEVIRI data in their raw orientation
+FLIPPED_AREA = AreaDefinition("flipped", "flipped", "flipped", "EPSG:3395", 6, 4, (5000.0, 1500.0, -1000.0, -500.0))
 PROJ_UUID = "f17cb550-5864-4468-aeb7-f3180cfb622f"
 SPATIAL_UUID = "689b58e2-cf7b-45e0-9fff-9cfc0883d6b4"
 
@@ -740,11 +742,16 @@ def test_icechunk_zarr_format_2_raises(writer, icechunk_repo):
 
 
 @pytest.mark.parametrize(
-    ("area", "code", "zarr_format"),
-    [(AREA, "EPSG:3395", 2), (AREA, "EPSG:3395", 3), (GEOS_AREA, None, 3)],
-    ids=["format_2", "format_3", "no_authority_code"],
+    ("area", "code", "bbox", "zarr_format"),
+    [
+        (AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 2),
+        (AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3),
+        (GEOS_AREA, None, [-3e6, -1e6, 3e6, 1e6], 3),
+        (FLIPPED_AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3),
+    ],
+    ids=["format_2", "format_3", "no_authority_code", "flipped"],
 )
-def test_geozarr_attrs(writer, tmp_path, area, code, zarr_format):
+def test_geozarr_attrs(writer, tmp_path, area, code, bbox, zarr_format):
     """Test the GeoZarr proj and spatial attributes of gridded data and the root group."""
     writer.save_datasets([_data_array("C01", area=area), _data_array("rgb", ndim=3, area=area)],
                          filename=tmp_path / "out.zarr", zarr_format=zarr_format)
@@ -762,7 +769,7 @@ def test_geozarr_attrs(writer, tmp_path, area, code, zarr_format):
         a, b, c, d, e, f = attrs["spatial:transform"]
         np.testing.assert_allclose(a * cols + b * rows + c, x)
         np.testing.assert_allclose(d * cols + e * rows + f, y)
-        assert attrs["spatial:bbox"] == list(area.area_extent)
+        assert attrs["spatial:bbox"] == bbox
         assert attrs["spatial:shape"] == [4, 6]
         assert attrs["spatial:registration"] == "pixel"
     root_attrs = group.attrs.asdict()

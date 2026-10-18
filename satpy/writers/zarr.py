@@ -862,13 +862,14 @@ def _add_spatial_ref(data_arr: xr.DataArray, area: AreaDefinition) -> xr.DataArr
 
 
 def _geozarr_attrs(area: AreaDefinition) -> dict:
-    x_min, y_min, x_max, y_max = area.area_extent
+    # The extent follows the image's corners, which are not the minimum and maximum for flipped areas
+    x_left, y_bottom, x_right, y_top = area.area_extent
     return {
         "zarr_conventions": [_ZARR_CONVENTIONS["proj"], _ZARR_CONVENTIONS["spatial"]],
         **_proj_attrs(area.crs),
         "spatial:dimensions": ["y", "x"],
-        "spatial:transform": [area.pixel_size_x, 0.0, x_min, 0.0, -area.pixel_size_y, y_max],
-        "spatial:bbox": [x_min, y_min, x_max, y_max],
+        "spatial:transform": [area.pixel_size_x, 0.0, x_left, 0.0, -area.pixel_size_y, y_top],
+        "spatial:bbox": [min(x_left, x_right), min(y_bottom, y_top), max(x_left, x_right), max(y_bottom, y_top)],
         "spatial:shape": list(area.shape),
         "spatial:registration": "pixel",
     }
