@@ -151,11 +151,12 @@ def icechunk_repo():
     return icechunk.Repository.create(icechunk.in_memory_storage())
 
 
-def test_default_filename(writer, tmp_path):
-    """Test that the default pattern names a single dataset's store after it."""
+def test_default_filename(tmp_path):
+    """Test that the default pattern names a single dataset's store after it, creating the missing base_dir."""
+    writer = ZarrWriter(base_dir=str(tmp_path / "missing"))
     data_arr = _data_array()
     writer.save_datasets([data_arr])
-    _assert_roundtrip(tmp_path / "test_20260101_120000.zarr", [data_arr])
+    _assert_roundtrip(tmp_path / "missing" / "test_20260101_120000.zarr", [data_arr])
 
 
 def test_scene_selects_writer_by_extension(tmp_path):
@@ -244,9 +245,16 @@ def test_variable_name_fallback(writer, tmp_path, caplog, name, stored_name):
     assert ("writing it as 'data'" in caplog.text) == (stored_name == "data")
 
 
-def test_no_datasets(writer):
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({}, id="default_filename"),
+        pytest.param({"store": MemoryStore()}, id="store"),
+    ],
+)
+def test_no_datasets(writer, kwargs):
     """Test that saving no datasets writes nothing."""
-    assert writer.save_datasets([], compute=False) == []
+    assert writer.save_datasets([], compute=False, **kwargs) == []
 
 
 def test_compute_false(writer, tmp_path):
