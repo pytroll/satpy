@@ -85,9 +85,9 @@ def _messy_attrs():
     }
 
 
-def _hourly(*hours):
+def _hourly(*hours, **kwargs):
     """Create one DataArray per hour of 2026-01-01, to write as consecutive time steps."""
-    return [_data_array(start_time=dt.datetime(2026, 1, 1, hour, tzinfo=dt.timezone.utc)) for hour in hours]
+    return [_data_array(start_time=dt.datetime(2026, 1, 1, hour, tzinfo=dt.timezone.utc), **kwargs) for hour in hours]
 
 
 def _save_steps(writer, store, data_arrays, **kwargs):
@@ -301,6 +301,15 @@ def test_append_in_group(writer, tmp_path, zarr_format):
     store = tmp_path / "out.zarr"
     _save_steps(writer, store, _hourly(12, 13), zarr_format=zarr_format, xarray_kwargs={"group": "g"})
     assert list(_open(store, group="g").time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+
+
+def test_mode_w_with_append_dim(writer, tmp_path):
+    """Test that mode='w' with append_dim replaces the store with one time step, which later appends extend."""
+    store = tmp_path / "out.zarr"
+    _save_steps(writer, store, _hourly(12, 13))
+    _save_steps(writer, store, _hourly(14), mode="w")
+    _save_steps(writer, store, _hourly(15))
+    assert list(_open(store).time.values) == _times("2026-01-01T14:00", "2026-01-01T15:00")
 
 
 @pytest.mark.filterwarnings("error")
@@ -520,7 +529,11 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
 
 
 @pytest.mark.parametrize("zarr_format", [2, 3])
-@pytest.mark.parametrize("second_kwargs", [{"mode": "a"}, {"append_dim": "time"}], ids=["mode_a", "append"])
+@pytest.mark.parametrize(
+    "second_kwargs",
+    [{}, {"mode": "w"}, {"mode": "a"}, {"append_dim": "time"}],
+    ids=["default_mode", "mode_w", "mode_a", "append"],
+)
 def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
     """Test writing datasets on different grids to groups of one store, all in the format of the store."""
     store = tmp_path / "out.zarr"
@@ -583,11 +596,39 @@ def test_storage_options_only_for_remote_urls(writer, filename, forwarded):
 
 def test_xarray_kwargs_override_writer_choices(writer, tmp_path):
     """Test that xarray_kwargs replace the to_zarr arguments chosen by the writer."""
-    writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr",
-                         xarray_kwargs={"zarr_format": 2, "consolidated": False, "group": "g"})
-    metadata = open_group(tmp_path / "out.zarr", mode="r", path="g").metadata
-    assert metadata.zarr_format == 2
-    assert metadata.consolidated_metadata is None
+    with mock.patch.object(xr.Dataset, "to_zarr") as to_zarr:
+        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", compute=False,
+                             xarray_kwargs={"align_chunks": False, "safe_chunks": False})
+    assert to_zarr.call_args.kwargs["align_chunks"] is False
+    assert to_zarr.call_args.kwargs["safe_chunks"] is False
+
+
+def test_xarray_kwargs_as_arguments(writer, tmp_path):
+    """Test that to_zarr arguments in xarray_kwargs that save_datasets also takes are used as its arguments."""
+    store = tmp_path / "out.zarr"
+    xarray_kwargs = {"append_dim": "time", "zarr_format": 2, "consolidated": False, "group": "g",
+                     "encoding": {"test": {"dtype": "int16"}}}
+    for data_arr in _hourly(12, 13):
+        writer.save_datasets([data_arr], filename=store, fill_value=-5, xarray_kwargs=xarray_kwargs)
+    group = open_group(store, mode="r", path="g")
+    assert group.metadata.zarr_format == 2
+    assert group["test"].dtype == np.int16
+    ds = _open(store, group="g")
+    assert ds["test"].encoding["_FillValue"] == -5
+    assert list(ds.time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("mode", "a"), ("append_dim", "time"), ("encoding", {}), ("compute", False)],
+    ids=["mode", "append_dim", "encoding", "compute"],
+)
+def test_arguments_also_in_xarray_kwargs_raise(writer, tmp_path, key, value):
+    """Test that an argument passed both directly and in xarray_kwargs raises before anything is written."""
+    with pytest.raises(ValueError, match=rf"\['{key}'\] given both as arguments and in 'xarray_kwargs'"):
+        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", xarray_kwargs={key: value},
+                             **{key: value})
+    assert not (tmp_path / "out.zarr").exists()
 
 
 def test_memory_url(tmp_path):
@@ -835,9 +876,12 @@ def test_convert_to_cf_time(writer, tmp_path, cf_kwargs, units):
 
 
 def test_convert_to_cf_append_time_from_start_time(writer, tmp_path):
-    """Test that the CF conversion path also creates the time dimension from start_time."""
+    """Test that the CF conversion path also creates the time dimension from start_time, except for 0-d variables."""
     store = tmp_path / "out.zarr"
-    _save_steps(writer, store, _hourly(12, 13), convert_to_cf=True)
+    _save_steps(writer, store, _hourly(12, 13, name="C01"), convert_to_cf=True, fill_value=-1)
     ds = _open(store)
-    assert ds["test"].dims == ("time", "y", "x")
+    assert ds["C01"].dims == ("time", "y", "x")
     assert list(ds.time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+    grid_mapping = ds["C01"].attrs["grid_mapping"]
+    assert ds[grid_mapping].dims == ()
+    assert "_FillValue" not in open_group(store, mode="r")[grid_mapping].attrs

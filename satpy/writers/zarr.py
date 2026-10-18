@@ -26,6 +26,9 @@ Options of :meth:`xarray.Dataset.to_zarr` that the writer does not expose direct
 
     >>> scn.save_datasets(writer="zarr", xarray_kwargs={"write_empty_chunks": False, "safe_chunks": False})
 
+Options that are also arguments of ``save_datasets``, such as ``mode`` or ``encoding``, are used as these
+arguments, and passing one both ways raises an error.
+
 Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
 converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
 ranges become strings as in the ``cf`` writer), drops the ``crs`` coordinate, adds CF
@@ -144,11 +147,10 @@ is created, so the same call works for the first and every following write:
     ...     scn.save_datasets(writer="zarr", filename="/data/zarr/abi_c13.zarr", append_dim="time")
 
 Times are stored as microseconds since 1970-01-01 unless the ``time`` encoding sets other units, so later
-appends with sub-second times round-trip exactly. When appending, or adding a group to an existing store
-with ``mode="a"``, the zarr format and the consolidated metadata setting are taken from the root of the
-existing store and ``zarr_format`` is ignored. New data are rechunked to the store's chunks
-(``align_chunks=True``). Entries of the ``encoding`` argument for variables that are already in the store
-are not used.
+appends with sub-second times round-trip exactly. When appending, or writing a group into an existing
+store, the zarr format and the consolidated metadata setting are taken from the root of the existing store
+and ``zarr_format`` is ignored. New data are rechunked to the store's chunks (``align_chunks=True``).
+Entries of the ``encoding`` argument for variables that are already in the store are not used.
 
 Appended steps are added at the end of the store in the order they are written; the writer does not
 compare their times with the stored ones. Appending a ``start_time`` that is already stored neither
@@ -162,7 +164,8 @@ Attributes of variables that are already in the store keep the values of the fir
 ``start_time`` of every step. The attributes of the root group are replaced by those of the latest write.
 
 Without ``append_dim``, ``mode`` keeps xarray's default: a new store is created and writing to an
-existing one fails. Use ``mode="w"`` to overwrite.
+existing one fails. Use ``mode="w"`` to overwrite. With ``append_dim="time"``, ``mode="w"`` replaces the
+store with one holding a single time step, which later appends extend.
 
 Delayed writing
 ---------------
@@ -261,6 +264,12 @@ LOG = logging.getLogger(__name__)
 
 _SATPY_KWARGS = ("overlay", "decorate", "config_files")
 _APPEND_MODES = ("a", "a-", "r+")
+_NEW_GROUP_MODES = ("w", "w-")
+# save_datasets arguments that are also to_zarr arguments, so they may come from xarray_kwargs, with their defaults
+_TO_ZARR_ARGUMENT_DEFAULTS = {
+    "store": None, "storage_options": None, "mode": None, "append_dim": None, "zarr_format": None,
+    "consolidated": None, "encoding": None, "compute": True,
+}
 _MIN_VERSIONS = {"zarr": Version("3.0.0"), "xarray": Version("2025.6.0")}
 # Without explicit units, xarray picks "days since <first time>" and later sub-second appends
 # cannot be decoded anymore.
@@ -377,7 +386,8 @@ class ZarrWriter(Writer):
                 For zarr format 3, also the zarr ``fill_value`` of new arrays.
             append_dim: Dimension to append along. ``"time"`` is added from ``start_time`` when missing.
             mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends
-                when ``append_dim`` is given.
+                when ``append_dim`` is given. ``"w"`` overwrites the store, or only the group given in
+                ``xarray_kwargs``.
             zarr_format: Zarr format (2 or 3) of new stores.
             consolidated: Write consolidated metadata. Defaults to ``True`` for format 2 and ``False``
                 for format 3, or to the existing store's state when writing to an existing store.
@@ -396,9 +406,10 @@ class ZarrWriter(Writer):
                 ``include_geozarr`` are not used then. Requires netCDF4 or h5netcdf.
             cf_kwargs: Keyword arguments for :func:`~satpy.cf.datasets.collect_cf_datasets` when
                 ``convert_to_cf`` is ``True``. ``pretty`` defaults to ``True``.
-            xarray_kwargs: Other :meth:`xarray.Dataset.to_zarr` keyword arguments. They override the
-                arguments chosen by the writer, so ``encoding`` passed here replaces the writer's
-                encoding entirely.
+            xarray_kwargs: Other :meth:`xarray.Dataset.to_zarr` keyword arguments, which override the
+                arguments chosen by the writer. ``store``, ``storage_options``, ``mode``,
+                ``append_dim``, ``zarr_format``, ``consolidated``, ``encoding`` and ``compute`` are used
+                as the arguments of this method; passing one both ways raises an error.
             kwargs: Satpy keyword arguments that do not apply to this writer (``overlay``,
                 ``decorate``) are ignored; anything else is ignored with a warning.
 
@@ -408,12 +419,15 @@ class ZarrWriter(Writer):
         """
         _check_versions()
         _warn_unknown_kwargs(kwargs)
+        xarray_kwargs = dict(xarray_kwargs or {})
+        to_zarr_args = _pop_to_zarr_arguments(
+            xarray_kwargs, store=store, storage_options=storage_options, mode=mode, append_dim=append_dim,
+            zarr_format=zarr_format, consolidated=consolidated, encoding=encoding, compute=compute)
+        compute = to_zarr_args.pop("compute")
         opts = _SaveOptions(
-            filename=filename, store=store, storage_options=storage_options, split_variables=split_variables,
-            commit=commit, fill_value=fill_value, append_dim=append_dim, mode=mode, zarr_format=zarr_format,
-            consolidated=consolidated, encoding=encoding or {}, include_lonlats=include_lonlats,
-            include_grid_mapping=include_grid_mapping, include_geozarr=include_geozarr, convert_to_cf=convert_to_cf,
-            cf_kwargs=cf_kwargs, xarray_kwargs=dict(xarray_kwargs or {}))
+            filename=filename, split_variables=split_variables, commit=commit, fill_value=fill_value,
+            include_lonlats=include_lonlats, include_grid_mapping=include_grid_mapping, include_geozarr=include_geozarr,
+            convert_to_cf=convert_to_cf, cf_kwargs=cf_kwargs, xarray_kwargs=xarray_kwargs, **to_zarr_args)
         targets = _TargetPlanner(self._compose_filename).plan(datasets, opts)
         builder = self._dataset_builder(opts)
         # to_zarr(compute=False) already writes the store metadata, so every store is prepared and checked before
@@ -440,12 +454,13 @@ class ZarrWriter(Writer):
     def _prepare_write(self, target: _Target, builder: _SatpyDatasetBuilder | _CFDatasetBuilder,
                        opts: _SaveOptions) -> _WriteJob:
         existing = None
-        if opts.writes_to_existing_store:
-            existing = _StoreState.read(target.store, opts.group, target.storage_options)
+        if opts.reads_store_state:
+            existing = _StoreState.read(target.store, opts.group, target.storage_options, opts.writes_new_group)
         ds = _maybe_expand_append_dim(builder.build(target.variables), opts.append_dim, target.attrs)
         to_zarr_kwargs = _to_zarr_kwargs(target, existing, opts, self.info.get("zarr_format"))
         stored = existing.array_names if existing is not None else frozenset()
-        ds, encoding = _EncodingPlan(opts.encoding, opts.fill_value, to_zarr_kwargs["zarr_format"], stored).apply(ds)
+        ds, encoding = _EncodingPlan(opts.encoding or {}, opts.fill_value, to_zarr_kwargs["zarr_format"],
+                                     stored).apply(ds)
         to_zarr_kwargs.setdefault("encoding", encoding)
         return _WriteJob(target, ds, to_zarr_kwargs)
 
@@ -464,7 +479,7 @@ class _SaveOptions:
     mode: str | None
     zarr_format: int | None
     consolidated: bool | None
-    encoding: dict[str, dict]
+    encoding: dict[str, dict] | None
     include_lonlats: bool | None
     include_grid_mapping: bool
     include_geozarr: bool
@@ -478,9 +493,18 @@ class _SaveOptions:
         return self.xarray_kwargs.get("group")
 
     @property
-    def writes_to_existing_store(self) -> bool:
+    def writes_new_group(self) -> bool:
+        """Whether the group written to, or the whole store without 'group', is created or overwritten."""
+        if self.mode is not None:
+            return self.mode in _NEW_GROUP_MODES
+        # xarray's default mode appends with append_dim, writes into a region with 'region' and creates otherwise
+        return self.append_dim is None and "region" not in self.xarray_kwargs
+
+    @property
+    def reads_store_state(self) -> bool:
         """Whether the stores may exist already, so that the write has to match their state."""
-        return self.append_dim is not None or self.mode in _APPEND_MODES or "region" in self.xarray_kwargs
+        # A new group may still be written into an existing store, whose zarr format it has to use
+        return self.group is not None or not self.writes_new_group
 
 
 def _check_versions() -> None:
@@ -505,6 +529,15 @@ def _warn_unknown_kwargs(kwargs: dict) -> None:
     unknown = sorted(key for key in kwargs if key not in _SATPY_KWARGS)
     if unknown:
         warnings.warn(f"The 'zarr' writer ignores these unknown keyword arguments: {unknown}", stacklevel=3)
+
+
+def _pop_to_zarr_arguments(xarray_kwargs: dict, **arguments) -> dict:
+    """Take the ``save_datasets`` arguments that may also be passed in ``xarray_kwargs`` out of it."""
+    both = [key for key, value in arguments.items()
+            if key in xarray_kwargs and value is not _TO_ZARR_ARGUMENT_DEFAULTS[key]]
+    if both:
+        raise ValueError(f"{both} given both as arguments and in 'xarray_kwargs'; pass each only once.")
+    return {key: xarray_kwargs.pop(key, value) for key, value in arguments.items()}
 
 
 @dataclass(frozen=True)
@@ -658,12 +691,16 @@ class _StoreState:
     consolidated: bool
     # Arrays, including coordinates, of the group written to
     array_names: frozenset[str]
-    # False when the store exists but the group written to does not
-    group_exists: bool
+    # False when the group written to does not exist yet or is overwritten
+    group_kept: bool
 
     @classmethod
-    def read(cls, store, group: str | None, storage_options: dict | None) -> _StoreState | None:
-        """Read the state of ``store`` for a write to ``group``, or return ``None`` if the store does not exist."""
+    def read(cls, store, group: str | None, storage_options: dict | None, new_group: bool) -> _StoreState | None:
+        """Read the state of ``store`` for a write to ``group``, or return ``None`` if the store does not exist.
+
+        With ``new_group``, the group is created or overwritten, so only the state of the root is read.
+
+        """
         import zarr
 
         open_kwargs = {} if storage_options is None else {"storage_options": storage_options}
@@ -677,12 +714,14 @@ class _StoreState:
             return None
         zarr_format = root_metadata.zarr_format
         consolidated = root_metadata.consolidated_metadata is not None
+        if new_group:
+            return cls(zarr_format, consolidated, frozenset(), group_kept=False)
         try:
             zarr_group = zarr.open_group(store, mode="r", path=group, zarr_format=zarr_format, use_consolidated=False,
                                          **open_kwargs)
         except not_found:
-            return cls(zarr_format, consolidated, frozenset(), group_exists=False)
-        return cls(zarr_format, consolidated, frozenset(zarr_group.array_keys()), group_exists=True)
+            return cls(zarr_format, consolidated, frozenset(), group_kept=False)
+        return cls(zarr_format, consolidated, frozenset(zarr_group.array_keys()), group_kept=True)
 
 
 @dataclass(frozen=True)
@@ -866,14 +905,20 @@ def _maybe_expand_append_dim(ds: xr.Dataset, append_dim, attrs: dict) -> xr.Data
     if append_dim is None or append_dim in ds.dims:
         return ds
     if append_dim in ds.coords:
-        return ds.expand_dims(append_dim)
+        return _expand_dims(ds, append_dim)
     if append_dim != "time":
         raise ValueError(f"append_dim={append_dim!r} is not a dimension of the data; only 'time' can be added "
                          "by the writer.")
     start_time = attrs.get("start_time")
     if start_time is None:
         raise ValueError("append_dim='time' needs a 'start_time' attribute to create the time coordinate.")
-    return ds.expand_dims(time=[_time_value(start_time)])
+    return _expand_dims(ds, {"time": [_time_value(start_time)]})
+
+
+def _expand_dims(ds: xr.Dataset, dim: Hashable | dict) -> xr.Dataset:
+    # 0-d data variables, such as the CF grid mapping variable, describe every step, so they stay 0-d
+    scalars = {name: ds.variables[name] for name, var in ds.data_vars.items() if var.ndim == 0}
+    return ds.drop_vars(list(scalars)).expand_dims(dim).assign(scalars)
 
 
 def _time_value(start_time) -> np.datetime64:
@@ -999,7 +1044,7 @@ def _to_zarr_kwargs(target: _Target, existing: _StoreState | None, opts: _SaveOp
         default_consolidated = target_format == 2
     else:
         target_format, default_consolidated = existing.zarr_format, existing.consolidated
-        if existing.group_exists:
+        if existing.group_kept:
             kwargs["append_dim"] = opts.append_dim
     consolidated = default_consolidated if opts.consolidated is None else opts.consolidated
     if is_icechunk:
