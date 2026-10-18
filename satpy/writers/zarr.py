@@ -1,7 +1,7 @@
 """Writer for Zarr stores.
 
 The ``zarr`` writer stores Satpy datasets with :meth:`xarray.Dataset.to_zarr`. Data are written as they
-are in the Scene: no enhancement is applied, and dtypes, units and fill values are kept. Only
+are in the Scene: no enhancement is applied, and dtypes, units, and fill values are kept. Only
 ``save_dataset`` can convert units, with ``units=`` (requires ``pint-xarray``).
 
 Example usage
@@ -34,9 +34,9 @@ arguments, and passing one both ways raises an error.
 Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
 converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
 ranges become strings as in the ``cf`` writer, dictionary keys become strings, and NaN and infinite
-numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"`` and ``"-Infinity"``
+numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"``, and ``"-Infinity"``
 that zarr uses for such fill values), drops the ``crs`` coordinate, adds CF ``standard_name``/``units``
-to ``x`` and ``y`` and rechunks irregular dask chunks, which zarr cannot store.
+to ``x`` and ``y``, and rechunks irregular dask chunks, which zarr cannot store.
 
 Separate stores and remote targets
 ----------------------------------
@@ -80,8 +80,8 @@ argument and then by the ``encoding`` argument:
 
 Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
 reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
-returns unchanged are stored with the dtype, scaling and fill value of the input file; operations that
-change the values, such as calibration, resampling or converting units with ``save_dataset``, drop the
+returns unchanged are stored with the dtype, scaling, and fill value of the input file; operations that
+change the values, such as calibration, resampling, or converting units with ``save_dataset``, drop the
 encoding. Call ``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
 ``serializer``) must suit the zarr format being written.
 
@@ -96,8 +96,8 @@ Geolocation
 
 Data on an ``AreaDefinition`` get the attributes of the ``proj`` and ``spatial`` conventions (version
 0.1) of the `Zarr conventions framework <https://github.com/zarr-conventions>`_ used by `GeoZarr
-<https://geozarr.org>`_: the CRS as ``proj:wkt2``, ``proj:projjson`` and, if it has one, ``proj:code``,
-and the affine ``spatial:transform``, ``spatial:bbox`` and ``spatial:shape`` of the ``y``/``x`` grid.
+<https://geozarr.org>`_: the CRS as ``proj:wkt2``, ``proj:projjson``, and, if it has one, ``proj:code``,
+and the affine ``spatial:transform``, ``spatial:bbox``, and ``spatial:shape`` of the ``y``/``x`` grid.
 When all variables share one CRS, the ``proj:`` attributes are also written to the root group. The
 conventions are defined for zarr format 3 but are written for format 2 as well, so validators may reject
 format 2 stores. ``include_geozarr=False`` leaves them out.
@@ -120,8 +120,8 @@ CF conventions
 --------------
 
 ``convert_to_cf=True`` prepares the data with the CF conversion of the ``cf`` writer instead, including
-its grid mapping variable, longitude/latitude coordinates and attribute encoding, and ignores
-``include_lonlats``, ``include_grid_mapping`` and ``include_geozarr``. It requires the netCDF4 or
+its grid mapping variable, longitude/latitude coordinates, and attribute encoding, and ignores
+``include_lonlats``, ``include_grid_mapping``, and ``include_geozarr``. It requires the netCDF4 or
 h5netcdf package. Options of :func:`~satpy.cf.datasets.collect_cf_datasets` are passed with
 ``cf_kwargs``:
 
@@ -396,7 +396,7 @@ class ZarrWriter(Writer):
             datasets: DataArrays to write.
             compute: Write the data now. If ``False``, return a list of
                 :class:`~dask.delayed.Delayed` objects instead.
-            filename: Local path, fsspec URL or trollsift pattern of the store. Formatted with the
+            filename: Local path, fsspec URL, or trollsift pattern of the store. Formatted with the
                 metadata shared by the datasets of the store (see
                 :func:`~satpy.dataset.metadata.combine_metadata`); ``name`` is only available for
                 stores holding one dataset. Defaults to the ``filename`` pattern given when creating
@@ -427,13 +427,13 @@ class ZarrWriter(Writer):
             include_geozarr: Add the attributes of the GeoZarr ``proj`` and ``spatial`` conventions to data
                 on an ``AreaDefinition``.
             convert_to_cf: Prepare the data with Satpy's CF conversion, like the ``cf`` writer, instead of
-                the writer's own preparation. ``include_lonlats``, ``include_grid_mapping`` and
+                the writer's own preparation. ``include_lonlats``, ``include_grid_mapping``, and
                 ``include_geozarr`` are not used then. Requires netCDF4 or h5netcdf.
             cf_kwargs: Keyword arguments for :func:`~satpy.cf.datasets.collect_cf_datasets` when
                 ``convert_to_cf`` is ``True``. ``pretty`` defaults to ``True``.
             xarray_kwargs: Other :meth:`xarray.Dataset.to_zarr` keyword arguments, which override the
                 arguments chosen by the writer. ``store``, ``storage_options``, ``mode``,
-                ``append_dim``, ``zarr_format``, ``consolidated``, ``encoding`` and ``compute`` are used
+                ``append_dim``, ``zarr_format``, ``consolidated``, ``encoding``, and ``compute`` are used
                 as the arguments of this method; passing one both ways raises an error.
             kwargs: Satpy keyword arguments that do not apply to this writer (``overlay``,
                 ``decorate``) are ignored; anything else is ignored with a warning.
@@ -530,7 +530,7 @@ class _SaveOptions:
         """Whether the group written to, or the whole store without 'group', is created or overwritten."""
         if self.mode is not None:
             return self.mode in _NEW_GROUP_MODES
-        # xarray's default mode appends with append_dim, writes into a region with 'region' and creates otherwise
+        # xarray's default mode appends with append_dim, writes into a region with 'region', and creates otherwise
         return self.append_dim is None and "region" not in self.xarray_kwargs
 
     @property
@@ -1014,7 +1014,7 @@ def _time_value(start_time) -> np.datetime64:
 
 @dataclass(frozen=True)
 class _EncodingPlan:
-    """Choose the chunks, encoding and fill values of the variables of one store."""
+    """Choose the chunks, encoding, and fill values of the variables of one store."""
 
     # The 'encoding' argument, with the entries of every store
     user_encoding: dict[str, dict]

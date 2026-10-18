@@ -173,7 +173,7 @@ def test_scene_selects_writer_by_extension(tmp_path):
 
 @pytest.mark.parametrize("ndim", [2, 3])
 def test_roundtrip(writer, tmp_path, ndim):
-    """Test that data, dims and coordinates round-trip and x/y get CF attributes."""
+    """Test that data, dims, and coordinates round-trip and x/y get CF attributes."""
     data_arr = _data_array(ndim=ndim)
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
     ds = _assert_roundtrip(tmp_path / "out.zarr", [data_arr])
