@@ -786,7 +786,7 @@ class _SatpyDatasetBuilder:
             attrs.update(_geozarr_attrs(gridded_area))
         data_arr.attrs = _sanitize_attrs(attrs)
         for coord in data_arr.coords.values():
-            coord.attrs = _json_safe(coord.attrs)
+            coord.attrs = _sanitize_attrs(coord.attrs)
         return data_arr
 
 

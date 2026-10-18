@@ -184,13 +184,24 @@ def test_roundtrip(writer, tmp_path, ndim):
     assert open_group(tmp_path / "out.zarr", mode="r").metadata.zarr_format == 3
 
 
-def test_attrs_sanitized(writer, tmp_path):
-    """Test the conversion of Satpy attributes to JSON attributes without changing the input."""
+@pytest.mark.parametrize(
+    "stored_array",
+    [
+        pytest.param("test", id="data_variable"),
+        pytest.param("scan_line", id="coordinate"),
+    ],
+)
+def test_attrs_sanitized(writer, tmp_path, stored_array):
+    """Test the conversion of Satpy attributes of variables and coordinates to JSON without changing the input."""
     # The CF conversion cannot encode tuple keys, so they are not in _messy_attrs
     data_arr = _data_array(**_messy_attrs(), lookup={(1, 2): "a", 3: "b"})
+    # The data variable and the scan_line coordinate carry the same Satpy attributes, so the same checks apply to
+    # the stored attributes of either; each case checks one of them
+    data_arr = data_arr.assign_coords(scan_line=("y", np.arange(4), data_arr.attrs))
     input_attrs = dict(data_arr.attrs)
+    input_coord_attrs = dict(data_arr["scan_line"].attrs)
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
-    attrs = _strict_json(tmp_path / "out.zarr" / "test" / "zarr.json")["attributes"]
+    attrs = _strict_json(tmp_path / "out.zarr" / stored_array / "zarr.json")["attributes"]
     for removed in ("area", "_satpy_id", "_last_resampler", "none_value"):
         assert removed not in attrs
     assert attrs["start_time"] == "2026-01-01T12:00:00.123456+00:00"
@@ -211,6 +222,8 @@ def test_attrs_sanitized(writer, tmp_path):
     assert attrs["bytes_value"] == "abc"
     assert data_arr.attrs.keys() == input_attrs.keys()
     assert all(data_arr.attrs[key] is value for key, value in input_attrs.items())
+    assert data_arr["scan_line"].attrs.keys() == input_coord_attrs.keys()
+    assert all(data_arr["scan_line"].attrs[key] is value for key, value in input_coord_attrs.items())
     assert "crs" in data_arr.coords
     assert "standard_name" not in data_arr["x"].attrs
 
