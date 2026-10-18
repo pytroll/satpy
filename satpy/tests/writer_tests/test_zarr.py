@@ -217,8 +217,10 @@ def test_attrs_sanitized(writer, tmp_path):
 
 @pytest.mark.parametrize(
     ("name", "stored_name"),
-    [("dataarray_name", "dataarray_name"), (None, "data")],
-    ids=["dataarray_name", "unnamed"],
+    [
+        pytest.param("dataarray_name", "dataarray_name", id="dataarray_name"),
+        pytest.param(None, "data", id="unnamed"),
+    ],
 )
 def test_variable_name_fallback(writer, tmp_path, caplog, name, stored_name):
     """Test the variable name of DataArrays without a 'name' attribute."""
@@ -285,10 +287,9 @@ def test_append_existing_time_coordinate(writer, tmp_path, time_dims):
 @pytest.mark.parametrize(
     ("start_time", "append_dim", "match"),
     [
-        (None, "time", "needs a 'start_time' attribute"),
-        (START_TIME, "level", "only 'time' can be added"),
+        pytest.param(None, "time", "needs a 'start_time' attribute", id="missing_start_time"),
+        pytest.param(START_TIME, "level", "only 'time' can be added", id="unknown_append_dim"),
     ],
-    ids=["missing_start_time", "unknown_append_dim"],
 )
 def test_append_errors(writer, tmp_path, start_time, append_dim, match):
     """Test that appends the writer cannot set up raise."""
@@ -344,15 +345,13 @@ def test_mode_w_with_append_dim(writer, tmp_path):
 @pytest.mark.parametrize(
     ("kwargs", "yaml_config", "zarr_format", "consolidated"),
     [
-        ({}, {}, 3, False),
-        ({"consolidated": True}, {}, 3, True),
-        ({"zarr_format": 2}, {}, 2, True),
-        ({"zarr_format": 2, "consolidated": False}, {}, 2, False),
-        ({}, {"zarr_format": 2}, 2, True),
-        ({"zarr_format": 3}, {"zarr_format": 2}, 3, False),
+        pytest.param({}, {}, 3, False, id="default"),
+        pytest.param({"consolidated": True}, {}, 3, True, id="format_3_consolidated"),
+        pytest.param({"zarr_format": 2}, {}, 2, True, id="format_2"),
+        pytest.param({"zarr_format": 2, "consolidated": False}, {}, 2, False, id="format_2_not_consolidated"),
+        pytest.param({}, {"zarr_format": 2}, 2, True, id="yaml_config"),
+        pytest.param({"zarr_format": 3}, {"zarr_format": 2}, 3, False, id="argument_over_yaml_config"),
     ],
-    ids=["default", "format_3_consolidated", "format_2", "format_2_not_consolidated", "yaml_config",
-         "argument_over_yaml_config"],
 )
 def test_zarr_format(writer, tmp_path, kwargs, yaml_config, zarr_format, consolidated):
     """Test the zarr format and consolidated metadata of a new store, written without warnings."""
@@ -366,12 +365,12 @@ def test_zarr_format(writer, tmp_path, kwargs, yaml_config, zarr_format, consoli
 @pytest.mark.parametrize(
     ("variable_encoding", "encoding", "chunks", "dtype"),
     [
-        ({}, None, (2, 6), np.float32),
-        ({"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, (2, 6), np.int16),
-        ({"chunks": (4, 3)}, None, (4, 3), np.float32),
-        ({}, {"test": {"chunks": (4, 3)}}, (4, 3), np.float32),
+        pytest.param({}, None, (2, 6), np.float32, id="rechunked"),
+        pytest.param({"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, (2, 6), np.int16,
+                     id="rechunked_keeps_encoding"),
+        pytest.param({"chunks": (4, 3)}, None, (4, 3), np.float32, id="encoding_attribute_chunks"),
+        pytest.param({}, {"test": {"chunks": (4, 3)}}, (4, 3), np.float32, id="encoding_kwarg_chunks"),
     ],
-    ids=["rechunked", "rechunked_keeps_encoding", "encoding_attribute_chunks", "encoding_kwarg_chunks"],
 )
 def test_irregular_chunks(writer, tmp_path, variable_encoding, encoding, chunks, dtype):
     """Test that irregular dask chunks are rechunked to their largest chunk size unless an encoding gives chunks."""
@@ -432,21 +431,21 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
 @pytest.mark.parametrize(
     ("dtype", "variable_encoding", "fill_attr", "kwargs", "expected_fill", "stored_chunks"),
     [
-        (np.float32, {}, None, {}, np.nan, 3),
-        (np.float32, {}, -999.0, {}, np.nan, 3),
-        (np.float32, {}, np.nan, {}, np.nan, 3),
-        (np.float32, {}, None, {"fill_value": -9}, -9, 3),
-        (np.float32, {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, {}, -1, 3),
-        (np.int16, {}, -1, {}, -1, 3),
-        (np.int16, {}, -1, {"convert_to_cf": True}, -1, 3),
-        (np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {}, -9, 3),
-        (np.float32, {}, None, {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}}, 0, 6),
-        (np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {"fill_value": -9, "zarr_format": 2}, -9, 3),
+        pytest.param(np.float32, {}, None, {}, np.nan, 3, id="float_nan"),
+        pytest.param(np.float32, {}, -999.0, {}, np.nan, 3, id="float_fill_value_attribute"),
+        pytest.param(np.float32, {}, np.nan, {}, np.nan, 3, id="float_nan_fill_value_attribute"),
+        pytest.param(np.float32, {}, None, {"fill_value": -9}, -9, 3, id="fill_value_argument"),
+        pytest.param(np.float32, {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, {}, -1, 3,
+                     id="packed_encoding"),
+        pytest.param(np.int16, {}, -1, {}, -1, 3, id="integer_fill_value_attribute"),
+        pytest.param(np.int16, {}, -1, {"convert_to_cf": True}, -1, 3, id="integer_fill_value_attribute_cf"),
+        pytest.param(np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {}, -9, 3,
+                     id="variable_encoding_fill_value_dropped"),
+        pytest.param(np.float32, {}, None, {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}}, 0, 6,
+                     id="encoding_argument"),
+        pytest.param(np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {"fill_value": -9, "zarr_format": 2},
+                     -9, 3, id="format_2"),
     ],
-    ids=["float_nan", "float_fill_value_attribute", "float_nan_fill_value_attribute", "fill_value_argument",
-         "packed_encoding",
-         "integer_fill_value_attribute", "integer_fill_value_attribute_cf", "variable_encoding_fill_value_dropped",
-         "encoding_argument", "format_2"],
 )
 def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, kwargs, expected_fill,
                          stored_chunks):
@@ -469,11 +468,12 @@ def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, 
 @pytest.mark.parametrize(
     ("time_encoding", "encoding", "units"),
     [
-        (None, None, "microseconds since 1970-01-01"),
-        ({"units": "milliseconds since 2000-01-01", "dtype": "int64"}, None, "milliseconds since 2000-01-01"),
-        (None, {"time": {"units": "seconds since 2000-01-01"}}, "seconds since 2000-01-01"),
+        pytest.param(None, None, "microseconds since 1970-01-01", id="default"),
+        pytest.param({"units": "milliseconds since 2000-01-01", "dtype": "int64"}, None,
+                     "milliseconds since 2000-01-01", id="encoding_attribute"),
+        pytest.param(None, {"time": {"units": "seconds since 2000-01-01"}}, "seconds since 2000-01-01",
+                     id="encoding_kwarg"),
     ],
-    ids=["default", "encoding_attribute", "encoding_kwarg"],
 )
 def test_time_encoding(writer, tmp_path, time_encoding, encoding, units):
     """Test the units of the time coordinate."""
@@ -511,12 +511,13 @@ def test_split_variables(writer, tmp_path):
 @pytest.mark.parametrize(
     ("names", "filename", "split_variables", "match"),
     [
-        (["C01", "C02"], None, False, "specify a 'filename' for multi-variable zarr stores"),
-        (["C01"], "{platform_name}.zarr", False, "the dataset has no 'platform_name' attribute"),
-        (["C01", "C02"], "same.zarr", True, "would both be written to"),
-        (["C01", "C01"], "same.zarr", False, "More than one dataset named 'C01'"),
+        pytest.param(["C01", "C02"], None, False, "specify a 'filename' for multi-variable zarr stores",
+                     id="no_common_name"),
+        pytest.param(["C01"], "{platform_name}.zarr", False, "the dataset has no 'platform_name' attribute",
+                     id="missing_attribute"),
+        pytest.param(["C01", "C02"], "same.zarr", True, "would both be written to", id="same_filename"),
+        pytest.param(["C01", "C01"], "same.zarr", False, "More than one dataset named 'C01'", id="duplicate_name"),
     ],
-    ids=["no_common_name", "missing_attribute", "same_filename", "duplicate_name"],
 )
 def test_filename_errors(writer, tmp_path, names, filename, split_variables, match):
     """Test errors for datasets that cannot be assigned to stores."""
@@ -529,10 +530,10 @@ def test_filename_errors(writer, tmp_path, names, filename, split_variables, mat
 @pytest.mark.parametrize(
     ("area", "other_area"),
     [
-        (AREA, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 2000.0))),
-        (_swath_definition(), _swath_definition(lon_offset=1.0)),
+        pytest.param(AREA, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 2000.0)),
+                     id="grid"),
+        pytest.param(_swath_definition(), _swath_definition(lon_offset=1.0), id="swath"),
     ],
-    ids=["grid", "swath"],
 )
 def test_different_coordinates_raise(writer, tmp_path, area, other_area):
     """Test that datasets on different grids or swaths cannot share a store."""
@@ -544,10 +545,9 @@ def test_different_coordinates_raise(writer, tmp_path, area, other_area):
 @pytest.mark.parametrize(
     ("second_start_time", "encoding", "match"),
     [
-        (None, None, "needs a 'start_time' attribute"),
-        (START_TIME, {"C03": {"dtype": "float64"}}, r"entries for \['C03'\]"),
+        pytest.param(None, None, "needs a 'start_time' attribute", id="missing_start_time"),
+        pytest.param(START_TIME, {"C03": {"dtype": "float64"}}, r"entries for \['C03'\]", id="unknown_encoding_name"),
     ],
-    ids=["missing_start_time", "unknown_encoding_name"],
 )
 def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encoding, match):
     """Test that no store is written when one is invalid, as to_zarr writes the metadata before computing."""
@@ -561,8 +561,12 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
 @pytest.mark.parametrize("zarr_format", [2, 3])
 @pytest.mark.parametrize(
     "second_kwargs",
-    [{}, {"mode": "w"}, {"mode": "a"}, {"append_dim": "time"}],
-    ids=["default_mode", "mode_w", "mode_a", "append"],
+    [
+        pytest.param({}, id="default_mode"),
+        pytest.param({"mode": "w"}, id="mode_w"),
+        pytest.param({"mode": "a"}, id="mode_a"),
+        pytest.param({"append_dim": "time"}, id="append"),
+    ],
 )
 def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
     """Test writing datasets on different grids to groups of one store, all in the format of the store."""
@@ -579,8 +583,10 @@ def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
 
 @pytest.mark.parametrize(
     ("make_store", "split_variables"),
-    [(MemoryStore, False), (lambda: {"C01": MemoryStore(), "C02": MemoryStore()}, True)],
-    ids=["one_store", "store_per_dataset"],
+    [
+        pytest.param(MemoryStore, False, id="one_store"),
+        pytest.param(lambda: {"C01": MemoryStore(), "C02": MemoryStore()}, True, id="store_per_dataset"),
+    ],
 )
 def test_store_objects(writer, make_store, split_variables):
     """Test writing to zarr stores instead of filenames."""
@@ -594,17 +600,19 @@ def test_store_objects(writer, make_store, split_variables):
 @pytest.mark.parametrize(
     ("names", "make_kwargs", "match"),
     [
-        (["C01", "C02"], lambda: {"store": {"C01": MemoryStore(), "C02": MemoryStore()}},
-         "requires split_variables=True"),
-        (["C01", "C02"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
-         "No store given for dataset 'C02'"),
-        (["C01", "C01"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True}, "names are not unique"),
-        (["C01", "C02"], lambda: {"store": MemoryStore(), "filename": "out.zarr"}, "cannot be used together"),
-        (["C01", "C02"], lambda: {"store": MemoryStore(), "split_variables": True}, "Pass a dict of stores"),
-        (["C01", "C02"], lambda: {"store": MemoryStore(), "commit": "message"}, "requires an Icechunk Session"),
+        pytest.param(["C01", "C02"], lambda: {"store": {"C01": MemoryStore(), "C02": MemoryStore()}},
+                     "requires split_variables=True", id="dict_without_split"),
+        pytest.param(["C01", "C02"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
+                     "No store given for dataset 'C02'", id="missing_store"),
+        pytest.param(["C01", "C01"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
+                     "names are not unique", id="duplicate_names"),
+        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "filename": "out.zarr"},
+                     "cannot be used together", id="store_and_filename"),
+        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "split_variables": True},
+                     "Pass a dict of stores", id="single_store_split"),
+        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "commit": "message"},
+                     "requires an Icechunk Session", id="commit_plain_store"),
     ],
-    ids=["dict_without_split", "missing_store", "duplicate_names", "store_and_filename", "single_store_split",
-         "commit_plain_store"],
 )
 def test_store_errors(writer, names, make_kwargs, match):
     """Test invalid combinations of stores and keyword arguments."""
@@ -614,8 +622,11 @@ def test_store_errors(writer, names, make_kwargs, match):
 
 @pytest.mark.parametrize(
     ("filename", "forwarded"),
-    [("s3://bucket/out.zarr", True), ("memory://bucket/out.zarr", False), ("out.zarr", False)],
-    ids=["remote", "memory", "local"],
+    [
+        pytest.param("s3://bucket/out.zarr", True, id="remote"),
+        pytest.param("memory://bucket/out.zarr", False, id="memory"),
+        pytest.param("out.zarr", False, id="local"),
+    ],
 )
 def test_storage_options_only_for_remote_urls(writer, filename, forwarded):
     """Test that storage_options are only passed to to_zarr for remote URLs."""
@@ -650,8 +661,12 @@ def test_xarray_kwargs_as_arguments(writer, tmp_path):
 
 @pytest.mark.parametrize(
     ("key", "value"),
-    [("mode", "a"), ("append_dim", "time"), ("encoding", {}), ("compute", False)],
-    ids=["mode", "append_dim", "encoding", "compute"],
+    [
+        pytest.param("mode", "a", id="mode"),
+        pytest.param("append_dim", "time", id="append_dim"),
+        pytest.param("encoding", {}, id="encoding"),
+        pytest.param("compute", False, id="compute"),
+    ],
 )
 def test_arguments_also_in_xarray_kwargs_raise(writer, tmp_path, key, value):
     """Test that an argument passed both directly and in xarray_kwargs raises before anything is written."""
@@ -703,7 +718,13 @@ def test_version_check(writer, tmp_path, package):
         writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr")
 
 
-@pytest.mark.parametrize("commit", [None, "Add data"], ids=["uncommitted", "committed"])
+@pytest.mark.parametrize(
+    "commit",
+    [
+        pytest.param(None, id="uncommitted"),
+        pytest.param("Add data", id="committed"),
+    ],
+)
 def test_icechunk_session(writer, icechunk_repo, commit):
     """Test writing to an Icechunk session, which is committed only with a commit message."""
     session = icechunk_repo.writable_session("main")
@@ -744,12 +765,11 @@ def test_icechunk_zarr_format_2_raises(writer, icechunk_repo):
 @pytest.mark.parametrize(
     ("area", "code", "bbox", "zarr_format"),
     [
-        (AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 2),
-        (AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3),
-        (GEOS_AREA, None, [-3e6, -1e6, 3e6, 1e6], 3),
-        (FLIPPED_AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3),
+        pytest.param(AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 2, id="format_2"),
+        pytest.param(AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3, id="format_3"),
+        pytest.param(GEOS_AREA, None, [-3e6, -1e6, 3e6, 1e6], 3, id="no_authority_code"),
+        pytest.param(FLIPPED_AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3, id="flipped"),
     ],
-    ids=["format_2", "format_3", "no_authority_code", "flipped"],
 )
 def test_geozarr_attrs(writer, tmp_path, area, code, bbox, zarr_format):
     """Test the GeoZarr proj and spatial attributes of gridded data and the root group."""
@@ -793,11 +813,10 @@ def test_geozarr_attrs_validate(writer, tmp_path):
 @pytest.mark.parametrize(
     ("areas", "include_geozarr", "with_attrs"),
     [
-        (["swath"], True, []),
-        (["area", "swath"], True, ["C01"]),
-        (["area"], False, []),
+        pytest.param(["swath"], True, [], id="swath"),
+        pytest.param(["area", "swath"], True, ["C01"], id="area_and_swath"),
+        pytest.param(["area"], False, [], id="disabled"),
     ],
-    ids=["swath", "area_and_swath", "disabled"],
 )
 def test_geozarr_attrs_skipped(writer, tmp_path, areas, include_geozarr, with_attrs):
     """Test that GeoZarr attributes are only added to gridded data and the root only if all are gridded."""
@@ -834,8 +853,11 @@ def test_lonlats(writer, tmp_path, swath, include_lonlats, expected):
 
 @pytest.mark.parametrize(
     ("include_lonlats", "warns", "has_lonlats"),
-    [(None, True, False), (True, False, True), (False, False, False)],
-    ids=["default", "include_lonlats", "no_lonlats"],
+    [
+        pytest.param(None, True, False, id="default"),
+        pytest.param(True, False, True, id="include_lonlats"),
+        pytest.param(False, False, False, id="no_lonlats"),
+    ],
 )
 def test_stacked_area(writer, tmp_path, caplog, include_lonlats, warns, has_lonlats):
     """Test that data on a stack of shifted areas only get longitude/latitude, and a warning without them."""
@@ -852,7 +874,13 @@ def test_stacked_area(writer, tmp_path, caplog, include_lonlats, warns, has_lonl
         np.testing.assert_allclose(ds["latitude"].values, lats)
 
 
-@pytest.mark.parametrize("make_area", [_swath_definition, _stacked_area_definition], ids=["swath", "stacked"])
+@pytest.mark.parametrize(
+    "make_area",
+    [
+        pytest.param(_swath_definition, id="swath"),
+        pytest.param(_stacked_area_definition, id="stacked"),
+    ],
+)
 def test_existing_lonlats_kept(writer, tmp_path, caplog, make_area):
     """Test that existing longitude and latitude coordinates are not replaced and count as georeference."""
     data_arr = _data_array(area=make_area())
@@ -916,9 +944,10 @@ def test_convert_to_cf_kwargs(writer, tmp_path):
 
 @pytest.mark.parametrize(
     ("cf_kwargs", "units"),
-    [({}, "microseconds since 1970-01-01"),
-     ({"epoch": "milliseconds since 2000-01-01 00:00:00"}, "milliseconds since 2000-01-01")],
-    ids=["default", "epoch"],
+    [
+        pytest.param({}, "microseconds since 1970-01-01", id="default"),
+        pytest.param({"epoch": "milliseconds since 2000-01-01 00:00:00"}, "milliseconds since 2000-01-01", id="epoch"),
+    ],
 )
 def test_convert_to_cf_time(writer, tmp_path, cf_kwargs, units):
     """Test the time and time_bnds encoding of the CF conversion and appending to its output."""
