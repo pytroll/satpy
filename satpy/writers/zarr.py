@@ -62,8 +62,12 @@ fsspec. ``base_dir`` is not prepended to URLs:
 
 Instead of a filename, ``store`` accepts any zarr ``StoreLike`` (for example
 :class:`zarr.storage.MemoryStore`). With ``split_variables=True`` and more than one dataset, ``store``
-must be a dictionary of stores keyed by dataset name. A plain ``dict`` is always interpreted as this
-mapping; wrap a dict-backed store in :class:`zarr.storage.MemoryStore`.
+must be a dictionary that maps every dataset name to a different store. To write several datasets to the
+same store, pass that store without ``split_variables=True``.
+
+zarr also accepts a ``dict`` as an in-memory store, but the writer always reads a ``dict`` passed as
+``store`` as the mapping of dataset names to stores. For an in-memory store, pass
+``zarr.storage.MemoryStore(store_dict=your_dict)`` instead.
 
 Encoding
 --------
@@ -398,7 +402,7 @@ class ZarrWriter(Writer):
                 stores holding one dataset. Defaults to the ``filename`` pattern given when creating
                 the writer.
             store: A zarr ``StoreLike`` or Icechunk ``Session`` to write to instead of ``filename``.
-                With ``split_variables``, a dict of them keyed by dataset name.
+                With ``split_variables``, a dict of different stores keyed by dataset name.
             storage_options: fsspec options for remote URL targets.
             split_variables: Write every dataset to its own store instead of all datasets to one store.
             commit: Commit message for Icechunk sessions passed as ``store``. The commit happens after
@@ -674,7 +678,18 @@ def _assign_stores(variable_sets: list[dict[str, xr.DataArray]], store, split_va
     for name in names:
         if name not in store:
             raise ValueError(f"No store given for dataset {name!r}.")
-    return [store[name] for name in names]
+    stores = [store[name] for name in names]
+    _require_distinct_stores(names, stores)
+    return stores
+
+
+def _require_distinct_stores(names: list[str], stores: list) -> None:
+    # The same path or URL is the same store, like the same store object
+    keys = [os.fspath(store) if isinstance(store, (str, os.PathLike)) else id(store) for store in stores]
+    shared = [name for name, key in zip(names, keys) if keys.count(key) > 1]
+    if shared:
+        raise ValueError(f"Datasets {shared} are assigned the same store. Write datasets that share a store "
+                         "without split_variables=True.")
 
 
 def _make_target(variables: dict[str, xr.DataArray], attrs: dict, store, storage_options: dict | None) -> _Target:
@@ -1143,12 +1158,9 @@ class _WriteJob:
 def _chain_commits(delayeds: list[Delayed], targets: list[_Target], commit: str | None) -> list[Delayed]:
     if commit is None:
         return delayeds
-    writes_per_session: dict[int, tuple[Any, list[Delayed]]] = {}
-    for delayed, target in zip(delayeds, targets):
-        writes_per_session.setdefault(id(target.session), (target.session, []))[1].append(delayed)
-    return [dask.delayed(_commit_after, pure=False)(session, commit, writes)
-            for session, writes in writes_per_session.values()]
+    return [dask.delayed(_commit_after, pure=False)(target.session, commit, delayed)
+            for delayed, target in zip(delayeds, targets)]
 
 
-def _commit_after(session, message: str, _writes) -> str:
+def _commit_after(session, message: str, _write) -> str:
     return session.commit(message)

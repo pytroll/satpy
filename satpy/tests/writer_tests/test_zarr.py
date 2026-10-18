@@ -619,6 +619,11 @@ def test_store_objects(writer, make_store, split_variables):
                      "No store given for dataset 'C02'", id="missing_store"),
         pytest.param(["C01", "C01"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
                      "names are not unique", id="duplicate_names"),
+        pytest.param(["C01", "C02"], lambda: {"store": dict.fromkeys(["C01", "C02"], MemoryStore()),
+                                              "split_variables": True},
+                     "assigned the same store", id="repeated_store"),
+        pytest.param(["C01", "C02"], lambda: {"store": {"C01": "out.zarr", "C02": "out.zarr"}, "split_variables": True},
+                     "assigned the same store", id="repeated_path"),
         pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "filename": "out.zarr"},
                      "cannot be used together", id="store_and_filename"),
         pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "split_variables": True},
@@ -765,15 +770,17 @@ def test_icechunk_append(writer, icechunk_repo):
     assert list(ds.time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
 
-def test_icechunk_shared_session_commits_once(writer, icechunk_repo):
-    """Test that one session holding several stores' datasets is committed once after all writes."""
-    session = icechunk_repo.writable_session("main")
+def test_icechunk_session_per_dataset(writer, icechunk_repo):
+    """Test that the session of every dataset is committed after its data are written, also with compute=False."""
+    icechunk = pytest.importorskip("icechunk")
+    other_repo = icechunk.Repository.create(icechunk.in_memory_storage())
     datasets = [_data_array("C01"), _data_array("C02")]
-    delayeds = writer.save_datasets(datasets, store={"C01": session, "C02": session}, split_variables=True,
-                                    commit="Add data", mode="a", compute=False)
-    assert len(delayeds) == 1
+    sessions = {"C01": icechunk_repo.writable_session("main"), "C02": other_repo.writable_session("main")}
+    delayeds = writer.save_datasets(datasets, store=sessions, split_variables=True, commit="Add data", compute=False)
+    assert len(delayeds) == 2
     compute_writer_results([delayeds])
-    _assert_roundtrip(icechunk_repo.readonly_session("main").store, datasets)
+    for repo, data_arr in zip((icechunk_repo, other_repo), datasets):
+        _assert_roundtrip(repo.readonly_session("main").store, [data_arr])
 
 
 def test_icechunk_zarr_format_2_raises(writer, icechunk_repo):
