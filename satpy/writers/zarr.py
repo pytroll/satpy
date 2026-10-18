@@ -31,9 +31,10 @@ arguments, and passing one both ways raises an error.
 
 Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
 converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
-ranges become strings as in the ``cf`` writer), drops the ``crs`` coordinate, adds CF
-``standard_name``/``units`` to ``x`` and ``y`` and rechunks irregular dask chunks, which zarr cannot
-store.
+ranges become strings as in the ``cf`` writer, dictionary keys become strings, and NaN and infinite
+numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"`` and ``"-Infinity"``
+that zarr uses for such fill values), drops the ``crs`` coordinate, adds CF ``standard_name``/``units``
+to ``x`` and ``y`` and rechunks irregular dask chunks, which zarr cannot store.
 
 Separate stores and remote targets
 ----------------------------------
@@ -231,6 +232,7 @@ import datetime as dt
 import importlib.metadata
 import json
 import logging
+import math
 import os
 import typing
 import warnings
@@ -869,33 +871,59 @@ def _sanitize_attrs(attrs: dict) -> dict:
 
 
 def _json_safe(attrs: dict) -> dict:
-    return json.loads(json.dumps(_to_json_types(attrs), default=_json_default))
+    safe = json.loads(json.dumps(_to_json_types(attrs), default=_json_default, allow_nan=False))
+    # xarray encodes a _FillValue attribute itself, as valid JSON also when it is NaN
+    if "_FillValue" in attrs:
+        safe["_FillValue"] = attrs["_FillValue"]
+    return safe
 
 
 def _to_json_types(obj):
-    """Convert the objects that json would encode as arrays or objects before ``_json_default`` sees them."""
+    """Convert what json would encode wrongly or not at all, before ``_json_default`` sees the rest."""
     if hasattr(obj, "to_cf"):
-        return obj.to_cf()
+        return _to_json_types(obj.to_cf())
     if isinstance(obj, DataID):
         return str(obj)
     if isinstance(obj, dict):
-        return {key: _to_json_types(val) for key, val in obj.items()}
+        return {_json_key(key): _to_json_types(val) for key, val in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_to_json_types(item) for item in obj]
+    if isinstance(obj, (set, frozenset)):
+        return [_to_json_types(item) for item in sorted(obj, key=str)]
+    if isinstance(obj, (np.ndarray, np.generic)):
+        return _to_json_types(_numpy_to_python(obj))
+    if isinstance(obj, float):
+        return _json_float(obj)
     return obj
+
+
+def _json_key(key):
+    # json only accepts these keys, which it writes as strings
+    if key is None or isinstance(key, (str, int, float, bool)):
+        return key
+    return str(key)
+
+
+def _numpy_to_python(obj: np.ndarray | np.generic):
+    # tolist() turns datetime64 and timedelta64 values in nanoseconds into integers
+    if obj.dtype.kind == "M":
+        return obj.astype(str).tolist()
+    if obj.dtype.kind == "m":
+        return obj.astype("timedelta64[us]").tolist()
+    return obj.tolist()
+
+
+def _json_float(value: float) -> float | str:
+    if math.isnan(value):
+        return "NaN"
+    if math.isinf(value):
+        return "Infinity" if value > 0 else "-Infinity"
+    return value
 
 
 def _json_default(obj):
     if isinstance(obj, (dt.datetime, dt.date)):
         return obj.isoformat()
-    if isinstance(obj, np.datetime64):
-        return np.datetime_as_string(obj)
-    if isinstance(obj, (set, frozenset)):
-        return sorted(obj, key=str)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, np.generic):
-        return obj.item()
     if isinstance(obj, bytes):
         return obj.decode("utf-8", errors="replace")
     return str(obj)

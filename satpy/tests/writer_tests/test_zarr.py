@@ -2,6 +2,7 @@
 
 import copy
 import datetime as dt
+import json
 import os
 import uuid
 import warnings
@@ -74,15 +75,27 @@ def _messy_attrs():
         "none_value": None,
         "_satpy_id": make_dataid(name="test"),
         "_last_resampler": object(),
-        "orbital_parameters": {"satellite_nominal_longitude": -75.0, "nested": {"a": [1, 2]}},
+        "orbital_parameters": {"satellite_nominal_longitude": -75.0, "satellite_actual_altitude": np.nan,
+                               "nested": {"a": [1, 2]}},
         "prerequisites": [make_dataid(name="C01"), DataQuery(name="C02")],
         "array": np.array([1, 2, 3], dtype=np.int16),
         "ancillary_variables": [_data_array("quality")],
         "wavelength": WavelengthRange(10.1, 10.3, 10.5, "µm"),
         "np_scalar": np.float32(1.5),
         "valid_time": np.datetime64("2026-01-01T12:00"),
+        "scan_times": np.array(["2026-01-01T12:00", "2026-01-01T12:05"], dtype="datetime64[ns]"),
+        "limits": np.array([-np.inf, 0.0, np.inf], dtype=np.float32),
+        "scan_duration": np.timedelta64(300_000_000_000, "ns"),
         "bytes_value": b"abc",
     }
+
+
+def _strict_json(path):
+    """Parse a JSON file, refusing the NaN and Infinity tokens that only Python's json accepts."""
+    def _refuse(token):
+        raise ValueError(f"{token} is not valid JSON")
+
+    return json.loads(path.read_text(), parse_constant=_refuse)
 
 
 def _hourly(*hours, **kwargs):
@@ -164,22 +177,28 @@ def test_roundtrip(writer, tmp_path, ndim):
 
 def test_attrs_sanitized(writer, tmp_path):
     """Test the conversion of Satpy attributes to JSON attributes without changing the input."""
-    data_arr = _data_array(**_messy_attrs())
+    # The CF conversion cannot encode tuple keys, so they are not in _messy_attrs
+    data_arr = _data_array(**_messy_attrs(), lookup={(1, 2): "a", 3: "b"})
     input_attrs = dict(data_arr.attrs)
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
-    attrs = open_group(tmp_path / "out.zarr", mode="r")["test"].attrs.asdict()
+    attrs = _strict_json(tmp_path / "out.zarr" / "test" / "zarr.json")["attributes"]
     for removed in ("area", "_satpy_id", "_last_resampler", "none_value"):
         assert removed not in attrs
     assert attrs["start_time"] == "2026-01-01T12:00:00.123456+00:00"
     assert attrs["sensor"] == ["abi"]
     assert attrs["flag"] is True
-    assert attrs["orbital_parameters"] == {"satellite_nominal_longitude": -75.0, "nested": {"a": [1, 2]}}
+    assert attrs["orbital_parameters"] == {"satellite_nominal_longitude": -75.0, "satellite_actual_altitude": "NaN",
+                                           "nested": {"a": [1, 2]}}
     assert attrs["prerequisites"] == [str(make_dataid(name="C01")), str(DataQuery(name="C02"))]
     assert attrs["array"] == [1, 2, 3]
     assert attrs["ancillary_variables"] == ["quality"]
     assert WavelengthRange.from_cf(attrs["wavelength"]) == WavelengthRange(10.1, 10.3, 10.5, "µm")
     assert attrs["np_scalar"] == 1.5
     assert attrs["valid_time"] == "2026-01-01T12:00"
+    assert attrs["scan_times"] == ["2026-01-01T12:00:00.000000000", "2026-01-01T12:05:00.000000000"]
+    assert attrs["limits"] == ["-Infinity", 0.0, "Infinity"]
+    assert attrs["scan_duration"] == "0:05:00"
+    assert attrs["lookup"] == {"(1, 2)": "a", "3": "b"}
     assert attrs["bytes_value"] == "abc"
     assert data_arr.attrs.keys() == input_attrs.keys()
     assert all(data_arr.attrs[key] is value for key, value in input_attrs.items())
@@ -406,6 +425,7 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
     [
         (np.float32, {}, None, {}, np.nan, 3),
         (np.float32, {}, -999.0, {}, np.nan, 3),
+        (np.float32, {}, np.nan, {}, np.nan, 3),
         (np.float32, {}, None, {"fill_value": -9}, -9, 3),
         (np.float32, {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, {}, -1, 3),
         (np.int16, {}, -1, {}, -1, 3),
@@ -414,7 +434,8 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
         (np.float32, {}, None, {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}}, 0, 6),
         (np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {"fill_value": -9, "zarr_format": 2}, -9, 3),
     ],
-    ids=["float_nan", "float_fill_value_attribute", "fill_value_argument", "packed_encoding",
+    ids=["float_nan", "float_fill_value_attribute", "float_nan_fill_value_attribute", "fill_value_argument",
+         "packed_encoding",
          "integer_fill_value_attribute", "integer_fill_value_attribute_cf", "variable_encoding_fill_value_dropped",
          "encoding_argument", "format_2"],
 )
@@ -840,6 +861,7 @@ def test_convert_to_cf(writer, tmp_path):
     assert group["C01"].attrs["grid_mapping"] == "test"
     assert CRS.from_cf(group["test"].attrs.asdict()) == AREA.crs
     assert group["C01"].attrs["flag"] == "true"
+    _strict_json(tmp_path / "out.zarr" / "C01" / "zarr.json")
     assert group["C01"].attrs["prerequisites"] == [str(make_dataid(name="C01")), str(DataQuery(name="C02"))]
     assert not any(key.startswith(("proj:", "spatial:")) for key in group["C01"].attrs)
     assert "spatial_ref" not in group
