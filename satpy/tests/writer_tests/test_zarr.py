@@ -713,11 +713,18 @@ def test_unknown_kwargs_warn(writer, tmp_path):
                              decorate={})
 
 
-def test_save_dataset_units_warn(writer, tmp_path):
-    """Test that save_dataset warns that units are not converted."""
-    with pytest.warns(UserWarning, match=r"unknown keyword arguments: \['units'\]"):
-        writer.save_dataset(_data_array(), filename=tmp_path / "out.zarr", units="degC")
-    assert _open(tmp_path / "out.zarr")["test"].attrs["units"] == "K"
+def test_save_dataset_units(writer, tmp_path):
+    """Test that save_dataset converts the data to other units and drops their encoding, keeping the input."""
+    pytest.importorskip("pint_xarray")
+    data_arr = _data_array()
+    data_arr.encoding = {"dtype": "int16", "scale_factor": 0.25}
+    writer.save_dataset(data_arr, filename=tmp_path / "out.zarr", units="degC")
+    stored = _open(tmp_path / "out.zarr")["test"]
+    assert stored.attrs["units"] == "degree_Celsius"
+    np.testing.assert_allclose(stored.values, data_arr.values - 273.15, rtol=1e-6)
+    assert open_group(tmp_path / "out.zarr", mode="r")["test"].dtype == np.float32
+    assert data_arr.attrs["units"] == "K"
+    assert data_arr.encoding == {"dtype": "int16", "scale_factor": 0.25}
 
 
 @pytest.mark.parametrize("package", ["zarr", "xarray"])

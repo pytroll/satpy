@@ -1,7 +1,8 @@
 """Writer for Zarr stores.
 
 The ``zarr`` writer stores Satpy datasets with :meth:`xarray.Dataset.to_zarr`. Data are written as they
-are in the Scene: no enhancement is applied, and dtypes, units and fill values are kept.
+are in the Scene: no enhancement is applied, and dtypes, units and fill values are kept. Only
+``save_dataset`` can convert units, with ``units=`` (requires ``pint-xarray``).
 
 Example usage
 -------------
@@ -76,8 +77,8 @@ argument and then by the ``encoding`` argument:
 Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
 reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
 returns unchanged are stored with the dtype, scaling and fill value of the input file; operations that
-change the values, such as calibration or resampling, drop the encoding. Call
-``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
+change the values, such as calibration, resampling or converting units with ``save_dataset``, drop the
+encoding. Call ``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
 ``serializer``) must suit the zarr format being written.
 
 Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
@@ -353,12 +354,12 @@ class ZarrWriter(Writer):
     ) -> list[Delayed] | list[Any]:
         """Save one dataset to a zarr store.
 
-        See :meth:`save_datasets` for the keyword arguments. Unit conversion is not supported, so
-        ``units`` is ignored with a warning like other unknown keyword arguments.
+        See :meth:`save_datasets` for the keyword arguments. ``units`` converts the data with pint-xarray
+        before writing and drops the data's ``encoding``, whose packing does not fit the converted values.
 
         """
         if units is not None:
-            kwargs["units"] = units
+            dataset = _convert_units(dataset, units)
         return self.save_datasets([dataset], compute=compute, filename=filename, fill_value=fill_value, **kwargs)
 
     def save_datasets(
@@ -483,6 +484,14 @@ class ZarrWriter(Writer):
                                      stored).apply(ds)
         to_zarr_kwargs.setdefault("encoding", encoding)
         return _WriteJob(target, ds, to_zarr_kwargs)
+
+
+def _convert_units(data_arr: xr.DataArray, units: str) -> xr.DataArray:
+    import pint_xarray  # noqa: F401
+
+    converted = data_arr.pint.quantify().pint.to(units).pint.dequantify()
+    converted.encoding = {}
+    return converted
 
 
 @dataclass(frozen=True)
