@@ -180,6 +180,11 @@ append dimension too. The ``x``, ``y``, and lon/lat coordinates of an area, and 
 without the append dimension, keep the values of the first write, as appends default to xarray's
 ``mode="a-"``. Pass ``mode="a"`` to rewrite them with every write.
 
+Appended data must have the stored ``x``, ``y``, and ``bands`` coordinates, as xarray only compares
+their sizes: data on another area, or with other bands, raise before anything is written. For this, the
+writer reads the stored values of these coordinates, with one small request each. The ``x`` and ``y`` of
+swath data are not compared.
+
 Without ``append_dim``, ``mode`` keeps xarray's default: a new store is created and writing to an
 existing one fails. Use ``mode="w"`` to overwrite. With ``append_dim="time"``, ``mode="w"`` replaces the
 store with one holding a single time step, which later appends extend.
@@ -257,7 +262,7 @@ import math
 import os
 import typing
 import warnings
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 import dask
 import dask.array as da
@@ -277,7 +282,7 @@ from satpy.writers.core.base import Writer
 from satpy.writers.core.compute import compute_writer_results
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterable
+    from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
     from os import PathLike
     from typing import Any
 
@@ -505,6 +510,7 @@ class _ZarrSaver:
     def _prepare(self, target: _Target) -> _WriteJob:
         layout = self.store_mode.resolve(target)
         ds = self.store_mode.expand(self.builder.build(target.variables), target)
+        layout.check_grid(ds, target.name)
         ds, encoding = self.encoding.apply(ds, layout)
         return _WriteJob(target, ds, {**self.store_mode.to_zarr_kwargs(target, layout), "encoding": encoding})
 
@@ -724,6 +730,23 @@ class _StoreLayout:
     # Arrays, including coordinates, already in the group written to, which keep their stored encoding because
     # xarray refuses a new one
     stored: frozenset[str] = frozenset()
+    # Values of the stored coordinates that appended data must have too, such as x and y
+    grid_coords: Mapping[str, np.ndarray] = field(default_factory=dict)
+
+    def check_grid(self, ds: xr.Dataset, name: str) -> None:
+        """Raise if ``ds`` has other values than the stored ones for the coordinates in ``grid_coords``."""
+        for coord, stored in self.grid_coords.items():
+            if coord in ds.coords and not _same_values(stored, ds[coord].values):
+                raise ValueError(f"Cannot append {name!r}: its {coord!r} coordinate differs from the stored one. "
+                                 "Write data on another area, or with other bands, to another store or group.")
+
+
+def _same_values(stored: np.ndarray, new: np.ndarray) -> bool:
+    # np.allclose broadcasts, so it would raise for other lengths and compare a single stored value with every new one
+    if stored.shape != new.shape:
+        return False
+    # The x and y of equivalent areas may differ by rounding
+    return bool(np.allclose(stored, new)) if new.dtype.kind == "f" else bool(np.array_equal(stored, new))
 
 
 @dataclass(frozen=True)
@@ -793,7 +816,13 @@ class _StoreMode:
                                          zarr_format=root_metadata.zarr_format, use_consolidated=False, **open_kwargs)
         except not_found:
             return layout
-        return replace(layout, append_dim=self.append_dim, stored=frozenset(zarr_group.array_keys()))
+        arrays = dict(zarr_group.arrays())
+        layout = replace(layout, append_dim=self.append_dim, stored=frozenset(arrays))
+        if self.append_dim is None:
+            return layout
+        # xarray only compares the sizes of the stored coordinates with those of appended data
+        names = [name for name in _grid_coord_names(target.variables.values()) if name in arrays]
+        return replace(layout, grid_coords={name: np.asarray(arrays[name][:]) for name in names})
 
     def expand(self, ds: xr.Dataset, target: _Target) -> xr.Dataset:
         """Add the append dimension to ``ds`` and to its coordinates that differ for every step."""
@@ -1070,12 +1099,22 @@ def _expand_coords(ds: xr.Dataset, append_dim: Hashable, data_arrs: Iterable[xr.
     # Dataset.expand_dims only expands the data variables, but coordinates such as acq_time and the lon/lats of a
     # swath differ for every step too, while the lon/lats of an area, like its x and y, are the same for every step
     fixed = set(ds.indexes)
-    if not any(isinstance(data_arr.attrs.get("area"), SwathDefinition) for data_arr in data_arrs):
+    if not _on_swath(data_arrs):
         fixed |= {"longitude", "latitude"}
     sizes = {append_dim: ds.sizes[append_dim]}
     return ds.assign_coords({name: coord.variable.set_dims({**sizes, **coord.sizes})
                              for name, coord in ds.coords.items()
                              if coord.ndim > 0 and name not in fixed and append_dim not in coord.dims})
+
+
+def _grid_coord_names(data_arrs: Collection[xr.DataArray]) -> list[str]:
+    # The x and y of swath data, such as pixel indices, do not locate the data, unlike those of an area
+    names = ["bands"] if _on_swath(data_arrs) else ["bands", "y", "x"]
+    return [name for name in names if any(name in data_arr.coords for data_arr in data_arrs)]
+
+
+def _on_swath(data_arrs: Iterable[xr.DataArray]) -> bool:
+    return any(isinstance(data_arr.attrs.get("area"), SwathDefinition) for data_arr in data_arrs)
 
 
 def _time_value(start_time) -> np.datetime64:

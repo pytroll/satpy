@@ -334,6 +334,32 @@ def test_append_keeps_stored_area_lonlats(writer, tmp_path):
 
 
 @pytest.mark.parametrize(
+    ("ndim", "second_area", "second_coords", "match"),
+    [
+        pytest.param(2, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (9000.0, -500.0, 15000.0, 1500.0)),
+                     {}, "its 'x' coordinate differs", id="other_area"),
+        pytest.param(3, AREA, {"bands": ["Y", "Cb", "Cr"]}, "its 'bands' coordinate differs", id="other_bands"),
+    ],
+)
+def test_append_to_other_grid_raises(writer, tmp_path, ndim, second_area, second_coords, match):
+    """Test that appending data on another area of the same shape, or with other bands, raises before writing."""
+    store = tmp_path / "out.zarr"
+    writer.save_datasets([_data_array(ndim=ndim)], filename=store, append_dim="time")
+    second = _data_array(ndim=ndim, area=second_area, start_time=START_TIME + dt.timedelta(hours=1))
+    with pytest.raises(ValueError, match=match):
+        writer.save_datasets([second.assign_coords(second_coords)], filename=store, append_dim="time")
+    assert _open(store).sizes["time"] == 1
+
+
+def test_append_swath_with_other_xy(writer, tmp_path):
+    """Test that the x and y of swath data, such as pixel indices, are not compared with the stored ones."""
+    data_arrays = [_data_array(area=_swath_definition(), start_time=START_TIME + dt.timedelta(hours=hour))
+                   .assign_coords(y=np.arange(4) + 4 * hour, x=np.arange(6)) for hour in range(2)]
+    _save_steps(writer, tmp_path / "out.zarr", data_arrays)
+    assert _open(tmp_path / "out.zarr").sizes["time"] == 2
+
+
+@pytest.mark.parametrize(
     ("start_time", "append_dim", "match"),
     [
         pytest.param(None, "time", "needs a 'start_time' attribute", id="missing_start_time"),
