@@ -197,6 +197,12 @@ With ``compute=False`` a list of :class:`dask.delayed.Delayed` objects is return
 in-memory coordinates immediately, so a store whose delayed result is never computed only contains
 metadata and blocks a later write without ``mode="w"``.
 
+This also happens to the stores written before a store that xarray rejects, as with
+``split_variables=True``. Before writing any store, the writer therefore checks that appended data have
+the dimensions and sizes of the stored data. Other errors xarray raises for one store, such as a store to
+create that exists already, leave the stores before it with metadata only, or with an appended step
+without data.
+
 Icechunk
 --------
 
@@ -510,7 +516,7 @@ class _ZarrSaver:
     def _prepare(self, target: _Target) -> _WriteJob:
         layout = self.store_mode.resolve(target)
         ds = self.store_mode.expand(self.builder.build(target.variables), target)
-        layout.check_grid(ds, target.name)
+        layout.check_append(ds, target.name)
         ds, encoding = self.encoding.apply(ds, layout)
         return _WriteJob(target, ds, {**self.store_mode.to_zarr_kwargs(target, layout), "encoding": encoding})
 
@@ -727,26 +733,42 @@ class _StoreLayout:
     consolidated: bool
     # Only set when the group written to exists already, as xarray fails to append to a new one
     append_dim: Hashable | None = None
-    # Arrays, including coordinates, already in the group written to, which keep their stored encoding because
-    # xarray refuses a new one
-    stored: frozenset[str] = frozenset()
+    # Arrays, including coordinates, already in the group written to, with their sizes by dimension. They keep their
+    # stored encoding because xarray refuses a new one.
+    stored: Mapping[str, Mapping[Hashable, int]] = field(default_factory=dict)
     # Values of the stored coordinates that appended data must have too, such as x and y
     grid_coords: Mapping[str, np.ndarray] = field(default_factory=dict)
 
-    def check_grid(self, ds: xr.Dataset, name: str) -> None:
-        """Raise if ``ds`` has other values than the stored ones for the coordinates in ``grid_coords``."""
-        for coord, stored in self.grid_coords.items():
-            if coord in ds.coords and not _same_values(stored, ds[coord].values):
+    def check_append(self, ds: xr.Dataset, name: str) -> None:
+        """Raise if ``ds`` does not have the dimensions, sizes, and ``grid_coords`` of the stored data."""
+        if self.append_dim is None:
+            return
+        # xarray checks the dimensions only when writing, after the stores before this one
+        for var_name, var in ds.variables.items():
+            stored = self.stored.get(str(var_name))
+            if stored is not None and not _sizes_match(stored, var.sizes, self.append_dim):
+                raise ValueError(f"Cannot append {name!r}: {var_name!r} has the sizes {dict(var.sizes)}, which do not "
+                                 f"match its stored sizes {dict(stored)} apart from {self.append_dim!r}.")
+        for coord, stored_values in self.grid_coords.items():
+            if coord in ds.coords and not _same_values(stored_values, ds[coord].values):
                 raise ValueError(f"Cannot append {name!r}: its {coord!r} coordinate differs from the stored one. "
                                  "Write data on another area, or with other bands, to another store or group.")
 
 
+def _sizes_match(stored: Mapping[Hashable, int], new: Mapping[Hashable, int], append_dim: Hashable) -> bool:
+    return stored.keys() == new.keys() and all(stored[dim] == size for dim, size in new.items() if dim != append_dim)
+
+
 def _same_values(stored: np.ndarray, new: np.ndarray) -> bool:
-    # np.allclose broadcasts, so it would raise for other lengths and compare a single stored value with every new one
-    if stored.shape != new.shape:
-        return False
+    # The sizes are compared first, so np.allclose does not broadcast
     # The x and y of equivalent areas may differ by rounding
     return bool(np.allclose(stored, new)) if new.dtype.kind == "f" else bool(np.array_equal(stored, new))
+
+
+def _stored_sizes(array) -> dict[Hashable, int]:
+    # xarray stores the dimension names in the metadata of zarr format 3 and in an attribute for format 2
+    dims = getattr(array.metadata, "dimension_names", None) or array.attrs.get("_ARRAY_DIMENSIONS", ())
+    return dict(zip(dims, array.shape))
 
 
 @dataclass(frozen=True)
@@ -817,7 +839,8 @@ class _StoreMode:
         except not_found:
             return layout
         arrays = dict(zarr_group.arrays())
-        layout = replace(layout, append_dim=self.append_dim, stored=frozenset(arrays))
+        layout = replace(layout, append_dim=self.append_dim,
+                         stored={name: _stored_sizes(array) for name, array in arrays.items()})
         if self.append_dim is None:
             return layout
         # xarray only compares the sizes of the stored coordinates with those of appended data
@@ -1147,7 +1170,7 @@ class _EncodingPolicy:
             raise ValueError(f"The 'encoding' argument has entries for {unknown}, which are not variables of the "
                              "written data.")
 
-    def _encoding(self, ds: xr.Dataset, stored: frozenset[str]) -> dict[Hashable, dict]:
+    def _encoding(self, ds: xr.Dataset, stored: Collection[str]) -> dict[Hashable, dict]:
         ignored = sorted(name for name in self.user_encoding if name in stored)
         if ignored:
             LOG.debug("Not using the 'encoding' entries of %s, which are already in the store.", ignored)

@@ -633,6 +633,24 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
     assert list(tmp_path.iterdir()) == []
 
 
+@pytest.mark.parametrize(
+    ("stored_rows", "stored_append_dim"),
+    [
+        pytest.param(4, None, id="stored_without_append_dim"),
+        pytest.param(3, "time", id="other_size"),
+    ],
+)
+def test_split_variables_checks_every_append_first(writer, tmp_path, stored_rows, stored_append_dim):
+    """Test that an invalid append to a later store raises before the earlier stores are written."""
+    writer.save_datasets([_data_array("C02", area=None)[:stored_rows]], filename=tmp_path / "C02.zarr",
+                         append_dim=stored_append_dim)
+    datasets = [_data_array("C01", area=None), _data_array("C02", area=None)]
+    with pytest.raises(ValueError, match="do not match its stored sizes"):
+        writer.save_datasets(datasets, filename=str(tmp_path / "{name}.zarr"), split_variables=True,
+                             append_dim="time")
+    assert [path.name for path in tmp_path.iterdir()] == ["C02.zarr"]
+
+
 @pytest.mark.parametrize("zarr_format", [2, 3])
 @pytest.mark.parametrize(
     "second_kwargs",
