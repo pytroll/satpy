@@ -9,6 +9,13 @@ import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
+# Expected reflective band values for the fake data (all 10s): 10 * slope + intercept,
+# using the CMA 2016 coefficients. FY3C reads its coefficients from the file, so it is not listed.
+REFSB_EXPECTED = {
+    "FY3A": {"1": -0.317, "2": -0.303, "6": -1.514, "7": -0.319, "8": -0.182, "9": -0.170, "10": -0.135},
+    "FY3B": {"1": -0.355, "2": -0.370, "6": -1.693, "7": -0.260, "8": -0.155, "9": -0.225, "10": -0.103},
+}
+
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
@@ -103,24 +110,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                        "3": 496.542155, "4": 297.444511, "5": 288.956557, "solar_zenith_angle": .1,
                        "satellite_zenith_angle": .1, "solar_azimuth_angle": .1, "satellite_azimuth_angle": .1,
                        "longitude": 10}
-        if platform_name == "FY3A":
-            # CMA 2016 coefficients
-            band_values["1"] = -0.317
-            band_values["2"] = -0.303
-            band_values["6"] = -1.514
-            band_values["7"] = -0.319
-            band_values["8"] = -0.182
-            band_values["9"] = -0.170
-            band_values["10"] = -0.135
-        elif platform_name == "FY3B":
-            # CMA 2016 coefficients
-            band_values["1"] = -0.355
-            band_values["2"] = -0.370
-            band_values["6"] = -1.693
-            band_values["7"] = -0.260
-            band_values["8"] = -0.155
-            band_values["9"] = -0.225
-            band_values["10"] = -0.103
+        band_values.update(REFSB_EXPECTED.get(platform_name, {}))
         datasets = reader.load([band for band in band_values])
         for dataset in datasets:
             # Object returned by get_dataset.
@@ -165,7 +155,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         """Test that FY3A files are recognized."""
         from satpy.readers.core.loading import load_reader
         FY3A_reader = load_reader(self.reader_configs)
-        FY3A_file = FY3A_reader.select_files_from_pathnames(["tf2018359214943.FY3A-L_VIRRX_L1B.HDF"])
+        FY3A_file = FY3A_reader.select_files_from_pathnames(["tf2010290135500.FY3A-L_VIRRX_L1B.HDF"])
         assert 1 == len(FY3A_file)
         FY3A_reader.create_filehandlers(FY3A_file)
         # Make sure we have some files
