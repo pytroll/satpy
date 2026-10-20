@@ -24,7 +24,8 @@ PLATFORMS_INSTRUMENTS = {"FY-3A": "mersi-1",
                          "FY-3D": "mersi-2",
                          "FY-3E": "mersi-ll",
                          "FY-3F": "mersi-3",
-                         "FY-3G": "mersi-rm"}
+                         "FY-3G": "mersi-rm",
+                         "FY-3H": "mersi-3"}
 
 
 class MERSIL1B(HDF5FileHandler):
