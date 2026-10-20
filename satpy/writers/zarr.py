@@ -129,7 +129,9 @@ h5netcdf package. Options of :func:`~satpy.cf.datasets.collect_cf_datasets` are 
     ...                   cf_kwargs={"include_lonlats": False, "exclude_attrs": ["raw_metadata"]})
 
 ``cf_kwargs["epoch"]`` sets the units of times that exist before the conversion and defaults to the units
-described under Appending. ``time_bnds`` is encoded like ``time``.
+described under Appending. ``time_bnds`` is encoded like ``time``. Names starting with a digit get the
+``numeric_name_prefix`` of ``cf_kwargs``, ``"CHANNEL_"`` by default, both as variable names and as keys of
+the ``encoding`` argument, so ``encoding={"4": ...}`` applies to the variable ``CHANNEL_4``.
 
 Zarr format and consolidated metadata
 -------------------------------------
@@ -459,18 +461,19 @@ class ZarrWriter(Writer):
         datasets = list(datasets)
         if not datasets:
             return []
+        builder = _make_dataset_builder(convert_to_cf, cf_kwargs, include_lonlats, include_grid_mapping,
+                                        include_geozarr)
         saver = _ZarrSaver(
             planner=_TargetPlanner(
                 compose_filename=self._compose_filename, filename=filename, store=to_zarr_args["store"],
                 storage_options=to_zarr_args["storage_options"], split_variables=split_variables, commit=commit),
-            builder=_make_dataset_builder(convert_to_cf, cf_kwargs, include_lonlats, include_grid_mapping,
-                                          include_geozarr),
+            builder=builder,
             store_mode=_StoreMode(
                 mode=_resolve_mode(to_zarr_args["mode"], to_zarr_args["append_dim"], xarray_kwargs.get("region")),
                 append_dim=to_zarr_args["append_dim"],
                 zarr_format=to_zarr_args["zarr_format"], configured_zarr_format=self.info.get("zarr_format"),
                 consolidated=to_zarr_args["consolidated"], xarray_kwargs=xarray_kwargs),
-            encoding=_EncodingPolicy(to_zarr_args["encoding"] or {}, fill_value),
+            encoding=_EncodingPolicy(builder.rename_encoding(to_zarr_args["encoding"] or {}), fill_value),
         )
         delayeds = saver.delayed_writes(datasets)
         if to_zarr_args["compute"]:
@@ -872,6 +875,9 @@ class _DatasetBuilder(typing.Protocol):
     def build(self, variables: dict[str, xr.DataArray]) -> xr.Dataset:
         """Build the dataset of the DataArrays ``variables``, which are keyed by variable name."""
 
+    def rename_encoding(self, encoding: dict[str, dict]) -> dict[str, dict]:
+        """Key the entries of the 'encoding' argument by the names the variables get in the built datasets."""
+
 
 def _make_dataset_builder(convert_to_cf: bool, cf_kwargs: dict | None, include_lonlats: bool | None,
                           include_grid_mapping: bool, include_geozarr: bool) -> _DatasetBuilder:
@@ -904,6 +910,10 @@ class _SatpyDatasetBuilder:
         if self.include_geozarr:
             ds.attrs.update(_root_geozarr_attrs(list(prepared.values())))
         return _drop_unused_encodings(ds)
+
+    def rename_encoding(self, encoding: dict[str, dict]) -> dict[str, dict]:
+        """Return ``encoding`` unchanged, as the variables keep their names."""
+        return encoding
 
     def _prepare(self, data_arr: xr.DataArray, lonlats: list[tuple[Any, dict]]) -> xr.DataArray:
         area = data_arr.attrs.get("area")
@@ -944,6 +954,12 @@ class _CFDatasetBuilder:
         for var in ds.variables.values():
             var.attrs = _json_safe(var.attrs)
         return _drop_unused_encodings(ds)
+
+    def rename_encoding(self, encoding: dict[str, dict]) -> dict[str, dict]:
+        """Prefix the names starting with a digit, as the CF conversion prefixes those of the variables."""
+        prefix = (self.cf_kwargs or {}).get("numeric_name_prefix", "CHANNEL_")
+        return {prefix + name if prefix and name[:1].isdigit() else name: var_encoding
+                for name, var_encoding in encoding.items()}
 
 
 def _drop_unused_encodings(ds: xr.Dataset) -> xr.Dataset:

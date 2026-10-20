@@ -1026,9 +1026,11 @@ def test_include_grid_mapping_rioxarray(writer, tmp_path):
 
 def test_convert_to_cf(writer, tmp_path):
     """Test the CF conversion path."""
-    writer.save_datasets([_data_array("C01", **_messy_attrs()), _data_array("C02")], filename=tmp_path / "out.zarr",
-                         convert_to_cf=True, fill_value=-1, include_grid_mapping=True)
+    writer.save_datasets([_data_array("C01", **_messy_attrs()), _data_array("2")], filename=tmp_path / "out.zarr",
+                         convert_to_cf=True, fill_value=-1, include_grid_mapping=True,
+                         encoding={"2": {"chunks": (1, 2)}})
     group = open_group(tmp_path / "out.zarr", mode="r")
+    assert group["CHANNEL_2"].chunks == (1, 2)
     assert group.attrs["Conventions"] == "CF-1.7"
     assert group["C01"].attrs["grid_mapping"] == "test"
     assert CRS.from_cf(group["test"].attrs.asdict()) == AREA.crs
@@ -1041,12 +1043,14 @@ def test_convert_to_cf(writer, tmp_path):
 
 
 def test_convert_to_cf_kwargs(writer, tmp_path):
-    """Test that cf_kwargs are passed to the CF conversion."""
-    writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", convert_to_cf=True,
-                         cf_kwargs={"include_lonlats": False, "exclude_attrs": ["units"]})
+    """Test that cf_kwargs are passed to the CF conversion, and that its name prefix applies to encoding entries."""
+    writer.save_datasets([_data_array("4")], filename=tmp_path / "out.zarr", convert_to_cf=True,
+                         cf_kwargs={"include_lonlats": False, "exclude_attrs": ["units"], "numeric_name_prefix": "B"},
+                         encoding={"4": {"chunks": (1, 2)}})
     ds = _open(tmp_path / "out.zarr")
     assert "longitude" not in ds.coords
-    assert "units" not in ds["test"].attrs
+    assert "units" not in ds["B4"].attrs
+    assert ds["B4"].encoding["chunks"] == (1, 2)
 
 
 @pytest.mark.parametrize(
