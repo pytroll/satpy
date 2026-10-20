@@ -134,7 +134,7 @@ class VIRR_L1B(HDF5FileHandler):
     def _calibrate_reflective(self, data, band_index):
         if self.platform_id == "FY3A":
             coeffs = da.from_array(FY3A_REF_COEFFS, chunks=-1)
-        elif self.platfrom_id == "FY3B":
+        elif self.platform_id == "FY3B":
             coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
         else:
             coeffs = self["/attr/RefSB_Cal_Coefficients"]
