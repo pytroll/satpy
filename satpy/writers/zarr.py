@@ -488,6 +488,12 @@ class ZarrWriter(Writer):
             encoding=encoding,
             compute=compute,
         )
+        # The Scene passes 'filename' to __init__, where it replaces the YAML default as file_pattern. A filename
+        # passed there that equals the YAML default is not detected.
+        if to_zarr_args["store"] is not None and (
+            filename is not None or self.file_pattern != self.info.get("filename")
+        ):
+            raise ValueError("'filename' and 'store' cannot be used together.")
         datasets = list(datasets)
         if not datasets:
             return []
@@ -649,8 +655,6 @@ class _TargetPlanner:
         metadata = [combine_metadata(*variables.values()) for variables in variable_sets]
         if self.store is None:
             stores: list = self._filenames(variable_sets, metadata)
-        elif self.filename is not None:
-            raise ValueError("'filename' and 'store' cannot be used together.")
         else:
             stores = _assign_stores(variable_sets, self.store, self.split_variables)
         targets = [

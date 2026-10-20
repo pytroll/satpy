@@ -171,7 +171,7 @@ def test_default_filename(tmp_path):
 
 
 def test_scene_selects_writer_by_extension(tmp_path):
-    """Test that Scene saving picks the zarr writer for filenames ending in .zarr."""
+    """Test that Scene saving picks the zarr writer for filenames ending in .zarr, which then refuses a store."""
     from satpy import Scene
 
     scn = Scene()
@@ -181,6 +181,9 @@ def test_scene_selects_writer_by_extension(tmp_path):
     _assert_roundtrip(tmp_path / "20260101.zarr", [scn["C01"], scn["C02"]])
     scn.save_dataset("C01", filename=str(tmp_path / "{name}.zarr"))
     _assert_roundtrip(tmp_path / "C01.zarr", [scn["C01"]])
+    # The Scene passes the filename to the writer's __init__ instead of save_datasets
+    with pytest.raises(ValueError, match="cannot be used together"):
+        scn.save_datasets(filename=str(tmp_path / "out.zarr"), store=MemoryStore())
 
 
 @pytest.mark.parametrize("ndim", [2, 3])
