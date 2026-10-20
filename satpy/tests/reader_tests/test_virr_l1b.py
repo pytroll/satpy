@@ -60,8 +60,9 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        if filename_info["platform_id"] == "FY3B":
-            return self._make_file("FY3B", "", "", "Emmisive_Centroid_Wave_Number", "milliWstts/m^2/cm^(-1)/steradian")
+        if filename_info["platform_id"] in ("FY3A", "FY3B"):
+            return self._make_file(filename_info["platform_id"], "", "", "Emmisive_Centroid_Wave_Number",
+                                   "milliWstts/m^2/cm^(-1)/steradian")
         return self._make_file(filename_info["platform_id"], "Geolocation/", "Data/",
                                "Emissive_Centroid_Wave_Number", "none")
 
@@ -102,8 +103,17 @@ class TestVIRRL1BReader(unittest.TestCase):
                        "3": 496.542155, "4": 297.444511, "5": 288.956557, "solar_zenith_angle": .1,
                        "satellite_zenith_angle": .1, "solar_azimuth_angle": .1, "satellite_azimuth_angle": .1,
                        "longitude": 10}
-        if platform_name == "FY3B":
-            # updated 2016 coefficients
+        if platform_name == "FY3A":
+            # CMA 2016 coefficients
+            band_values["1"] = -0.317
+            band_values["2"] = -0.303
+            band_values["6"] = -1.514
+            band_values["7"] = -0.319
+            band_values["8"] = -0.182
+            band_values["9"] = -0.170
+            band_values["10"] = -0.135
+        elif platform_name == "FY3B":
+            # CMA 2016 coefficients
             band_values["1"] = -0.355
             band_values["2"] = -0.370
             band_values["6"] = -1.693
@@ -150,6 +160,17 @@ class TestVIRRL1BReader(unittest.TestCase):
                 assert ("longitude", "latitude") == attributes["coordinates"]
             np.testing.assert_allclose(band_values[dataset["name"]], ds[ds.shape[0] // 2][ds.shape[1] // 2], rtol=1e-6)
             assert "valid_range" not in ds.attrs
+
+    def test_fy3a_file(self):
+        """Test that FY3A files are recognized."""
+        from satpy.readers.core.loading import load_reader
+        FY3A_reader = load_reader(self.reader_configs)
+        FY3A_file = FY3A_reader.select_files_from_pathnames(["tf2018359214943.FY3A-L_VIRRX_L1B.HDF"])
+        assert 1 == len(FY3A_file)
+        FY3A_reader.create_filehandlers(FY3A_file)
+        # Make sure we have some files
+        assert FY3A_reader.file_handlers
+        self._fy3_helper("FY3A", FY3A_reader, "milliWstts/m^2/cm^(-1)/steradian")
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""
