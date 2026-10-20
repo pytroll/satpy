@@ -260,6 +260,7 @@ not with ``dask.distributed``.
       already have a ``time`` dimension, would keep every step's period, with or without ``convert_to_cf``.
 
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -302,8 +303,14 @@ _SATPY_KWARGS = ("overlay", "decorate", "config_files")
 _NEW_GROUP_MODES = ("w", "w-")
 # save_datasets arguments that are also to_zarr arguments, so they may come from xarray_kwargs, with their defaults
 _TO_ZARR_ARGUMENT_DEFAULTS = {
-    "store": None, "storage_options": None, "mode": None, "append_dim": None, "zarr_format": None,
-    "consolidated": None, "encoding": None, "compute": True,
+    "store": None,
+    "storage_options": None,
+    "mode": None,
+    "append_dim": None,
+    "zarr_format": None,
+    "consolidated": None,
+    "encoding": None,
+    "compute": True,
 }
 _MIN_VERSIONS = {"zarr": Version("3.0.0"), "xarray": Version("2025.6.0")}
 # Without explicit units, xarray picks "days since <first time>" and later sub-second appends
@@ -315,11 +322,25 @@ _TIME_ENCODING = {
 }
 # Keys of DataArray.encoding that Dataset.to_zarr understands; others, such as the netCDF "zlib" or
 # "chunksizes" a reader may leave, are dropped. "fill_value" is set from _FillValue instead.
-_ZARR_ENCODING_KEYS = frozenset({
-    "dtype", "scale_factor", "add_offset", "_FillValue", "missing_value", "units", "calendar",
-    "chunks", "shards", "compressor", "compressors", "filters", "serializer", "write_empty_chunks",
-    "chunk_key_encoding",
-})
+_ZARR_ENCODING_KEYS = frozenset(
+    {
+        "dtype",
+        "scale_factor",
+        "add_offset",
+        "_FillValue",
+        "missing_value",
+        "units",
+        "calendar",
+        "chunks",
+        "shards",
+        "compressor",
+        "compressors",
+        "filters",
+        "serializer",
+        "write_empty_chunks",
+        "chunk_key_encoding",
+    }
+)
 _ZARR_CONVENTIONS = {
     "proj": {
         "schema_url": "https://raw.githubusercontent.com/zarr-conventions/proj/refs/tags/v0.1/schema.json",
@@ -347,8 +368,9 @@ class ZarrWriter(Writer):
 
     def __init__(self, name=None, filename=None, base_dir=None, **kwargs):
         """Initialize the writer and load its YAML configuration."""
-        super().__init__(name=name, filename=filename, base_dir=base_dir,
-                         default_config_filename="writers/zarr.yaml", **kwargs)
+        super().__init__(
+            name=name, filename=filename, base_dir=base_dir, default_config_filename="writers/zarr.yaml", **kwargs
+        )
 
     def create_filename_parser(self, base_dir):
         """Create the filename parser, ignoring ``base_dir`` for URL patterns as it is for absolute paths."""
@@ -357,13 +379,13 @@ class ZarrWriter(Writer):
         return super().create_filename_parser(base_dir)
 
     def save_dataset(
-            self,
-            dataset: xr.DataArray,
-            filename: str | PathLike | None = None,
-            fill_value: float | int | None = None,
-            compute: bool = True,
-            units: str | None = None,
-            **kwargs,
+        self,
+        dataset: xr.DataArray,
+        filename: str | PathLike | None = None,
+        fill_value: float | int | None = None,
+        compute: bool = True,
+        units: str | None = None,
+        **kwargs,
     ) -> list[Delayed] | list[Any]:
         """Save one dataset to a zarr store.
 
@@ -376,28 +398,28 @@ class ZarrWriter(Writer):
         return self.save_datasets([dataset], compute=compute, filename=filename, fill_value=fill_value, **kwargs)
 
     def save_datasets(
-            self,
-            datasets: Iterable[xr.DataArray],
-            compute: bool = True,
-            *,
-            filename: str | PathLike | None = None,
-            store: Any = None,
-            storage_options: dict | None = None,
-            split_variables: bool = False,
-            commit: str | None = None,
-            fill_value: float | int | None = None,
-            append_dim: Hashable | None = None,
-            mode: str | None = None,
-            zarr_format: int | None = None,
-            consolidated: bool | None = None,
-            encoding: dict[str, dict] | None = None,
-            include_lonlats: bool | None = None,
-            include_grid_mapping: bool = False,
-            include_geozarr: bool = True,
-            convert_to_cf: bool = False,
-            cf_kwargs: dict | None = None,
-            xarray_kwargs: dict | None = None,
-            **kwargs,
+        self,
+        datasets: Iterable[xr.DataArray],
+        compute: bool = True,
+        *,
+        filename: str | PathLike | None = None,
+        store: Any = None,
+        storage_options: dict | None = None,
+        split_variables: bool = False,
+        commit: str | None = None,
+        fill_value: float | int | None = None,
+        append_dim: Hashable | None = None,
+        mode: str | None = None,
+        zarr_format: int | None = None,
+        consolidated: bool | None = None,
+        encoding: dict[str, dict] | None = None,
+        include_lonlats: bool | None = None,
+        include_grid_mapping: bool = False,
+        include_geozarr: bool = True,
+        convert_to_cf: bool = False,
+        cf_kwargs: dict | None = None,
+        xarray_kwargs: dict | None = None,
+        **kwargs,
     ) -> list[Delayed] | list[Any]:
         """Save datasets to one or more zarr stores.
 
@@ -456,23 +478,40 @@ class ZarrWriter(Writer):
         _warn_unknown_kwargs(kwargs)
         xarray_kwargs = dict(xarray_kwargs or {})
         to_zarr_args = _pop_to_zarr_arguments(
-            xarray_kwargs, store=store, storage_options=storage_options, mode=mode, append_dim=append_dim,
-            zarr_format=zarr_format, consolidated=consolidated, encoding=encoding, compute=compute)
+            xarray_kwargs,
+            store=store,
+            storage_options=storage_options,
+            mode=mode,
+            append_dim=append_dim,
+            zarr_format=zarr_format,
+            consolidated=consolidated,
+            encoding=encoding,
+            compute=compute,
+        )
         datasets = list(datasets)
         if not datasets:
             return []
-        builder = _make_dataset_builder(convert_to_cf, cf_kwargs, include_lonlats, include_grid_mapping,
-                                        include_geozarr)
+        builder = _make_dataset_builder(
+            convert_to_cf, cf_kwargs, include_lonlats, include_grid_mapping, include_geozarr
+        )
         saver = _ZarrSaver(
             planner=_TargetPlanner(
-                compose_filename=self._compose_filename, filename=filename, store=to_zarr_args["store"],
-                storage_options=to_zarr_args["storage_options"], split_variables=split_variables, commit=commit),
+                compose_filename=self._compose_filename,
+                filename=filename,
+                store=to_zarr_args["store"],
+                storage_options=to_zarr_args["storage_options"],
+                split_variables=split_variables,
+                commit=commit,
+            ),
             builder=builder,
             store_mode=_StoreMode(
                 mode=_resolve_mode(to_zarr_args["mode"], to_zarr_args["append_dim"], xarray_kwargs.get("region")),
                 append_dim=to_zarr_args["append_dim"],
-                zarr_format=to_zarr_args["zarr_format"], configured_zarr_format=self.info.get("zarr_format"),
-                consolidated=to_zarr_args["consolidated"], xarray_kwargs=xarray_kwargs),
+                zarr_format=to_zarr_args["zarr_format"],
+                configured_zarr_format=self.info.get("zarr_format"),
+                consolidated=to_zarr_args["consolidated"],
+                xarray_kwargs=xarray_kwargs,
+            ),
             encoding=_EncodingPolicy(builder.rename_encoding(to_zarr_args["encoding"] or {}), fill_value),
         )
         delayeds = saver.delayed_writes(datasets)
@@ -528,8 +567,9 @@ def _check_versions() -> None:
     for package, min_version in _MIN_VERSIONS.items():
         version = _package_version(package)
         if version < min_version:
-            raise ImportError(f"The 'zarr' writer requires {package}>={min_version}, but {package} {version} "
-                              "is installed.")
+            raise ImportError(
+                f"The 'zarr' writer requires {package}>={min_version}, but {package} {version} is installed."
+            )
 
 
 def _package_version(package: str) -> Version:
@@ -563,8 +603,9 @@ def _warn_unknown_kwargs(kwargs: dict) -> None:
 
 def _pop_to_zarr_arguments(xarray_kwargs: dict, **arguments) -> dict:
     """Take the ``save_datasets`` arguments that may also be passed in ``xarray_kwargs`` out of it."""
-    both = [key for key, value in arguments.items()
-            if key in xarray_kwargs and value is not _TO_ZARR_ARGUMENT_DEFAULTS[key]]
+    both = [
+        key for key, value in arguments.items() if key in xarray_kwargs and value is not _TO_ZARR_ARGUMENT_DEFAULTS[key]
+    ]
     if both:
         raise ValueError(f"{both} given both as arguments and in 'xarray_kwargs'; pass each only once.")
     return {key: xarray_kwargs.pop(key, value) for key, value in arguments.items()}
@@ -612,8 +653,10 @@ class _TargetPlanner:
             raise ValueError("'filename' and 'store' cannot be used together.")
         else:
             stores = _assign_stores(variable_sets, self.store, self.split_variables)
-        targets = [_make_target(variables, attrs, store, self.storage_options, self.commit)
-                   for variables, attrs, store in zip(variable_sets, metadata, stores)]
+        targets = [
+            _make_target(variables, attrs, store, self.storage_options, self.commit)
+            for variables, attrs, store in zip(variable_sets, metadata, stores)
+        ]
         _require_sessions_for_commit(targets)
         return targets
 
@@ -623,8 +666,10 @@ class _TargetPlanner:
             names = ", ".join(variables)
             target_filename = self._filename(variables, attrs)
             if target_filename in names_by_filename:
-                raise ValueError(f"Datasets {names_by_filename[target_filename]!r} and {names!r} would both be "
-                                 f"written to {target_filename!r}. Include '{{name}}' in the filename.")
+                raise ValueError(
+                    f"Datasets {names_by_filename[target_filename]!r} and {names!r} would both be "
+                    f"written to {target_filename!r}. Include '{{name}}' in the filename."
+                )
             names_by_filename[target_filename] = names
         return list(names_by_filename)
 
@@ -637,10 +682,11 @@ class _TargetPlanner:
         except KeyError as err:
             if len(variables) == 1:
                 raise ValueError(f"Cannot create the zarr filename, the dataset has no {err} attribute.") from err
-            raise ValueError(f"Cannot create the zarr filename, the datasets have no common {err} attribute. "
-                             "Only attributes equal in all datasets of a store, never 'name', can be used, so "
-                             "specify a 'filename' for multi-variable zarr stores or use split_variables=True."
-                             ) from err
+            raise ValueError(
+                f"Cannot create the zarr filename, the datasets have no common {err} attribute. "
+                "Only attributes equal in all datasets of a store, never 'name', can be used, so "
+                "specify a 'filename' for multi-variable zarr stores or use split_variables=True."
+            ) from err
 
 
 def _variable_name(data_arr: xr.DataArray) -> str:
@@ -670,11 +716,14 @@ def _assign_stores(variable_sets: list[dict[str, xr.DataArray]], store, split_va
     if not isinstance(store, dict):
         if len(variable_sets) == 1:
             return [store]
-        raise ValueError(f"With split_variables=True, a single 'store' cannot hold the {len(variable_sets)} datasets "
-                         f"{names}. Pass a dict of stores keyed by dataset name.")
+        raise ValueError(
+            f"With split_variables=True, a single 'store' cannot hold the {len(variable_sets)} datasets "
+            f"{names}. Pass a dict of stores keyed by dataset name."
+        )
     if not split_variables:
-        raise ValueError("A dict of stores requires split_variables=True; otherwise all datasets are "
-                         "written to one store.")
+        raise ValueError(
+            "A dict of stores requires split_variables=True; otherwise all datasets are written to one store."
+        )
     if len(set(names)) != len(names):
         raise ValueError(f"Dataset names are not unique, cannot assign stores by name: {names}")
     for name in names:
@@ -690,12 +739,15 @@ def _require_distinct_stores(names: list[str], stores: list) -> None:
     keys = [os.fspath(store) if isinstance(store, (str, os.PathLike)) else id(store) for store in stores]
     shared = [name for name, key in zip(names, keys) if keys.count(key) > 1]
     if shared:
-        raise ValueError(f"Datasets {shared} are assigned the same store. Write datasets that share a store "
-                         "without split_variables=True.")
+        raise ValueError(
+            f"Datasets {shared} are assigned the same store. Write datasets that share a store "
+            "without split_variables=True."
+        )
 
 
-def _make_target(variables: dict[str, xr.DataArray], attrs: dict, store, storage_options: dict | None,
-                 commit: str | None) -> _Target:
+def _make_target(
+    variables: dict[str, xr.DataArray], attrs: dict, store, storage_options: dict | None, commit: str | None
+) -> _Target:
     session = None
     if _is_icechunk_session(store):
         session, store = store, store.store
@@ -708,8 +760,9 @@ def _make_target(variables: dict[str, xr.DataArray], attrs: dict, store, storage
 def _require_sessions_for_commit(targets: list[_Target]) -> None:
     for target in targets:
         if target.commit is not None and target.session is None:
-            raise ValueError(f"'commit' requires an Icechunk Session as store, but {target.name!r} is not "
-                             "written to one.")
+            raise ValueError(
+                f"'commit' requires an Icechunk Session as store, but {target.name!r} is not written to one."
+            )
 
 
 def _is_url(target) -> bool:
@@ -750,12 +803,16 @@ class _StoreLayout:
         for var_name, var in ds.variables.items():
             stored = self.stored.get(str(var_name))
             if stored is not None and not _sizes_match(stored, var.sizes, self.append_dim):
-                raise ValueError(f"Cannot append {name!r}: {var_name!r} has the sizes {dict(var.sizes)}, which do not "
-                                 f"match its stored sizes {dict(stored)} apart from {self.append_dim!r}.")
+                raise ValueError(
+                    f"Cannot append {name!r}: {var_name!r} has the sizes {dict(var.sizes)}, which do not "
+                    f"match its stored sizes {dict(stored)} apart from {self.append_dim!r}."
+                )
         for coord, stored_values in self.grid_coords.items():
             if coord in ds.coords and not _same_values(stored_values, ds[coord].values):
-                raise ValueError(f"Cannot append {name!r}: its {coord!r} coordinate differs from the stored one. "
-                                 "Write data on another area, or with other bands, to another store or group.")
+                raise ValueError(
+                    f"Cannot append {name!r}: its {coord!r} coordinate differs from the stored one. "
+                    "Write data on another area, or with other bands, to another store or group."
+                )
 
 
 def _sizes_match(stored: Mapping[Hashable, int], new: Mapping[Hashable, int], append_dim: Hashable) -> bool:
@@ -802,8 +859,9 @@ class _StoreMode:
         """Choose the zarr format and consolidation of the write to ``target`` and find what it appends to."""
         is_icechunk = _is_icechunk(target.store)
         if is_icechunk and self.zarr_format == 2:
-            raise ValueError(f"Icechunk only supports zarr format 3, but zarr_format=2 was requested for "
-                             f"{target.name!r}.")
+            raise ValueError(
+                f"Icechunk only supports zarr format 3, but zarr_format=2 was requested for {target.name!r}."
+            )
         # xarray fails to append to a store or group that does not exist yet, or to one with another zarr_format
         layout = self._read_layout(target)
         if layout is None:
@@ -837,13 +895,20 @@ class _StoreMode:
             # The group is created or overwritten, so nothing in it is appended to
             return layout
         try:
-            zarr_group = zarr.open_group(target.store, mode="r", path=self.group,
-                                         zarr_format=root_metadata.zarr_format, use_consolidated=False, **open_kwargs)
+            zarr_group = zarr.open_group(
+                target.store,
+                mode="r",
+                path=self.group,
+                zarr_format=root_metadata.zarr_format,
+                use_consolidated=False,
+                **open_kwargs,
+            )
         except not_found:
             return layout
         arrays = dict(zarr_group.arrays())
-        layout = replace(layout, append_dim=self.append_dim,
-                         stored={name: _stored_sizes(array) for name, array in arrays.items()})
+        layout = replace(
+            layout, append_dim=self.append_dim, stored={name: _stored_sizes(array) for name, array in arrays.items()}
+        )
         if self.append_dim is None:
             return layout
         # xarray only compares the sizes of the stored coordinates with those of appended data
@@ -859,8 +924,13 @@ class _StoreMode:
 
     def to_zarr_kwargs(self, target: _Target, layout: _StoreLayout) -> dict:
         """Get the ``to_zarr`` keyword arguments of the write to ``target``, except ``encoding``."""
-        kwargs: dict[str, Any] = {"mode": self.mode, "align_chunks": True, "compute": False,
-                                  "zarr_format": layout.zarr_format, "consolidated": layout.consolidated}
+        kwargs: dict[str, Any] = {
+            "mode": self.mode,
+            "align_chunks": True,
+            "compute": False,
+            "zarr_format": layout.zarr_format,
+            "consolidated": layout.consolidated,
+        }
         if target.storage_options is not None:
             kwargs["storage_options"] = target.storage_options
         if layout.append_dim is not None:
@@ -879,8 +949,13 @@ class _DatasetBuilder(typing.Protocol):
         """Key the entries of the 'encoding' argument by the names the variables get in the built datasets."""
 
 
-def _make_dataset_builder(convert_to_cf: bool, cf_kwargs: dict | None, include_lonlats: bool | None,
-                          include_grid_mapping: bool, include_geozarr: bool) -> _DatasetBuilder:
+def _make_dataset_builder(
+    convert_to_cf: bool,
+    cf_kwargs: dict | None,
+    include_lonlats: bool | None,
+    include_grid_mapping: bool,
+    include_geozarr: bool,
+) -> _DatasetBuilder:
     if convert_to_cf:
         LOG.debug("convert_to_cf=True: include_lonlats, include_grid_mapping and include_geozarr are not used.")
         return _CFDatasetBuilder(cf_kwargs)
@@ -903,9 +978,11 @@ class _SatpyDatasetBuilder:
             xr.align(*prepared.values(), join="exact")
             ds = xr.Dataset(prepared)
         except ValueError as err:
-            raise ValueError(f"Datasets {list(prepared)} cannot be written to one store because their coordinates "
-                             "differ. Resample them to a common area, use split_variables=True, or save them with "
-                             "separate save_datasets calls.") from err
+            raise ValueError(
+                f"Datasets {list(prepared)} cannot be written to one store because their coordinates "
+                "differ. Resample them to a common area, use split_variables=True, or save them with "
+                "separate save_datasets calls."
+            ) from err
         ds.attrs["history"] = f"Created by pytroll/satpy on {dt.datetime.now(dt.timezone.utc)}"
         if self.include_geozarr:
             ds.attrs.update(_root_geozarr_attrs(list(prepared.values())))
@@ -924,8 +1001,11 @@ class _SatpyDatasetBuilder:
             _warn_if_not_georeferenced(data_arr, area)
         gridded_area = area if isinstance(area, AreaDefinition) and {"y", "x"}.issubset(data_arr.dims) else None
         if gridded_area is None and (self.include_grid_mapping or self.include_geozarr):
-            LOG.debug("Not adding a 'spatial_ref' coordinate or GeoZarr attributes to %r, it is not on an "
-                      "AreaDefinition with 'y' and 'x' dimensions.", data_arr.attrs.get("name"))
+            LOG.debug(
+                "Not adding a 'spatial_ref' coordinate or GeoZarr attributes to %r, it is not on an "
+                "AreaDefinition with 'y' and 'x' dimensions.",
+                data_arr.attrs.get("name"),
+            )
         if self.include_grid_mapping and gridded_area is not None:
             data_arr = _add_spatial_ref(data_arr, gridded_area)
         attrs = dict(data_arr.attrs)
@@ -958,8 +1038,10 @@ class _CFDatasetBuilder:
     def rename_encoding(self, encoding: dict[str, dict]) -> dict[str, dict]:
         """Prefix the names starting with a digit, as the CF conversion prefixes those of the variables."""
         prefix = (self.cf_kwargs or {}).get("numeric_name_prefix", "CHANNEL_")
-        return {prefix + name if prefix and name[:1].isdigit() else name: var_encoding
-                for name, var_encoding in encoding.items()}
+        return {
+            prefix + name if prefix and name[:1].isdigit() else name: var_encoding
+            for name, var_encoding in encoding.items()
+        }
 
 
 def _drop_unused_encodings(ds: xr.Dataset) -> xr.Dataset:
@@ -978,9 +1060,13 @@ def _warn_if_not_georeferenced(data_arr: xr.DataArray, area) -> None:
         return
     if {"longitude", "latitude"}.issubset(data_arr.coords):
         return
-    LOG.warning("%r is on a %s, which the 'zarr' writer cannot describe as one grid, so it is written without "
-                "georeference. Pass include_lonlats=True to add longitude and latitude coordinates, or resample "
-                "the data first.", data_arr.attrs.get("name"), type(area).__name__)
+    LOG.warning(
+        "%r is on a %s, which the 'zarr' writer cannot describe as one grid, so it is written without "
+        "georeference. Pass include_lonlats=True to add longitude and latitude coordinates, or resample "
+        "the data first.",
+        data_arr.attrs.get("name"),
+        type(area).__name__,
+    )
 
 
 def _wants_lonlats(data_arr: xr.DataArray, area, include_lonlats: bool | None) -> bool:
@@ -991,8 +1077,10 @@ def _wants_lonlats(data_arr: xr.DataArray, area, include_lonlats: bool | None) -
     if {"longitude", "latitude"}.issubset(data_arr.coords):
         return False
     if not {"y", "x"}.issubset(data_arr.dims):
-        LOG.debug("Not adding longitude/latitude to %r, it does not have both 'y' and 'x' dimensions.",
-                  data_arr.attrs.get("name"))
+        LOG.debug(
+            "Not adding longitude/latitude to %r, it does not have both 'y' and 'x' dimensions.",
+            data_arr.attrs.get("name"),
+        )
         return False
     return True
 
@@ -1044,13 +1132,15 @@ def _root_geozarr_attrs(data_vars: list[xr.DataArray]) -> dict:
 
 
 def _sanitize_attrs(attrs: dict) -> dict:
-    attrs = {key: val for key, val in attrs.items()
-             if val is not None and key not in ("area", "_last_resampler") and not key.startswith("_satpy")}
+    attrs = {
+        key: val
+        for key, val in attrs.items()
+        if val is not None and key not in ("area", "_last_resampler") and not key.startswith("_satpy")
+    }
     ancillary_variables = attrs.pop("ancillary_variables", None)
     if ancillary_variables:
         attrs["ancillary_variables"] = [
-            anc.attrs.get("name", anc.name) if isinstance(anc, xr.DataArray) else anc
-            for anc in ancillary_variables
+            anc.attrs.get("name", anc.name) if isinstance(anc, xr.DataArray) else anc for anc in ancillary_variables
         ]
     return _json_safe(attrs)
 
@@ -1120,8 +1210,9 @@ def _maybe_expand_append_dim(ds: xr.Dataset, append_dim: Hashable, attrs: dict) 
     if append_dim in ds.coords:
         return _expand_dims(ds, append_dim)
     if append_dim != "time":
-        raise ValueError(f"append_dim={append_dim!r} is not a dimension of the data; only 'time' can be added "
-                         "by the writer.")
+        raise ValueError(
+            f"append_dim={append_dim!r} is not a dimension of the data; only 'time' can be added by the writer."
+        )
     start_time = attrs.get("start_time")
     if start_time is None:
         raise ValueError("append_dim='time' needs a 'start_time' attribute to create the time coordinate.")
@@ -1141,9 +1232,13 @@ def _expand_coords(ds: xr.Dataset, append_dim: Hashable, data_arrs: Iterable[xr.
     if not _on_swath(data_arrs):
         fixed |= {"longitude", "latitude"}
     sizes = {append_dim: ds.sizes[append_dim]}
-    return ds.assign_coords({name: coord.variable.set_dims({**sizes, **coord.sizes})
-                             for name, coord in ds.coords.items()
-                             if coord.ndim > 0 and name not in fixed and append_dim not in coord.dims})
+    return ds.assign_coords(
+        {
+            name: coord.variable.set_dims({**sizes, **coord.sizes})
+            for name, coord in ds.coords.items()
+            if coord.ndim > 0 and name not in fixed and append_dim not in coord.dims
+        }
+    )
 
 
 def _grid_coord_names(data_arrs: Collection[xr.DataArray]) -> list[str]:
@@ -1183,23 +1278,26 @@ class _EncodingPolicy:
         names = set().union(*(ds.variables for ds in datasets))
         unknown = sorted(set(self.user_encoding) - names)
         if unknown:
-            raise ValueError(f"The 'encoding' argument has entries for {unknown}, which are not variables of the "
-                             "written data.")
+            raise ValueError(
+                f"The 'encoding' argument has entries for {unknown}, which are not variables of the written data."
+            )
 
     def _encoding(self, ds: xr.Dataset, stored: Collection[str]) -> dict[Hashable, dict]:
         ignored = sorted(name for name in self.user_encoding if name in stored)
         if ignored:
             LOG.debug("Not using the 'encoding' entries of %s, which are already in the store.", ignored)
         user_encoding: dict[Hashable, dict] = {
-            name: var_encoding for name, var_encoding in self.user_encoding.items()
-            if name in ds.variables and name not in stored}
-        defaults = {name: var_encoding for name, var_encoding in self._defaults(ds, user_encoding).items()
-                    if name not in stored}
+            name: var_encoding
+            for name, var_encoding in self.user_encoding.items()
+            if name in ds.variables and name not in stored
+        }
+        defaults = {
+            name: var_encoding for name, var_encoding in self._defaults(ds, user_encoding).items() if name not in stored
+        }
         # An entry passed to to_zarr replaces the variable's own encoding, so it is merged in here, into a new dict
         # that _set_zarr_fill_value can change without changing the 'encoding' argument
         names = [*defaults, *(name for name in user_encoding if name not in defaults)]
-        return {name: {**ds[name].encoding, **defaults.get(name, {}), **user_encoding.get(name, {})}
-                for name in names}
+        return {name: {**ds[name].encoding, **defaults.get(name, {}), **user_encoding.get(name, {})} for name in names}
 
     def _defaults(self, ds: xr.Dataset, user_encoding: dict[Hashable, dict]) -> dict[Hashable, dict]:
         defaults: dict[Hashable, dict] = {}
@@ -1274,8 +1372,9 @@ class _WriteJob:
         """Write the store metadata and return the delayed write of the data, followed by the commit if any."""
         with warnings.catch_warnings():
             if self.to_zarr_kwargs.get("zarr_format") == 3 and self.to_zarr_kwargs.get("consolidated"):
-                warnings.filterwarnings("ignore", message="Consolidated metadata is currently not part",
-                                        category=UserWarning)
+                warnings.filterwarnings(
+                    "ignore", message="Consolidated metadata is currently not part", category=UserWarning
+                )
             delayed = self.dataset.to_zarr(self.target.store, **self.to_zarr_kwargs)
         if self.target.commit is None:
             return delayed

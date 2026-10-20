@@ -33,8 +33,15 @@ from satpy.writers.zarr import ZarrWriter
 START_TIME = dt.datetime(2026, 1, 1, 12, 0, 0, 123456, tzinfo=dt.timezone.utc)
 # Pixels are 1000 m wide and 500 m high, so swapping the x and y pixel sizes is caught
 AREA = AreaDefinition("test", "test", "test", "EPSG:3395", 6, 4, (-1000.0, -500.0, 5000.0, 1500.0))
-GEOS_AREA = AreaDefinition("geos", "geos", "geos", {"proj": "geos", "h": 35786023.0, "lon_0": -75.0, "sweep": "x"},
-                           6, 4, (-3e6, -1e6, 3e6, 1e6))
+GEOS_AREA = AreaDefinition(
+    "geos",
+    "geos",
+    "geos",
+    {"proj": "geos", "h": 35786023.0, "lon_0": -75.0, "sweep": "x"},
+    6,
+    4,
+    (-3e6, -1e6, 3e6, 1e6),
+)
 # AREA rotated by 180 degrees, like SEVIRI data in their raw orientation
 FLIPPED_AREA = AreaDefinition("flipped", "flipped", "flipped", "EPSG:3395", 6, 4, (5000.0, 1500.0, -1000.0, -500.0))
 PROJ_UUID = "f17cb550-5864-4468-aeb7-f3180cfb622f"
@@ -84,8 +91,11 @@ def _messy_attrs():
         "none_value": None,
         "_satpy_id": make_dataid(name="test"),
         "_last_resampler": object(),
-        "orbital_parameters": {"satellite_nominal_longitude": -75.0, "satellite_actual_altitude": np.nan,
-                               "nested": {"a": [1, 2]}},
+        "orbital_parameters": {
+            "satellite_nominal_longitude": -75.0,
+            "satellite_actual_altitude": np.nan,
+            "nested": {"a": [1, 2]},
+        },
         "prerequisites": [make_dataid(name="C01"), DataQuery(name="C02")],
         "array": np.array([1, 2, 3], dtype=np.int16),
         "ancillary_variables": [_data_array("quality")],
@@ -101,6 +111,7 @@ def _messy_attrs():
 
 def _strict_json(path):
     """Parse a JSON file, refusing the NaN and Infinity tokens that only Python's json accepts."""
+
     def _refuse(token):
         raise ValueError(f"{token} is not valid JSON")
 
@@ -129,7 +140,7 @@ def _assert_roundtrip(store, expected, **open_kwargs):
     ds = _open(store, **open_kwargs)
     for data_arr in expected:
         stored = ds[data_arr.attrs["name"]]
-        assert stored.dims[-data_arr.ndim:] == data_arr.dims
+        assert stored.dims[-data_arr.ndim :] == data_arr.dims
         np.testing.assert_array_equal(stored.values.reshape(data_arr.shape), data_arr.values)
     return ds
 
@@ -208,8 +219,11 @@ def test_attrs_sanitized(writer, tmp_path, stored_array):
     assert attrs["start_time"] == "2026-01-01T12:00:00.123456+00:00"
     assert attrs["sensor"] == ["abi"]
     assert attrs["flag"] is True
-    assert attrs["orbital_parameters"] == {"satellite_nominal_longitude": -75.0, "satellite_actual_altitude": "NaN",
-                                           "nested": {"a": [1, 2]}}
+    assert attrs["orbital_parameters"] == {
+        "satellite_nominal_longitude": -75.0,
+        "satellite_actual_altitude": "NaN",
+        "nested": {"a": [1, 2]},
+    }
     assert attrs["prerequisites"] == [str(make_dataid(name="C01")), str(DataQuery(name="C02"))]
     assert attrs["array"] == [1, 2, 3]
     assert attrs["ancillary_variables"] == ["quality"]
@@ -299,8 +313,10 @@ def test_append_time(writer, tmp_path, zarr_format):
 def test_append_existing_time_coordinate(writer, tmp_path, time_dims):
     """Test appending data that already has a scalar or dimension time coordinate."""
     store = tmp_path / "out.zarr"
-    data_arrays = [_data_array().assign_coords(time=np.datetime64(f"2026-01-01T{hour}:00", "ns")).expand_dims(time_dims)
-                   for hour in (12, 13)]
+    data_arrays = [
+        _data_array().assign_coords(time=np.datetime64(f"2026-01-01T{hour}:00", "ns")).expand_dims(time_dims)
+        for hour in (12, 13)
+    ]
     _save_steps(writer, store, data_arrays)
     assert list(_open(store).time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
@@ -311,7 +327,8 @@ def test_append_coordinates(writer, tmp_path, swath):
     areas = [_swath_definition(0.0), _swath_definition(100.0)] if swath else [AREA, AREA]
     data_arrays = [
         _data_array(area=area, start_time=START_TIME + dt.timedelta(hours=hour)).assign_coords(
-            acq_time=("y", np.datetime64(f"2026-01-01T{12 + hour}:00", "ns") + np.arange(4) * np.timedelta64(1, "m")))
+            acq_time=("y", np.datetime64(f"2026-01-01T{12 + hour}:00", "ns") + np.arange(4) * np.timedelta64(1, "m"))
+        )
         for hour, area in enumerate(areas)
     ]
     _save_steps(writer, tmp_path / "out.zarr", data_arrays, include_lonlats=True)
@@ -328,16 +345,25 @@ def test_append_keeps_stored_area_lonlats(writer, tmp_path):
     store = tmp_path / "out.zarr"
     writer.save_datasets([_data_array()], filename=store, append_dim="time", include_lonlats=True)
     open_group(store, mode="r+")["longitude"][:] = 0.0
-    writer.save_datasets([_data_array(start_time=START_TIME + dt.timedelta(hours=1))], filename=store,
-                         append_dim="time", include_lonlats=True)
+    writer.save_datasets(
+        [_data_array(start_time=START_TIME + dt.timedelta(hours=1))],
+        filename=store,
+        append_dim="time",
+        include_lonlats=True,
+    )
     np.testing.assert_array_equal(_open(store)["longitude"].values, 0.0)
 
 
 @pytest.mark.parametrize(
     ("ndim", "second_area", "second_coords", "match"),
     [
-        pytest.param(2, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (9000.0, -500.0, 15000.0, 1500.0)),
-                     {}, "its 'x' coordinate differs", id="other_area"),
+        pytest.param(
+            2,
+            AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (9000.0, -500.0, 15000.0, 1500.0)),
+            {},
+            "its 'x' coordinate differs",
+            id="other_area",
+        ),
         pytest.param(3, AREA, {"bands": ["Y", "Cb", "Cr"]}, "its 'bands' coordinate differs", id="other_bands"),
     ],
 )
@@ -353,8 +379,12 @@ def test_append_to_other_grid_raises(writer, tmp_path, ndim, second_area, second
 
 def test_append_swath_with_other_xy(writer, tmp_path):
     """Test that the x and y of swath data, such as pixel indices, are not compared with the stored ones."""
-    data_arrays = [_data_array(area=_swath_definition(), start_time=START_TIME + dt.timedelta(hours=hour))
-                   .assign_coords(y=np.arange(4) + 4 * hour, x=np.arange(6)) for hour in range(2)]
+    data_arrays = [
+        _data_array(area=_swath_definition(), start_time=START_TIME + dt.timedelta(hours=hour)).assign_coords(
+            y=np.arange(4) + 4 * hour, x=np.arange(6)
+        )
+        for hour in range(2)
+    ]
     _save_steps(writer, tmp_path / "out.zarr", data_arrays)
     assert _open(tmp_path / "out.zarr").sizes["time"] == 2
 
@@ -369,8 +399,9 @@ def test_append_swath_with_other_xy(writer, tmp_path):
 def test_append_errors(writer, tmp_path, start_time, append_dim, match):
     """Test that appends the writer cannot set up raise."""
     with pytest.raises(ValueError, match=match):
-        writer.save_datasets([_data_array(start_time=start_time)], filename=tmp_path / "out.zarr",
-                             append_dim=append_dim)
+        writer.save_datasets(
+            [_data_array(start_time=start_time)], filename=tmp_path / "out.zarr", append_dim=append_dim
+        )
 
 
 def test_append_with_fill_value(writer, tmp_path):
@@ -388,8 +419,10 @@ def test_append_with_fill_value(writer, tmp_path):
 def test_append_with_encoding_argument(writer, tmp_path):
     """Test that the same encoding argument works for the first and every following append."""
     store = tmp_path / "out.zarr"
-    encoding = {"test": {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1},
-                "time": {"units": "seconds since 2000-01-01"}}
+    encoding = {
+        "test": {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1},
+        "time": {"units": "seconds since 2000-01-01"},
+    }
     input_encoding = copy.deepcopy(encoding)
     _save_steps(writer, store, _hourly(12, 13), encoding=encoding)
     assert encoding == input_encoding
@@ -441,8 +474,13 @@ def test_zarr_format(writer, tmp_path, kwargs, yaml_config, zarr_format, consoli
     ("variable_encoding", "encoding", "chunks", "dtype"),
     [
         pytest.param({}, None, (2, 6), np.float32, id="rechunked"),
-        pytest.param({"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, (2, 6), np.int16,
-                     id="rechunked_keeps_encoding"),
+        pytest.param(
+            {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1},
+            None,
+            (2, 6),
+            np.int16,
+            id="rechunked_keeps_encoding",
+        ),
         pytest.param({"chunks": (4, 3)}, None, (4, 3), np.float32, id="encoding_attribute_chunks"),
         pytest.param({}, {"test": {"chunks": (4, 3)}}, (4, 3), np.float32, id="encoding_kwarg_chunks"),
     ],
@@ -462,8 +500,17 @@ def test_irregular_chunks(writer, tmp_path, variable_encoding, encoding, chunks,
 def test_variable_encoding_used(writer, tmp_path):
     """Test that a DataArray's encoding is used, without the keys zarr does not understand."""
     data_arr = _data_array()
-    data_arr.encoding = {"dtype": "int16", "scale_factor": 0.25, "add_offset": 0.0, "_FillValue": -1, "zlib": True,
-                         "complevel": 4, "chunksizes": (4, 6), "source": "/in.nc", "original_shape": (4, 6)}
+    data_arr.encoding = {
+        "dtype": "int16",
+        "scale_factor": 0.25,
+        "add_offset": 0.0,
+        "_FillValue": -1,
+        "zlib": True,
+        "complevel": 4,
+        "chunksizes": (4, 6),
+        "source": "/in.nc",
+        "original_shape": (4, 6),
+    }
     input_encoding = copy.deepcopy(data_arr.encoding)
     writer.save_datasets([data_arr], filename=tmp_path / "out.zarr")
     assert data_arr.encoding == input_encoding
@@ -482,8 +529,12 @@ def test_encoding_precedence(writer, tmp_path):
     compressed.encoding = {"compressors": [zarr.codecs.GzipCodec(level=5)], "dtype": "float64"}
     missing = _data_array("missing")
     missing.encoding = {"_FillValue": -5.0, "missing_value": -5.0}
-    writer.save_datasets([packed, compressed, missing], filename=tmp_path / "out.zarr", fill_value=-9,
-                         encoding={"compressed": {"dtype": "float32"}})
+    writer.save_datasets(
+        [packed, compressed, missing],
+        filename=tmp_path / "out.zarr",
+        fill_value=-9,
+        encoding={"compressed": {"dtype": "float32"}},
+    )
     group = open_group(tmp_path / "out.zarr", mode="r")
     assert group["packed"].dtype == np.int16
     assert group["packed"].attrs["_FillValue"] == -9
@@ -510,20 +561,47 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
         pytest.param(np.float32, {}, -999.0, {}, np.nan, 3, id="float_fill_value_attribute"),
         pytest.param(np.float32, {}, np.nan, {}, np.nan, 3, id="float_nan_fill_value_attribute"),
         pytest.param(np.float32, {}, None, {"fill_value": -9}, -9, 3, id="fill_value_argument"),
-        pytest.param(np.float32, {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1}, None, {}, -1, 3,
-                     id="packed_encoding"),
+        pytest.param(
+            np.float32,
+            {"dtype": "int16", "scale_factor": 0.25, "_FillValue": -1},
+            None,
+            {},
+            -1,
+            3,
+            id="packed_encoding",
+        ),
         pytest.param(np.int16, {}, -1, {}, -1, 3, id="integer_fill_value_attribute"),
         pytest.param(np.int16, {}, -1, {"convert_to_cf": True}, -1, 3, id="integer_fill_value_attribute_cf"),
-        pytest.param(np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {}, -9, 3,
-                     id="variable_encoding_fill_value_dropped"),
-        pytest.param(np.float32, {}, None, {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}}, 0, 6,
-                     id="encoding_argument"),
-        pytest.param(np.float32, {"_FillValue": -9.0, "fill_value": 0.0}, None, {"fill_value": -9, "zarr_format": 2},
-                     -9, 3, id="format_2"),
+        pytest.param(
+            np.float32,
+            {"_FillValue": -9.0, "fill_value": 0.0},
+            None,
+            {},
+            -9,
+            3,
+            id="variable_encoding_fill_value_dropped",
+        ),
+        pytest.param(
+            np.float32,
+            {},
+            None,
+            {"fill_value": -9, "encoding": {"test": {"fill_value": 0.0}}},
+            0,
+            6,
+            id="encoding_argument",
+        ),
+        pytest.param(
+            np.float32,
+            {"_FillValue": -9.0, "fill_value": 0.0},
+            None,
+            {"fill_value": -9, "zarr_format": 2},
+            -9,
+            3,
+            id="format_2",
+        ),
     ],
 )
-def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, kwargs, expected_fill,
-                         stored_chunks):
+def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, kwargs, expected_fill, stored_chunks):
     """Test that new format 3 arrays get their _FillValue as zarr fill_value, so fill-only chunks are skipped."""
     data_arr = _masked_data_array()
     if fill_attr is not None:
@@ -544,10 +622,15 @@ def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, 
     ("time_encoding", "encoding", "units"),
     [
         pytest.param(None, None, "microseconds since 1970-01-01", id="default"),
-        pytest.param({"units": "milliseconds since 2000-01-01", "dtype": "int64"}, None,
-                     "milliseconds since 2000-01-01", id="encoding_attribute"),
-        pytest.param(None, {"time": {"units": "seconds since 2000-01-01"}}, "seconds since 2000-01-01",
-                     id="encoding_kwarg"),
+        pytest.param(
+            {"units": "milliseconds since 2000-01-01", "dtype": "int64"},
+            None,
+            "milliseconds since 2000-01-01",
+            id="encoding_attribute",
+        ),
+        pytest.param(
+            None, {"time": {"units": "seconds since 2000-01-01"}}, "seconds since 2000-01-01", id="encoding_kwarg"
+        ),
     ],
 )
 def test_time_encoding(writer, tmp_path, time_encoding, encoding, units):
@@ -563,10 +646,12 @@ def test_time_encoding(writer, tmp_path, time_encoding, encoding, units):
 def test_multiple_datasets_use_combined_metadata(writer, tmp_path):
     """Test that datasets share one store named and timed by their combined metadata."""
     first = _data_array("C01", platform_name="GOES-16")
-    second = _data_array("C02", platform_name="GOES-16",
-                         start_time=dt.datetime(2026, 1, 1, 11, 59, 59, 5, tzinfo=dt.timezone.utc))
-    writer.save_datasets([first, second], filename=str(tmp_path / "{platform_name}_{start_time:%H%M%S%f}.zarr"),
-                         append_dim="time")
+    second = _data_array(
+        "C02", platform_name="GOES-16", start_time=dt.datetime(2026, 1, 1, 11, 59, 59, 5, tzinfo=dt.timezone.utc)
+    )
+    writer.save_datasets(
+        [first, second], filename=str(tmp_path / "{platform_name}_{start_time:%H%M%S%f}.zarr"), append_dim="time"
+    )
     ds = _assert_roundtrip(tmp_path / "GOES-16_115959000005.zarr", [first, second])
     assert list(ds.time.values) == _times("2026-01-01T11:59:59.000005")
 
@@ -574,8 +659,11 @@ def test_multiple_datasets_use_combined_metadata(writer, tmp_path):
 def test_split_variables(writer, tmp_path):
     """Test writing one store per dataset, each with the encoding argument entries of its dataset."""
     datasets = [_data_array("C01"), _data_array("C02")]
-    writer.save_datasets(datasets, split_variables=True,
-                         encoding={"C01": {"dtype": "float64"}, "C02": {"dtype": "int16", "_FillValue": -1}})
+    writer.save_datasets(
+        datasets,
+        split_variables=True,
+        encoding={"C01": {"dtype": "float64"}, "C02": {"dtype": "int16", "_FillValue": -1}},
+    )
     for data_arr, dtype in zip(datasets, [np.float64, np.int16]):
         store = tmp_path / f"{data_arr.attrs['name']}_20260101_120000.zarr"
         ds = _assert_roundtrip(store, [data_arr])
@@ -586,10 +674,16 @@ def test_split_variables(writer, tmp_path):
 @pytest.mark.parametrize(
     ("names", "filename", "split_variables", "match"),
     [
-        pytest.param(["C01", "C02"], None, False, "specify a 'filename' for multi-variable zarr stores",
-                     id="no_common_name"),
-        pytest.param(["C01"], "{platform_name}.zarr", False, "the dataset has no 'platform_name' attribute",
-                     id="missing_attribute"),
+        pytest.param(
+            ["C01", "C02"], None, False, "specify a 'filename' for multi-variable zarr stores", id="no_common_name"
+        ),
+        pytest.param(
+            ["C01"],
+            "{platform_name}.zarr",
+            False,
+            "the dataset has no 'platform_name' attribute",
+            id="missing_attribute",
+        ),
         pytest.param(["C01", "C02"], "same.zarr", True, "would both be written to", id="same_filename"),
         pytest.param(["C01", "C01"], "same.zarr", False, "More than one dataset named 'C01'", id="duplicate_name"),
     ],
@@ -598,23 +692,24 @@ def test_filename_errors(writer, tmp_path, names, filename, split_variables, mat
     """Test errors for datasets that cannot be assigned to stores."""
     filename = None if filename is None else str(tmp_path / filename)
     with pytest.raises(ValueError, match=match):
-        writer.save_datasets([_data_array(name) for name in names], filename=filename,
-                             split_variables=split_variables)
+        writer.save_datasets([_data_array(name) for name in names], filename=filename, split_variables=split_variables)
 
 
 @pytest.mark.parametrize(
     ("area", "other_area"),
     [
-        pytest.param(AREA, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 2000.0)),
-                     id="grid"),
+        pytest.param(
+            AREA, AreaDefinition("other", "other", "other", "EPSG:3395", 6, 4, (0.0, 0.0, 6000.0, 2000.0)), id="grid"
+        ),
         pytest.param(_swath_definition(), _swath_definition(lon_offset=1.0), id="swath"),
     ],
 )
 def test_different_coordinates_raise(writer, tmp_path, area, other_area):
     """Test that datasets on different grids or swaths cannot share a store."""
     with pytest.raises(ValueError, match="coordinates differ"):
-        writer.save_datasets([_data_array("C01", area=area), _data_array("C02", area=other_area)],
-                             filename=tmp_path / "out.zarr")
+        writer.save_datasets(
+            [_data_array("C01", area=area), _data_array("C02", area=other_area)], filename=tmp_path / "out.zarr"
+        )
 
 
 @pytest.mark.parametrize(
@@ -628,8 +723,14 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
     """Test that no store is written when one is invalid, as to_zarr writes the metadata before computing."""
     datasets = [_data_array("C01"), _data_array("C02", start_time=second_start_time)]
     with pytest.raises(ValueError, match=match):
-        writer.save_datasets(datasets, filename=str(tmp_path / "{name}.zarr"), split_variables=True,
-                             append_dim="time", encoding=encoding, compute=False)
+        writer.save_datasets(
+            datasets,
+            filename=str(tmp_path / "{name}.zarr"),
+            split_variables=True,
+            append_dim="time",
+            encoding=encoding,
+            compute=False,
+        )
     assert list(tmp_path.iterdir()) == []
 
 
@@ -642,12 +743,12 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
 )
 def test_split_variables_checks_every_append_first(writer, tmp_path, stored_rows, stored_append_dim):
     """Test that an invalid append to a later store raises before the earlier stores are written."""
-    writer.save_datasets([_data_array("C02", area=None)[:stored_rows]], filename=tmp_path / "C02.zarr",
-                         append_dim=stored_append_dim)
+    writer.save_datasets(
+        [_data_array("C02", area=None)[:stored_rows]], filename=tmp_path / "C02.zarr", append_dim=stored_append_dim
+    )
     datasets = [_data_array("C01", area=None), _data_array("C02", area=None)]
     with pytest.raises(ValueError, match="do not match its stored sizes"):
-        writer.save_datasets(datasets, filename=str(tmp_path / "{name}.zarr"), split_variables=True,
-                             append_dim="time")
+        writer.save_datasets(datasets, filename=str(tmp_path / "{name}.zarr"), split_variables=True, append_dim="time")
     assert [path.name for path in tmp_path.iterdir()] == ["C02.zarr"]
 
 
@@ -667,8 +768,9 @@ def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
     fine = [_data_array("C01"), _data_array("C03")]
     coarse = _data_array("C13")
     writer.save_datasets(fine, filename=store, zarr_format=zarr_format, xarray_kwargs={"group": "1km"})
-    writer.save_datasets([coarse], filename=store, zarr_format=5 - zarr_format, xarray_kwargs={"group": "2km"},
-                         **second_kwargs)
+    writer.save_datasets(
+        [coarse], filename=store, zarr_format=5 - zarr_format, xarray_kwargs={"group": "2km"}, **second_kwargs
+    )
     assert open_group(store, mode="r").metadata.zarr_format == zarr_format
     _assert_roundtrip(store, fine, group="1km")
     _assert_roundtrip(store, [coarse], group="2km")
@@ -693,23 +795,54 @@ def test_store_objects(writer, make_store, split_variables):
 @pytest.mark.parametrize(
     ("names", "make_kwargs", "match"),
     [
-        pytest.param(["C01", "C02"], lambda: {"store": {"C01": MemoryStore(), "C02": MemoryStore()}},
-                     "requires split_variables=True", id="dict_without_split"),
-        pytest.param(["C01", "C02"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
-                     "No store given for dataset 'C02'", id="missing_store"),
-        pytest.param(["C01", "C01"], lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
-                     "names are not unique", id="duplicate_names"),
-        pytest.param(["C01", "C02"], lambda: {"store": dict.fromkeys(["C01", "C02"], MemoryStore()),
-                                              "split_variables": True},
-                     "assigned the same store", id="repeated_store"),
-        pytest.param(["C01", "C02"], lambda: {"store": {"C01": "out.zarr", "C02": "out.zarr"}, "split_variables": True},
-                     "assigned the same store", id="repeated_path"),
-        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "filename": "out.zarr"},
-                     "cannot be used together", id="store_and_filename"),
-        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "split_variables": True},
-                     "Pass a dict of stores", id="single_store_split"),
-        pytest.param(["C01", "C02"], lambda: {"store": MemoryStore(), "commit": "message"},
-                     "requires an Icechunk Session", id="commit_plain_store"),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": {"C01": MemoryStore(), "C02": MemoryStore()}},
+            "requires split_variables=True",
+            id="dict_without_split",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
+            "No store given for dataset 'C02'",
+            id="missing_store",
+        ),
+        pytest.param(
+            ["C01", "C01"],
+            lambda: {"store": {"C01": MemoryStore()}, "split_variables": True},
+            "names are not unique",
+            id="duplicate_names",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": dict.fromkeys(["C01", "C02"], MemoryStore()), "split_variables": True},
+            "assigned the same store",
+            id="repeated_store",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": {"C01": "out.zarr", "C02": "out.zarr"}, "split_variables": True},
+            "assigned the same store",
+            id="repeated_path",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": MemoryStore(), "filename": "out.zarr"},
+            "cannot be used together",
+            id="store_and_filename",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": MemoryStore(), "split_variables": True},
+            "Pass a dict of stores",
+            id="single_store_split",
+        ),
+        pytest.param(
+            ["C01", "C02"],
+            lambda: {"store": MemoryStore(), "commit": "message"},
+            "requires an Icechunk Session",
+            id="commit_plain_store",
+        ),
     ],
 )
 def test_store_errors(writer, names, make_kwargs, match):
@@ -736,8 +869,12 @@ def test_storage_options_only_for_remote_urls(writer, filename, forwarded):
 def test_xarray_kwargs_override_writer_choices(writer, tmp_path):
     """Test that xarray_kwargs replace the to_zarr arguments chosen by the writer."""
     with mock.patch.object(xr.Dataset, "to_zarr") as to_zarr:
-        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", compute=False,
-                             xarray_kwargs={"align_chunks": False, "safe_chunks": False})
+        writer.save_datasets(
+            [_data_array()],
+            filename=tmp_path / "out.zarr",
+            compute=False,
+            xarray_kwargs={"align_chunks": False, "safe_chunks": False},
+        )
     assert to_zarr.call_args.kwargs["align_chunks"] is False
     assert to_zarr.call_args.kwargs["safe_chunks"] is False
 
@@ -745,8 +882,13 @@ def test_xarray_kwargs_override_writer_choices(writer, tmp_path):
 def test_xarray_kwargs_as_arguments(writer, tmp_path):
     """Test that to_zarr arguments in xarray_kwargs that save_datasets also takes are used as its arguments."""
     store = tmp_path / "out.zarr"
-    xarray_kwargs = {"append_dim": "time", "zarr_format": 2, "consolidated": False, "group": "g",
-                     "encoding": {"test": {"dtype": "int16"}}}
+    xarray_kwargs = {
+        "append_dim": "time",
+        "zarr_format": 2,
+        "consolidated": False,
+        "group": "g",
+        "encoding": {"test": {"dtype": "int16"}},
+    }
     for data_arr in _hourly(12, 13):
         writer.save_datasets([data_arr], filename=store, fill_value=-5, xarray_kwargs=xarray_kwargs)
     group = open_group(store, mode="r", path="g")
@@ -769,8 +911,9 @@ def test_xarray_kwargs_as_arguments(writer, tmp_path):
 def test_arguments_also_in_xarray_kwargs_raise(writer, tmp_path, key, value):
     """Test that an argument passed both directly and in xarray_kwargs raises before anything is written."""
     with pytest.raises(ValueError, match=rf"\['{key}'\] given both as arguments and in 'xarray_kwargs'"):
-        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", xarray_kwargs={key: value},
-                             **{key: value})
+        writer.save_datasets(
+            [_data_array()], filename=tmp_path / "out.zarr", xarray_kwargs={key: value}, **{key: value}
+        )
     assert not (tmp_path / "out.zarr").exists()
 
 
@@ -794,8 +937,7 @@ def test_memory_url(tmp_path):
 def test_unknown_kwargs_warn(writer, tmp_path):
     """Test that unknown keyword arguments warn while Satpy's image keyword arguments are ignored silently."""
     with pytest.warns(UserWarning, match=r"ignores these unknown keyword arguments: \['zar_format'\]"):
-        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", zar_format=2, overlay={},
-                             decorate={})
+        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", zar_format=2, overlay={}, decorate={})
 
 
 def test_save_dataset_units(writer, tmp_path):
@@ -815,11 +957,14 @@ def test_save_dataset_units(writer, tmp_path):
 @pytest.mark.parametrize("package", ["zarr", "xarray"])
 def test_version_check(writer, tmp_path, package):
     """Test that too old zarr or xarray versions raise an ImportError."""
+
     def _version(name):
         return Version("1.0") if name == package else Version("9999.0")
 
-    with mock.patch("satpy.writers.zarr._package_version", side_effect=_version), \
-            pytest.raises(ImportError, match=f"requires {package}>="):
+    with (
+        mock.patch("satpy.writers.zarr._package_version", side_effect=_version),
+        pytest.raises(ImportError, match=f"requires {package}>="),
+    ):
         writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr")
 
 
@@ -844,8 +989,9 @@ def test_icechunk_session(writer, icechunk_repo, commit):
 def test_icechunk_append(writer, icechunk_repo):
     """Test appending to an Icechunk repository with a new session per write."""
     for data_arr in _hourly(12, 13):
-        writer.save_datasets([data_arr], store=icechunk_repo.writable_session("main"), append_dim="time",
-                             commit="Add a time step")
+        writer.save_datasets(
+            [data_arr], store=icechunk_repo.writable_session("main"), append_dim="time", commit="Add a time step"
+        )
     ds = _open(icechunk_repo.readonly_session("main").store)
     assert list(ds.time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
@@ -880,8 +1026,11 @@ def test_icechunk_zarr_format_2_raises(writer, icechunk_repo):
 )
 def test_geozarr_attrs(writer, tmp_path, area, code, bbox, zarr_format):
     """Test the GeoZarr proj and spatial attributes of gridded data and the root group."""
-    writer.save_datasets([_data_array("C01", area=area), _data_array("rgb", ndim=3, area=area)],
-                         filename=tmp_path / "out.zarr", zarr_format=zarr_format)
+    writer.save_datasets(
+        [_data_array("C01", area=area), _data_array("rgb", ndim=3, area=area)],
+        filename=tmp_path / "out.zarr",
+        zarr_format=zarr_format,
+    )
     group = open_group(tmp_path / "out.zarr", mode="r")
     cols, rows = np.meshgrid(np.arange(6) + 0.5, np.arange(4) + 0.5)
     x, y = area.get_proj_coords()
@@ -931,8 +1080,9 @@ def test_geozarr_attrs_skipped(writer, tmp_path, areas, include_geozarr, with_at
     datasets = [_data_array(f"C0{num}", area=area_defs[area]) for num, area in enumerate(areas, start=1)]
     writer.save_datasets(datasets, filename=tmp_path / "out.zarr", include_geozarr=include_geozarr)
     group = open_group(tmp_path / "out.zarr", mode="r")
-    assert [data_arr.attrs["name"] for data_arr in datasets if "proj:wkt2" in group[data_arr.attrs["name"]].attrs] \
-        == with_attrs
+    assert [
+        data_arr.attrs["name"] for data_arr in datasets if "proj:wkt2" in group[data_arr.attrs["name"]].attrs
+    ] == with_attrs
     assert "zarr_conventions" not in group.attrs
     assert "proj:wkt2" not in group.attrs
 
@@ -946,8 +1096,9 @@ def test_lonlats(writer, tmp_path, swath, include_lonlats, expected):
     area = _swath_definition() if swath else AREA
     datasets = [_data_array("C01", area=area), _data_array("C02", area=area, chunks=3)]
     with assert_maximum_dask_computes(0):
-        delayeds = writer.save_datasets(datasets, filename=tmp_path / "out.zarr", include_lonlats=include_lonlats,
-                                        compute=False)
+        delayeds = writer.save_datasets(
+            datasets, filename=tmp_path / "out.zarr", include_lonlats=include_lonlats, compute=False
+        )
     compute_writer_results([delayeds])
     ds = _open(tmp_path / "out.zarr")
     assert ({"longitude", "latitude"} <= set(ds.coords)) == expected
@@ -1007,8 +1158,11 @@ def test_lonlats_skipped_for_1d_data(writer, tmp_path):
 
 def test_include_grid_mapping(writer, tmp_path):
     """Test the CF spatial_ref grid mapping coordinate, which is only added to gridded data."""
-    writer.save_datasets([_data_array("C01"), _data_array("C02", area=_swath_definition())],
-                         filename=tmp_path / "out.zarr", include_grid_mapping=True)
+    writer.save_datasets(
+        [_data_array("C01"), _data_array("C02", area=_swath_definition())],
+        filename=tmp_path / "out.zarr",
+        include_grid_mapping=True,
+    )
     group = open_group(tmp_path / "out.zarr", mode="r")
     assert group["C01"].attrs["grid_mapping"] == "spatial_ref"
     assert "grid_mapping" not in group["C02"].attrs
@@ -1026,9 +1180,14 @@ def test_include_grid_mapping_rioxarray(writer, tmp_path):
 
 def test_convert_to_cf(writer, tmp_path):
     """Test the CF conversion path."""
-    writer.save_datasets([_data_array("C01", **_messy_attrs()), _data_array("2")], filename=tmp_path / "out.zarr",
-                         convert_to_cf=True, fill_value=-1, include_grid_mapping=True,
-                         encoding={"2": {"chunks": (1, 2)}})
+    writer.save_datasets(
+        [_data_array("C01", **_messy_attrs()), _data_array("2")],
+        filename=tmp_path / "out.zarr",
+        convert_to_cf=True,
+        fill_value=-1,
+        include_grid_mapping=True,
+        encoding={"2": {"chunks": (1, 2)}},
+    )
     group = open_group(tmp_path / "out.zarr", mode="r")
     assert group["CHANNEL_2"].chunks == (1, 2)
     assert group.attrs["Conventions"] == "CF-1.7"
@@ -1044,9 +1203,13 @@ def test_convert_to_cf(writer, tmp_path):
 
 def test_convert_to_cf_kwargs(writer, tmp_path):
     """Test that cf_kwargs are passed to the CF conversion, and that its name prefix applies to encoding entries."""
-    writer.save_datasets([_data_array("4")], filename=tmp_path / "out.zarr", convert_to_cf=True,
-                         cf_kwargs={"include_lonlats": False, "exclude_attrs": ["units"], "numeric_name_prefix": "B"},
-                         encoding={"4": {"chunks": (1, 2)}})
+    writer.save_datasets(
+        [_data_array("4")],
+        filename=tmp_path / "out.zarr",
+        convert_to_cf=True,
+        cf_kwargs={"include_lonlats": False, "exclude_attrs": ["units"], "numeric_name_prefix": "B"},
+        encoding={"4": {"chunks": (1, 2)}},
+    )
     ds = _open(tmp_path / "out.zarr")
     assert "longitude" not in ds.coords
     assert "units" not in ds["B4"].attrs
@@ -1063,8 +1226,10 @@ def test_convert_to_cf_kwargs(writer, tmp_path):
 def test_convert_to_cf_time(writer, tmp_path, cf_kwargs, units):
     """Test the time and time_bnds encoding of the CF conversion and appending to its output."""
     store = tmp_path / "out.zarr"
-    data_arrays = [_data_array(start_time=dt.datetime(2026, 1, 1, 12)).assign_coords(time=np.datetime64(time, "ns"))
-                   for time in ("2026-01-01T12:00:00.250", "2026-01-01T12:10:00.500")]
+    data_arrays = [
+        _data_array(start_time=dt.datetime(2026, 1, 1, 12)).assign_coords(time=np.datetime64(time, "ns"))
+        for time in ("2026-01-01T12:00:00.250", "2026-01-01T12:10:00.500")
+    ]
     _save_steps(writer, store, data_arrays, convert_to_cf=True, cf_kwargs=cf_kwargs)
     group = open_group(store, mode="r")
     assert group["time"].attrs["units"] == units
