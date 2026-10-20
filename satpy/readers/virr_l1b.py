@@ -35,7 +35,7 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
-# CMA - 2015 - http://www.nsmc.org.cn/en/NSMC/Contents/100089.html
+# CMA - 2016 - https://www.nsmc.org.cn/nsmc/en/news/100159.html
 FY3A_REF_COEFFS = [
     0.1598, -1.915,
     0.1516, -1.819,
