@@ -131,7 +131,7 @@ class _CLAVRxHelper:
     @staticmethod
     def _process_flags(data, input_flags):
         """Process the flag values from the file with fallback logic for bad or repeating flag values."""
-        fill = data.attrs.get("_FillValue", -127)
+        fill = data.attrs.get("_FillValue", 127)
         if fill < 0:
             fill = 127
         data.attrs["_FillValue"] = fill
