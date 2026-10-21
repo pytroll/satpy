@@ -142,6 +142,10 @@ zarr format 2 and not for format 3, where it is not part of the specification. B
 with ``zarr_format=`` and ``consolidated=``. Consolidated metadata mainly speeds up opening stores with
 many variables on object storage such as S3.
 
+An existing store is looked for in the format of new stores first and in the other format only if it is
+not found. Pass the ``zarr_format`` of the stores appended to, so that this costs no requests for the
+metadata files of the other format on object storage.
+
 :func:`xarray.open_zarr` looks for consolidated metadata by default and emits a ``RuntimeWarning`` when a
 store has none, so open format 3 stores written with the defaults with ``consolidated=False``:
 
@@ -859,6 +863,11 @@ class _StoreMode:
         """Whether the group written to, or the whole store without 'group', keeps what it has stored already."""
         return self.mode not in _NEW_GROUP_MODES
 
+    @property
+    def new_zarr_format(self) -> int:
+        """The zarr format of new stores."""
+        return self.zarr_format or self.configured_zarr_format or _default_zarr_format()
+
     def resolve(self, target: _Target) -> _StoreLayout:
         """Choose the zarr format and consolidation of the write to ``target`` and find what it appends to."""
         is_icechunk = _is_icechunk(target.store)
@@ -869,7 +878,7 @@ class _StoreMode:
         # xarray fails to append to a store or group that does not exist yet, or to one with another zarr_format
         layout = self._read_layout(target)
         if layout is None:
-            zarr_format = self.zarr_format or self.configured_zarr_format or _default_zarr_format()
+            zarr_format = self.new_zarr_format
             layout = _StoreLayout(zarr_format, consolidated=zarr_format == 2)
         if is_icechunk:
             return replace(layout, zarr_format=3, consolidated=False)
@@ -885,30 +894,43 @@ class _StoreMode:
             return None
         import zarr
 
-        open_kwargs = {} if target.storage_options is None else {"storage_options": target.storage_options}
         not_found = (FileNotFoundError, zarr.errors.NodeNotFoundError)
-        try:
-            # Read the root even when writing a group: with consolidated=True, xarray writes the consolidated
-            # metadata of the whole store only to the root, and a group that does not exist yet must get the
-            # root's zarr format because zarr-python cannot read a store whose groups mix formats
-            root_metadata = zarr.open_group(target.store, mode="r", **open_kwargs).metadata
-        except not_found:
+        # Read the root even when writing a group: with consolidated=True, xarray writes the consolidated
+        # metadata of the whole store only to the root, and a group that does not exist yet must get the
+        # root's zarr format because zarr-python cannot read a store whose groups mix formats.
+        # Given no format, zarr-python requests the metadata files of both. The format of new stores is looked for
+        # first, so that a store in it, usually zarr format 3, costs no requests for files of the other format.
+        formats: tuple[typing.Literal[2, 3], ...] = (2, 3) if self.new_zarr_format == 2 else (3, 2)
+        for zarr_format in formats:
+            try:
+                root = zarr.open_group(
+                    target.store, mode="r", zarr_format=zarr_format, storage_options=target.storage_options
+                )
+                break
+            except not_found:
+                pass
+        else:
             return None
-        layout = _StoreLayout(root_metadata.zarr_format, root_metadata.consolidated_metadata is not None)
+        layout = _StoreLayout(root.metadata.zarr_format, root.metadata.consolidated_metadata is not None)
         if not self.keeps_group:
             # The group is created or overwritten, so nothing in it is appended to
             return layout
-        try:
-            zarr_group = zarr.open_group(
-                target.store,
-                mode="r",
-                path=self.group,
-                zarr_format=root_metadata.zarr_format,
-                use_consolidated=False,
-                **open_kwargs,
-            )
-        except not_found:
-            return layout
+        if self.group is None and not layout.consolidated:
+            # Without consolidated metadata, the root already lists and reads its arrays from the store
+            zarr_group = root
+        else:
+            # xarray reads the stored arrays without consolidated metadata when appending, so the writer does too
+            try:
+                zarr_group = zarr.open_group(
+                    target.store,
+                    mode="r",
+                    path=self.group,
+                    zarr_format=root.metadata.zarr_format,
+                    use_consolidated=False,
+                    storage_options=target.storage_options,
+                )
+            except not_found:
+                return layout
         arrays = dict(zarr_group.arrays())
         layout = replace(
             layout, append_dim=self.append_dim, stored={name: _stored_sizes(array) for name, array in arrays.items()}

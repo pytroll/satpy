@@ -18,7 +18,7 @@ from packaging.version import Version
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from zarr import open_group
-from zarr.storage import MemoryStore
+from zarr.storage import LocalStore, MemoryStore
 
 from satpy.dataset.dataid import DataQuery, WavelengthRange
 from satpy.tests.utils import assert_maximum_dask_computes, make_dataid
@@ -441,6 +441,25 @@ def test_append_in_group(writer, tmp_path, zarr_format):
     store = tmp_path / "out.zarr"
     _save_steps(writer, store, _hourly(12, 13), zarr_format=zarr_format, xarray_kwargs={"group": "g"})
     assert list(_open(store, group="g").time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "other_format_keys"),
+    [
+        pytest.param({}, {".zgroup", ".zattrs", ".zarray", ".zmetadata"}, id="default_format_3"),
+        pytest.param({"zarr_format": 2}, {"zarr.json"}, id="format_2"),
+    ],
+)
+@pytest.mark.parametrize("group", [None, "g"])
+def test_append_requests_only_store_format(writer, tmp_path, kwargs, other_format_keys, group):
+    """Test that appending requests no metadata files of the other zarr format, which cost requests on S3."""
+    store = tmp_path / "out.zarr"
+    first, second = _hourly(12, 13)
+    _save_steps(writer, store, [first], xarray_kwargs={"group": group}, **kwargs)
+    with mock.patch.object(LocalStore, "get", autospec=True, side_effect=LocalStore.get) as get:
+        _save_steps(writer, store, [second], xarray_kwargs={"group": group}, **kwargs)
+    requested = {call.args[1].rsplit("/", 1)[-1] for call in get.call_args_list}
+    assert requested.isdisjoint(other_format_keys)
 
 
 def test_mode_w_with_append_dim(writer, tmp_path):
