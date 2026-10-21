@@ -31,15 +31,8 @@ Options of :meth:`xarray.Dataset.to_zarr` that the writer does not expose direct
 Options that are also arguments of ``save_datasets``, such as ``mode`` or ``encoding``, are used as these
 arguments, and passing one both ways raises an error.
 
-Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
-converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
-ranges become strings as in the ``cf`` writer, dictionary keys become strings, and NaN and infinite
-numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"``, and ``"-Infinity"``
-that zarr uses for such fill values), drops the ``crs`` coordinate, adds CF ``standard_name``/``units``
-to ``x`` and ``y``, and rechunks irregular dask chunks, which zarr cannot store.
-
-Separate stores and remote targets
-----------------------------------
+Several stores and groups
+-------------------------
 
 ``split_variables=True`` writes every dataset to its own store instead, named with the default pattern:
 
@@ -54,6 +47,9 @@ the ``group`` option of :meth:`xarray.Dataset.to_zarr`:
     >>> scn.save_datasets(writer="zarr", datasets=["C13"], filename="/data/zarr/abi.zarr", mode="a",
     ...                   xarray_kwargs={"group": "2km"})
 
+Store locations
+---------------
+
 Filenames may be fsspec URLs, for example on S3 (requires ``s3fs``), with ``storage_options`` passed to
 fsspec. ``base_dir`` is not prepended to URLs:
 
@@ -61,13 +57,16 @@ fsspec. ``base_dir`` is not prepended to URLs:
     ...                   storage_options={"anon": False})
 
 Instead of a filename, ``store`` accepts any zarr ``StoreLike`` (for example
-:class:`zarr.storage.MemoryStore`). With ``split_variables=True`` and more than one dataset, ``store``
-must be a dictionary that maps every dataset name to a different store. To write several datasets to the
-same store, pass that store without ``split_variables=True``.
+:class:`zarr.storage.MemoryStore`); ``filename`` and ``store`` cannot be used together. With
+``split_variables=True`` and more than one dataset, ``store`` must be a dictionary that maps every
+dataset name to a different store. To write several datasets to the same store, pass that store without
+``split_variables=True``.
 
 zarr also accepts a ``dict`` as an in-memory store, but the writer always reads a ``dict`` passed as
 ``store`` as the mapping of dataset names to stores. For an in-memory store, pass
 ``zarr.storage.MemoryStore(store_dict=your_dict)`` instead.
+
+An Icechunk ``Session`` can be passed as ``store`` as well (see Icechunk).
 
 Encoding
 --------
@@ -83,13 +82,24 @@ reader may leave, are dropped. The rest of an encoding left by a reader is appli
 returns unchanged are stored with the dtype, scaling, and fill value of the input file; operations that
 change the values, such as calibration, resampling, or converting units with ``save_dataset``, drop the
 encoding. Call ``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
-``serializer``) must suit the zarr format being written.
+``serializer``) must suit the zarr format being written. Irregular dask chunks, which zarr cannot store,
+are rechunked to regular ones unless the encoding sets ``chunks``.
 
 Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
 written, from the ``_FillValue`` attribute that marks missing data. The writer sets the ``fill_value`` of
 new format 3 arrays to the ``_FillValue`` encoding or, for integer data, to the ``_FillValue`` attribute,
 so zarr skips chunks that contain only fill values, as it does for chunks of float data that are all NaN.
 A ``fill_value`` in the ``encoding`` argument takes precedence; one in ``DataArray.encoding`` is dropped.
+
+Attributes and coordinates
+--------------------------
+
+Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
+converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
+ranges become strings as in the ``cf`` writer, dictionary keys become strings, and NaN and infinite
+numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"``, and ``"-Infinity"``
+that zarr uses for such fill values), drops the ``crs`` coordinate, and adds CF ``standard_name``/``units``
+to ``x`` and ``y``.
 
 Geolocation
 -----------
