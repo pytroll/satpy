@@ -33,45 +33,23 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
             "/attr/platform": "SNPP",
             "/attr/sensor": "VIIRS",
         }
-        file_content["longitude"] = xr.DataArray(
-            da.from_array(DEFAULT_LON_DATA, chunks=4096),
-            attrs={
-                "_FillValue": np.nan,
-                "scale_factor": 1.,
-                "add_offset": 0.,
-                "standard_name": "longitude",
-            })
+
+        attrs = {"_FillValue": np.nan, "scale_factor": 1., "add_offset": 0., }
+        file_content["longitude"] = xr.DataArray(da.from_array(DEFAULT_LON_DATA, chunks=4096),
+                                                 attrs={**attrs, "standard_name": "longitude"})
         file_content["longitude/shape"] = DEFAULT_FILE_SHAPE
 
-        file_content["latitude"] = xr.DataArray(
-            da.from_array(DEFAULT_LAT_DATA, chunks=4096),
-            attrs={
-                "_FillValue": np.nan,
-                "scale_factor": 1.,
-                "add_offset": 0.,
-                "standard_name": "latitude",
-            })
+        file_content["latitude"] = xr.DataArray(da.from_array(DEFAULT_LAT_DATA, chunks=4096),
+                                                 attrs={**attrs, "standard_name": "latitude"})
         file_content["latitude/shape"] = DEFAULT_FILE_SHAPE
 
-        file_content["variable1"] = xr.DataArray(
-            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
-            attrs={
-                "_FillValue": -1,
-                "scale_factor": 1.,
-                "add_offset": 0.,
-                "units": "1",
-            })
+        file_content["variable1"] = xr.DataArray(da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
+                                                 attrs={**attrs, "units": "1", "_FillValue": -1})
         file_content["variable1/shape"] = DEFAULT_FILE_SHAPE
 
         # data with fill values
-        file_content["variable2"] = xr.DataArray(
-            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
-            attrs={
-                "_FillValue": -1,
-                "scale_factor": 1.,
-                "add_offset": 0.,
-                "units": "1",
-            })
+        file_content["variable2"] = xr.DataArray(da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
+                                                 attrs={**attrs, "units": "1", "_FillValue": -1})
         file_content["variable2/shape"] = DEFAULT_FILE_SHAPE
         file_content["variable2"] = file_content["variable2"].where(
                                         file_content["variable2"] % 2 != 0)
