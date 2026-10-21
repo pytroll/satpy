@@ -1545,7 +1545,7 @@ enhancements:
         max_stretch: 215
 
   # ====== CLAVRx Products =======
-  four_level_cloud_mask:
+  clavrx_cloud_mask:
     standard_name: cloud_mask
     reader: clavrx
     operations:
@@ -1558,12 +1558,14 @@ enhancements:
                         1, # Probably Clear
                         2, # Probably Cloudy
                         3, # Cloudy
+                        4, # Unknown
                     ],
              'colors': [
-                        [94, 79, 162], # blue,    0 = Clear
+                        [0, 100, 0], # green,    0 = Clear
                         [73, 228, 242], # cyan,    1 = Probably Clear
                         [158, 1, 66], # red,     2 = Probably Cloudy
                         [255, 255, 255], # white,   3 = Cloudy
+                        [220, 220, 220], # unknown
                     ],
              'color_scale': 255,
             }
@@ -1585,7 +1587,7 @@ enhancements:
                              5, # unknown
                          ],
                'colors': [
-                          [0, 0, 0], # black,0 clear
+                          [0, 0, 0], # black, 0 clear
                           [0, 0, 255], # blue, water
                           [0, 255, 255], # cyan, supercooled
                           [0, 255, 0], # green, mixed

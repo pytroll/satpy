@@ -131,7 +131,9 @@ class _CLAVRxHelper:
     @staticmethod
     def _process_flags(data, input_flags):
         """Process the flag values from the file with fallback logic for bad or repeating flag values."""
-        fill = data.attrs.get("_FillValue", -999)
+        fill = data.attrs.get("_FillValue", -127)
+        if fill < 0:
+            fill = 127
         data.attrs["_FillValue"] = fill
         input_flags = np.asarray(input_flags)
         num_flags = len(input_flags)
@@ -144,8 +146,10 @@ class _CLAVRxHelper:
         if repeating_flags:
             # Fall back to sequential values [0, 1, 2, ...] based on length
             flag_values = np.arange(num_flags, dtype=data.dtype)
-            data.attrs["flag_values"] = flag_values.tolist()
-            #data.attrs["valid_range"] = [flag_values[0], flag_values[-1]]
+        else:
+            flag_values = input_flags
+
+        data.attrs["flag_values"] = flag_values.tolist()
 
         return data.where((data >= np.min(flag_values)) & (data <= np.max(flag_values)), fill)
 
