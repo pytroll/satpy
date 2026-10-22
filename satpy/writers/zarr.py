@@ -7,34 +7,35 @@ are in the Scene: no enhancement is applied, and dtypes, units, and fill values 
 Example usage
 -------------
 
-All datasets are saved as variables of one store, so they must share the same grid (resample the Scene
-first if they do not). The default filename pattern, ``{name}_{start_time:%Y%m%d_%H%M%S}.zarr``, only
-works when saving a single dataset, so specify a ``filename`` for stores with several variables:
+In the default use case all datasets are saved as variables of one zarr store. This means they must share the
+same grid (resample the Scene first if they do not). A ``filename`` must be specified when multiple datasets
+are stored.
 
     >>> scn.save_datasets(writer="zarr", filename="/data/zarr/{platform_name}_{start_time:%Y%m%d_%H%M%S}.zarr")
 
+Variables in the resulting store are named by their Satpy name (``.attrs["name"]``).
+If only one dataset is present or if ``split_variables`` is used (see Variables and Groups
+below) a default filename pattern is used (``{name}_{start_time:%Y%m%d_%H%M%S}.zarr``).
 The filename is formatted with the metadata of the saved datasets as combined by
 :func:`~satpy.dataset.metadata.combine_metadata`: only attributes with the same value in every dataset
 are available, ``start_time`` is the earliest and ``end_time`` the latest of all datasets, and ``name``
 is only available when saving one dataset.
 
-A filename ending in ``.zarr`` selects this writer automatically:
-
-    >>> scn.save_dataset("C13", filename="/data/zarr/{platform_name}_{name}.zarr")
-
 Options of :meth:`xarray.Dataset.to_zarr` that the writer does not expose directly can be passed with
-``xarray_kwargs``; they override anything the writer chose:
+``xarray_kwargs``; they override any defaults the Zarr writer would have used otherwise:
 
     >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr",
     ...                   xarray_kwargs={"write_empty_chunks": False, "safe_chunks": False})
 
-Options that are also arguments of ``save_datasets``, such as ``mode`` or ``encoding``, are used as these
-arguments, and passing one both ways raises an error.
+Some xarray options are made available as arguments to ``save_datasets``, such as ``mode`` or ``encoding``, but
+can only be specified one of these ways (argument to ``save_datasets`` or keyword argument in
+``xarray_kwargs``) and will error if provided as both.
 
-Several stores and groups
--------------------------
+Variables and Groups
+--------------------
 
-``split_variables=True`` writes every dataset to its own store instead, named with the default pattern:
+``split_variables=True`` writes every dataset to its own zarr store, named with the default file pattern
+mentioned previously:
 
     >>> scn.save_datasets(writer="zarr", split_variables=True, base_dir="/data/zarr")
 
@@ -44,28 +45,40 @@ the ``group`` option of :meth:`xarray.Dataset.to_zarr`:
 
     >>> scn.save_datasets(writer="zarr", datasets=["C01", "C03"], filename="/data/zarr/abi.zarr",
     ...                   xarray_kwargs={"group": "1km"})
-    >>> scn.save_datasets(writer="zarr", datasets=["C13"], filename="/data/zarr/abi.zarr", mode="a",
+    >>> scn.save_datasets(writer="zarr", datasets=["C13"], filename="/data/zarr/abi.zarr",
     ...                   xarray_kwargs={"group": "2km"})
 
 Store locations
 ---------------
 
 Filenames may be fsspec URLs, for example on S3 (requires ``s3fs``), with ``storage_options`` passed to
-fsspec. ``base_dir`` is not prepended to URLs:
+fsspec.
 
     >>> scn.save_datasets(writer="zarr", filename="s3://bucket/satpy/abi_{start_time:%Y%m%d_%H%M%S}.zarr",
     ...                   storage_options={"anon": False})
 
-Instead of a filename, ``store`` accepts any zarr ``StoreLike`` (for example
-:class:`zarr.storage.MemoryStore`); ``filename`` and ``store`` cannot be used together. With
-``split_variables=True`` and more than one dataset, ``store`` must be a dictionary that maps every
-dataset name to a different store. To write several datasets to the same store, pass that store without
-``split_variables=True``.
+Instead of a filename, a ``store`` keyword argument can be used and accepts any zarr ``StoreLike``
+(for example :class:`zarr.storage.MemoryStore`). ``filename`` and ``store`` cannot be used together.
 
-zarr also accepts a ``dict`` as an in-memory store, but the writer always reads a ``dict`` passed as
-``store`` as the mapping of dataset names to stores. For an in-memory store, pass
-``zarr.storage.MemoryStore(store_dict=your_dict)`` instead.
+    >>> from zarr.storage import MemoryStore
+    >>> store = MemoryStore()
+    >>> scn.save_datasets(writer="zarr", datasets=["C07", "C13"], store=store)
 
+.. note::
+
+   When opening a zarr store with xarray use ``xr.open_zarr(store)``. Include ``consolidate=False``
+   to match the default storage method of this zarr writer and avoid unnecessary data accesses.
+
+With ``split_variables=True`` and more than one dataset, ``store`` must be a dictionary that maps every
+dataset name to a different store.
+
+    >>> store_c07 = MemoryStore()
+    >>> store_c13 = MemoryStore()
+    >>> scn.save_datasets(writer="zarr", datasets=["C07", "C13"], split_variables=True,
+    ...                   store={"C07": store_c07, "C13": store_c13})
+
+To write several datasets to the same store, use the default
+``split_variables=False`` behavior.
 An Icechunk ``Session`` can be passed as ``store`` as well (see Icechunk).
 
 Encoding
@@ -80,9 +93,11 @@ argument and then by the ``encoding`` argument:
 Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
 reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
 returns unchanged are stored with the dtype, scaling, and fill value of the input file; operations that
-change the values, such as calibration, resampling, or converting units with ``save_dataset``, drop the
-encoding. Call ``DataArray.drop_encoding()`` to store such data unpacked. Codecs (``compressors``, ``filters``,
-``serializer``) must suit the zarr format being written. Irregular dask chunks, which zarr cannot store,
+change the values (ex. calibration, resampling, etc) drop the encoding.
+Call ``data_arr = data_arr.drop_encoding()`` to store such data unpacked.
+Codecs in ``compressors`` and ``filters`` must be those of the zarr format being written:
+:mod:`zarr.codecs` classes (or the ``numcodecs.zarr3`` wrappers) for format 3, and :mod:`numcodecs:numcodecs`
+classes for format 2, which does not support ``serializer``. Irregular dask chunks, which zarr cannot store,
 are rechunked to regular ones unless the encoding sets ``chunks``.
 
 Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
@@ -94,12 +109,10 @@ A ``fill_value`` in the ``encoding`` argument takes precedence; one in ``DataArr
 Attributes and coordinates
 --------------------------
 
-Before writing, the writer removes Satpy-internal attributes (``area``, ``_satpy_id``, ``None`` values),
-converts the remaining attributes to JSON (datetimes become ISO strings, sets become lists, wavelength
-ranges become strings as in the ``cf`` writer, dictionary keys become strings, and NaN and infinite
-numbers, which JSON cannot represent, become the strings ``"NaN"``, ``"Infinity"``, and ``"-Infinity"``
-that zarr uses for such fill values), drops the ``crs`` coordinate, and adds CF ``standard_name``/``units``
-to ``x`` and ``y``.
+Before writing, the writer removes Satpy-internal attributes (``area``, ``_last_resampler``, keys starting
+with ``_satpy``, ``None`` values), replaces ``ancillary_variables`` by their names, converts the remaining
+attributes to JSON with :func:`~satpy.writers.zarr.attrs_to_safe_json`, drops the ``crs`` coordinate, and
+adds CF ``standard_name``/``units`` to ``x`` and ``y``.
 
 Geolocation
 -----------
@@ -161,6 +174,11 @@ store has none, so open format 3 stores written with the defaults with ``consoli
 
     >>> import xarray as xr
     >>> ds = xr.open_zarr("/data/zarr/abi_c13.zarr", consolidated=False)
+
+Open modes
+----------
+
+TODO: w versus w- versus a versus a-
 
 Appending
 ---------
@@ -1066,9 +1084,9 @@ class _CFDatasetBuilder:
         cf_kwargs = {"pretty": True, "epoch": _TIME_ENCODING["units"], **(self.cf_kwargs or {})}
         datasets, _ = collect_cf_datasets(list_dataarrays=list(variables.values()), groups=None, **cf_kwargs)
         ds = datasets[None]
-        ds.attrs = _json_safe(ds.attrs)
+        ds.attrs = attrs_to_safe_json(ds.attrs)
         for var in ds.variables.values():
-            var.attrs = _json_safe(var.attrs)
+            var.attrs = attrs_to_safe_json(var.attrs)
         return _drop_unused_encodings(ds)
 
     def rename_encoding(self, encoding: dict[str, dict]) -> dict[str, dict]:
@@ -1178,10 +1196,35 @@ def _sanitize_attrs(attrs: dict) -> dict:
         attrs["ancillary_variables"] = [
             anc.attrs.get("name", anc.name) if isinstance(anc, xr.DataArray) else anc for anc in ancillary_variables
         ]
-    return _json_safe(attrs)
+    return attrs_to_safe_json(attrs)
 
 
-def _json_safe(attrs: dict) -> dict:
+def attrs_to_safe_json(attrs: dict) -> dict:
+    """Convert attributes to values that zarr can store as JSON.
+
+    The writer converts the attributes of every variable and coordinate with this function, also after the CF
+    conversion of ``convert_to_cf=True``:
+
+    - Objects with a ``to_cf`` method are replaced by its result, so wavelength ranges become strings as in
+      the ``cf`` writer.
+    - A ``DataID`` becomes its string.
+    - Dictionary keys become strings.
+    - Sets become sorted lists, and tuples become lists.
+    - Numpy arrays and scalars become Python lists and numbers, and ``datetime64`` values become ISO strings.
+    - NaN and infinite floats become the strings ``"NaN"``, ``"Infinity"``, and ``"-Infinity"`` that zarr
+      uses for such fill values.
+    - Datetimes and dates become ISO strings, and bytes are decoded as UTF-8.
+    - Anything else that JSON cannot represent becomes its ``str()``.
+
+    ``_FillValue`` is kept as it is, because xarray encodes it itself.
+
+    Args:
+        attrs: Attributes to convert.
+
+    Returns:
+        The converted attributes.
+
+    """
     safe = json.loads(json.dumps(_to_json_types(attrs), default=_json_default, allow_nan=False))
     # xarray encodes a _FillValue attribute itself, as valid JSON also when it is NaN
     if "_FillValue" in attrs:
