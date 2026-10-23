@@ -93,18 +93,22 @@ argument and then by the ``encoding`` argument:
 Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
 reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
 returns unchanged are stored with the dtype, scaling, and fill value of the input file; operations that
-change the values (ex. calibration, resampling, etc) drop the encoding.
-Call ``data_arr = data_arr.drop_encoding()`` to store such data unpacked.
+change the values (e.g. calibration or resampling) drop the encoding.
+To store data unpacked that kept a reader's encoding remove the encoding by calling
+``data_arr = data_arr.drop_encoding()`` first.
 Codecs in ``compressors`` and ``filters`` must be those of the zarr format being written:
 :mod:`zarr.codecs` classes (or the ``numcodecs.zarr3`` wrappers) for format 3, and :mod:`numcodecs:numcodecs`
 classes for format 2, which does not support ``serializer``. Irregular dask chunks, which zarr cannot store,
 are rechunked to regular ones unless the encoding sets ``chunks``.
 
 Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
-written, from the ``_FillValue`` attribute that marks missing data. The writer sets the ``fill_value`` of
-new format 3 arrays to the ``_FillValue`` encoding or, for integer data, to the ``_FillValue`` attribute,
-so zarr skips chunks that contain only fill values, as it does for chunks of float data that are all NaN.
+written, from the CF ``_FillValue`` attribute that marks missing data in xarray and Satpy. The writer
+sets the ``fill_value`` of new format 3 arrays to the ``_FillValue`` encoding or, for integer data,
+to the ``_FillValue`` attribute. This allows zarr to skip chunks that contain only the fill value.
+For writing float data with no ``_FillValue`` encoding, NaN is the default ``fill_value``.
 A ``fill_value`` in the ``encoding`` argument takes precedence; one in ``DataArray.encoding`` is dropped.
+When reading a zarr store with xarray, values equal to ``_FillValue`` will be masked and returned
+as NaN.
 
 Attributes and coordinates
 --------------------------
@@ -121,12 +125,14 @@ Data on an ``AreaDefinition`` get the attributes of the ``proj`` and ``spatial``
 0.1) of the `Zarr conventions framework <https://github.com/zarr-conventions>`_ used by `GeoZarr
 <https://geozarr.org>`_: the CRS as ``proj:wkt2``, ``proj:projjson``, and, if it has one, ``proj:code``,
 and the affine ``spatial:transform``, ``spatial:bbox``, and ``spatial:shape`` of the ``y``/``x`` grid.
-When all variables share one CRS, the ``proj:`` attributes are also written to the root group. The
+When all variables share one CRS, the ``proj:`` attributes are also written to the group they are written
+to. The root group is the default group if ``group`` is not set in ``xarray_kwargs``.
+The
 conventions are defined for zarr format 3 but are written for format 2 as well, so validators may reject
 format 2 stores. ``include_geozarr=False`` leaves them out.
 
 ``include_grid_mapping=True`` adds a CF grid mapping coordinate named ``spatial_ref``, the layout that
-rioxarray reads and writes:
+rioxarray currently reads and writes:
 
     >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr", include_grid_mapping=True)
 
@@ -137,7 +143,7 @@ cover them. ``include_lonlats=True`` adds these coordinates to gridded data as w
 Data on other area types get neither and are written without georeference, with a warning. This
 includes a ``StackedAreaDefinition`` whose parts pyresample could not merge into one grid, such as SEVIRI
 HRV data whose upper and lower windows are shifted. Pass ``include_lonlats=True`` to add longitude and
-latitude coordinates to them, or resample the data first.
+latitude coordinates to them, or resample the data to a grid first.
 
 CF conventions
 --------------
@@ -240,9 +246,10 @@ without data.
 Icechunk
 --------
 
-An `Icechunk <https://icechunk.io>`_ ``Session`` can be passed as ``store``. Icechunk requires zarr
-format 3, so ``zarr_format`` is forced to 3 and consolidated metadata is disabled. With ``commit``, the
-session is committed after the data are written, inside the same dask computation:
+An `Icechunk <https://icechunk.io>`_ ``Session`` can be passed as ``store``. Icechunk supports only zarr
+format 3, so new stores are written in format 3 and ``zarr_format=2`` raises a ``ValueError``. Icechunk
+stores do not support consolidated metadata, so none is written to them, even with ``consolidated=True``.
+With ``commit``, the session is committed after the data are written, inside the same dask computation:
 
     >>> import icechunk
     >>> repo = icechunk.Repository.open_or_create(icechunk.local_filesystem_storage("/data/repo"))
