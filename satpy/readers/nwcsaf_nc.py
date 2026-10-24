@@ -78,12 +78,26 @@ class NcNWCSAF(BaseFileHandler):
             self.filename = self._unzipped
 
         self.cache = {}
+
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks=CHUNK_SIZE)
 
-        self.nc = self.nc.rename({"nx": "x", "ny": "y"})
+        if "x" in self.nc.coords and "y" in self.nc.coords:
+            swap_dims = {}
+
+            if "nx" in self.nc.dims and self.nc["x"].dims == ("nx",):
+                swap_dims["nx"] = "x"
+
+            if "ny" in self.nc.dims and self.nc["y"].dims == ("ny",):
+                swap_dims["ny"] = "y"
+
+            if swap_dims:
+                self.nc = self.nc.swap_dims(swap_dims)
+        else:
+            self.nc = self.nc.rename({"nx": "x", "ny": "y"})
+
         self.sw_version = self.nc.attrs["source"]
 
         self.pps = False
@@ -142,13 +156,19 @@ class NcNWCSAF(BaseFileHandler):
         if dsid_name in self.cache:
             logger.debug("Get the data set from cache: %s.", dsid_name)
             return self.cache[dsid_name]
+
         if dsid_name in ["lon", "lat"] and dsid_name not in self.nc:
-            # Get full resolution lon,lat from the reduced (tie points) grid
-            lon, lat = self.upsample_geolocation()
-            if dsid_name == "lon":
-                return lon
+            if self._has_reduced_geolocation():
+                lon, lat = self.upsample_geolocation()
+            elif self._has_cf_projection():
+                lon, lat = self._get_lonlat_from_cf_projection()
             else:
-                return lat
+                raise KeyError(f"No geolocation information available for {dsid_name!r}")
+
+            self.cache["lon"] = lon
+            self.cache["lat"] = lat
+
+            return self.cache[dsid_name]
 
         logger.debug("Reading %s.", dsid_name)
         file_key = self._get_filekeys(dsid_name, info)
@@ -162,6 +182,26 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs["end_time"] = self.end_time
 
         return variable
+
+    def _get_lonlat_from_cf_projection(self):
+        """Generate longitude and latitude from a CF projected grid."""
+        # Find a spatial variable carrying the grid mapping.
+        variable = next(var for var in self.nc.data_vars.values() if "grid_mapping" in var.attrs)
+
+        area = self._get_cf_area_def(self.remove_timedim(variable))
+
+        lons, lats = area.get_lonlats()
+
+        lon = xr.DataArray(lons, dims=("y", "x"), attrs={"standard_name": "longitude",
+                                                         "long_name": "longitude",
+                                                         "units": "degrees_east",
+                                                         })
+
+        lat = xr.DataArray(lats, dims=("y", "x"), attrs={"standard_name": "latitude",
+                                                         "long_name": "latitude",
+                                                         "units": "degrees_north",
+                                                         })
+        return lon, lat
 
     def get_orbital_parameters(self, variable):
         """Get the orbital parameters from the file if possible (geo)."""
@@ -309,31 +349,82 @@ class NcNWCSAF(BaseFileHandler):
         lon = self.drop_xycoords(lon)
         return lon, lat
 
-    def get_area_def(self, dsid):
-        """Get the area definition of the datasets in the file.
+    def _get_cf_area_def(self, variable):
+        """Get area definition from CF projection metadata."""
+        grid_mapping_name = variable.attrs["grid_mapping"]
+        grid_mapping = self.nc[grid_mapping_name]
 
-        Only applicable for MSG products!
-        """
+        crs = CRS.from_cf(grid_mapping.attrs)
+
+        x = self.nc["x"]
+        y = self.nc["y"]
+
+        dx = abs(float(x[1] - x[0]))
+        dy = abs(float(y[1] - y[0]))
+
+        area_extent = (
+            float(x.min()) - dx / 2,
+            float(y.min()) - dy / 2,
+            float(x.max()) + dx / 2,
+            float(y.max()) + dy / 2,
+        )
+
+        nlines, ncols = variable.shape
+
+        return AreaDefinition(
+            "some_area_name",
+            "On-the-fly area",
+            "cf",
+            crs,
+            ncols,
+            nlines,
+            area_extent)
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the datasets in the file."""
         if self.pps:
-            # PPS:
             raise NotImplementedError
 
         if dsid["name"].endswith("_pal"):
             raise NotImplementedError
 
+        variable = self.remove_timedim(self.nc[dsid["name"]])
+
+        if "grid_mapping" in variable.attrs:
+            return self._get_cf_area_def(variable)
+
         crs, area_extent = self._get_projection()
         crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
-        variable = self.remove_timedim(self.nc[dsid["name"]])
-        nlines, ncols = variable.shape
-        area = AreaDefinition("some_area_name",
-                              "On-the-fly area",
-                              "geosmsg",
-                              crs,
-                              ncols,
-                              nlines,
-                              area_extent)
 
-        return area
+        nlines, ncols = variable.shape
+
+        return AreaDefinition(
+            "some_area_name",
+            "On-the-fly area",
+            "geosmsg",
+            crs,
+            ncols,
+            nlines,
+            area_extent)
+
+    def _has_reduced_geolocation(self):
+        required = {
+            "nx_reduced",
+            "ny_reduced",
+            "lon_reduced",
+            "lat_reduced",
+        }
+        return required.issubset(self.nc.variables)
+
+    def _has_cf_projection(self):
+        return (
+            "x" in self.nc.coords
+            and "y" in self.nc.coords
+            and any(
+                "grid_mapping" in var.attrs
+                for var in self.nc.data_vars.values()
+            )
+        )
 
     @staticmethod
     def _ensure_crs_extents_in_meters(crs, area_extent):
