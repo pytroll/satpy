@@ -40,6 +40,18 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     for idx, reader_configs in enumerate(configs_for_reader(reader)):
         readers_files = _get_readers_files(filenames, reader, idx, remaining_filenames)
         reader_instance = _get_reader_instance(reader, reader_configs, idx, reader_kwargs)
+
+        if (
+            reader is None
+            and reader_instance is not None
+            and not reader_instance.info.get("discoverable", True)
+        ):
+            LOG.debug(
+                "Skipping non-discoverable reader '%s' during automatic discovery",
+                reader_instance.name,
+            )
+            continue
+
         if reader_instance is None or not readers_files:
             # Reader initiliasation failed or no files were given
             continue
