@@ -35,15 +35,24 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
-# CMA - 2015 - http://www.nsmc.org.cn/en/NSMC/Contents/100089.html
+# CMA - 2016 - https://www.nsmc.org.cn/nsmc/en/news/100159.html
+FY3A_REF_COEFFS = [
+    0.1598, -1.915,
+    0.1516, -1.819,
+    0.1043, -2.557,
+    0.1031, -1.350,
+    0.0854, -1.036,
+    0.0790, -0.960,
+    0.0455, -0.590]
+
 FY3B_REF_COEFFS = [
-    0.1264, -1.4320,
-    0.1353, -1.6236,
-    0.0919, -2.4821,
-    0.0938, -1.1494,
-    0.0857, -1.0280,
-    0.0803, -0.9636,
-    0.0630, -0.7628]
+    0.1443, -1.798,
+    0.1474, -1.844,
+    0.1057, -2.750,
+    0.0907, -1.167,
+    0.0776, -0.931,
+    0.0741, -0.966,
+    0.0376, -0.479]
 
 
 class VIRR_L1B(HDF5FileHandler):
@@ -58,14 +67,14 @@ class VIRR_L1B(HDF5FileHandler):
         self.l1b_prefix = "Data/"
         self.wave_number = "Emissive_Centroid_Wave_Number"
         # Else filename_info['platform_id'] == FY3C.
-        if filename_info["platform_id"] == "FY3B":
+        if filename_info["platform_id"] in ("FY3A", "FY3B"):
             self.l1b_prefix = ""
             self.wave_number = "Emmisive_Centroid_Wave_Number"
 
     def get_dataset(self, dataset_id, ds_info):
         """Create DataArray from file content for `dataset_id`."""
         file_key = self.geolocation_prefix + ds_info.get("file_key", dataset_id["name"])
-        if self.platform_id == "FY3B":
+        if self.platform_id in ("FY3A", "FY3B"):
             file_key = file_key.replace("Data/", "")
         data = self[file_key]
         band_index = ds_info.get("band_index")
@@ -123,7 +132,9 @@ class VIRR_L1B(HDF5FileHandler):
             data.attrs.update({"units": "1"})
 
     def _calibrate_reflective(self, data, band_index):
-        if self.platform_id == "FY3B":
+        if self.platform_id == "FY3A":
+            coeffs = da.from_array(FY3A_REF_COEFFS, chunks=-1)
+        elif self.platform_id == "FY3B":
             coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
         else:
             coeffs = self["/attr/RefSB_Cal_Coefficients"]
