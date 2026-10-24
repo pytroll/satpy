@@ -64,9 +64,10 @@ composites:
     standard_name: toa_reflectance
 
   ndvi_hybrid_green:
+    description: >
+      Corrected version of the green band for true color imagery following the
+      NDVI hybrid green correction method (Strandgren et al., 2026, in prep.).
     compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
-    limits: [0.15, 0.05]
-    strength: 3.0
     prerequisites:
     - name: B02
       modifiers: [sunz_corrected, rayleigh_corrected, sunz_reduced]
