@@ -278,9 +278,9 @@ class TestCFWriter:
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
                 assert f["time"].attrs["bounds"] == "time_bnds"
 
-            # Check raw time coordinates & bounds
+            # Check raw time coordinates & bounds (in seconds since satpy.cf.coords.EPOCH)
             with xr.open_dataset(filename, decode_cf=False) as f:
-                np.testing.assert_almost_equal(f["time_bnds"], [[-0.0034722, 0.0069444]])
+                np.testing.assert_array_equal(f["time_bnds"], [[1527674400, 1527675300]])
 
         # User-specified time encoding should have preference
         with TempFile() as filename:
@@ -337,6 +337,27 @@ class TestCFWriter:
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_timeA, end_timeA]], dtype="datetime64[m]")
                 np.testing.assert_array_equal(f["time_bnds"], bounds_exp)
+
+    @pytest.mark.parametrize(
+        ("epoch", "exp_time", "exp_time_bnds"),
+        [
+            (None, 1527674700, [[1527674400, 1527675300]]),
+            ("minutes since 2018-05-30 10:00:00", 5, [[0, 15]]),
+        ],
+    )
+    def test_epoch(self, tmp_path, epoch, exp_time, exp_time_bnds):
+        """Test that time coordinates and bounds are encoded relative to the epoch."""
+        scn = Scene()
+        scn["test-array"] = xr.DataArray(da.arange(4.0).reshape(2, 2).rechunk(1),
+                                         dims=["y", "x"],
+                                         coords={"time": np.datetime64("2018-05-30T10:05:00", "ns")},
+                                         attrs=dict(start_time=dt.datetime(2018, 5, 30, 10, 0),
+                                                    end_time=dt.datetime(2018, 5, 30, 10, 15)))
+        filename = str(tmp_path / "test.nc")
+        scn.save_datasets(filename=filename, writer="cf", epoch=epoch)
+        with xr.open_dataset(filename, decode_cf=False) as f:
+            np.testing.assert_array_equal(f["time"], [exp_time])
+            np.testing.assert_array_equal(f["time_bnds"], exp_time_bnds)
 
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
@@ -454,8 +475,14 @@ class TestNetcdfEncodingKwargs:
             "start_time": dt.datetime(2018, 5, 30, 10, 0),
             "end_time": dt.datetime(2018, 5, 30, 10, 15)
         }
-        scn["test-array"] = xr.DataArray([1.0, 2.0, 3.0], attrs=attrs)
+        data = da.arange(1.0, 7.0).reshape(2, 3).rechunk((1, 3))
+        scn["test-array"] = xr.DataArray(data, dims=["y", "x"], attrs=attrs)
         return scn
+
+    @pytest.fixture(params=["netcdf4", "h5netcdf"])
+    def engine(self, request):
+        """Get netCDF engine."""
+        return request.param
 
     @pytest.fixture(params=[True, False])
     def compression_on(self, request):
@@ -494,16 +521,17 @@ class TestNetcdfEncodingKwargs:
     def expected(self, complevel_exp):
         """Get expectated file contents."""
         return {
-            "data": [10, 20, 30],
+            "data": [[10, 20, 30], [40, 50, 60]],
             "scale_factor": 0.1,
             "fill_value": 3,
             "dtype": np.int8,
-            "complevel": complevel_exp
+            "complevel": complevel_exp,
+            "chunksizes": (1, 3),
         }
 
-    def test_encoding_kwarg(self, scene, encoding, filename, expected):
+    def test_encoding_kwarg(self, scene, encoding, filename, engine, expected):
         """Test 'encoding' keyword argument."""
-        scene.save_datasets(filename=filename, encoding=encoding, writer="cf")
+        scene.save_datasets(filename=filename, encoding=encoding, writer="cf", engine=engine)
         self._assert_encoding_as_expected(filename, expected)
 
     def _assert_encoding_as_expected(self, filename, expected):
@@ -512,6 +540,7 @@ class TestNetcdfEncodingKwargs:
             assert f["test-array"].attrs["scale_factor"] == expected["scale_factor"]
             assert f["test-array"].attrs["_FillValue"] == expected["fill_value"]
             assert f["test-array"].dtype == expected["dtype"]
+            assert f["test-array"].encoding["chunksizes"] == expected["chunksizes"]
             if "complevel" in f["test-array"].encoding:
                 # netcdf4 engine and h5netcdf engine (when not 0)
                 assert f["test-array"].encoding["complevel"] == expected["complevel"]
@@ -562,10 +591,56 @@ class TestEncodingAttribute(TestNetcdfEncodingKwargs):
         scene["test-array"].encoding = encoding["test-array"]
         return scene
 
-    def test_encoding_attribute(self, scene_with_encoding, filename, expected):
+    def test_encoding_attribute(self, scene_with_encoding, filename, engine, expected):
         """Test 'encoding' dataset attribute."""
-        scene_with_encoding.save_datasets(filename=filename, writer="cf")
+        scene_with_encoding.save_datasets(filename=filename, writer="cf", engine=engine)
         self._assert_encoding_as_expected(filename, expected)
+
+    def test_encoding_kwarg_overrides_attribute(self, scene_with_encoding, filename, engine, expected):
+        """Test that the 'encoding' keyword argument takes precedence over the attribute key by key."""
+        attr_encoding = scene_with_encoding["test-array"].encoding.copy()
+        encoding = {"test-array": {"scale_factor": 0.05, "chunksizes": (2, 3)}}
+        scene_with_encoding.save_datasets(filename=filename, writer="cf", engine=engine, encoding=encoding)
+        expected.update({"data": [[20, 40, 60], [80, 100, 120]], "scale_factor": 0.05, "chunksizes": (2, 3)})
+        self._assert_encoding_as_expected(filename, expected)
+        assert scene_with_encoding["test-array"].encoding == attr_encoding
+
+    @pytest.mark.parametrize("read_engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize(
+        ("subset", "user_encoding", "exp_chunksizes", "exp_complevel"),
+        [
+            pytest.param(slice(None), {}, (2, 2), 4, id="as_read"),
+            pytest.param(slice(0, 3), {}, (3, 4), 4, id="subset"),
+            pytest.param(slice(None), {"test-array": {"compression": "zlib", "complevel": 9}}, (2, 2), 9,
+                         id="compression_kwarg"),
+        ],
+    )
+    def test_encoding_attribute_from_file(self, tmp_path, read_engine, engine, subset, user_encoding,
+                                          exp_chunksizes, exp_complevel):
+        """Test that encoding read from a file is used, without failing on keys that can't be written.
+
+        Chunk sizes of the file are only used if the data haven't been subset.
+        """
+        in_filename = tmp_path / "in.nc"
+        in_encoding = {"dtype": "int16", "scale_factor": 0.1, "_FillValue": -1, "zlib": True, "complevel": 4,
+                       "chunksizes": (2, 2)}
+        in_data = xr.DataArray(da.arange(24.0).reshape(4, 6), dims=["y", "x"], name="test-array")
+        in_data.to_netcdf(in_filename, engine=read_engine, encoding={"test-array": in_encoding})
+
+        out_filename = str(tmp_path / "out.nc")
+        with xr.open_dataset(in_filename, engine=read_engine, chunks={"y": 4, "x": 4}) as in_ds:
+            scn = Scene()
+            scn["test-array"] = in_ds["test-array"][subset].assign_attrs(
+                start_time=dt.datetime(2018, 5, 30, 10, 0), end_time=dt.datetime(2018, 5, 30, 10, 15))
+            scn.save_datasets(filename=out_filename, writer="cf", engine=engine, encoding=user_encoding)
+
+        with xr.open_dataset(out_filename, mask_and_scale=False) as f:
+            assert f["test-array"].dtype == np.int16
+            assert f["test-array"].attrs["scale_factor"] == 0.1
+            assert f["test-array"].attrs["_FillValue"] == -1
+            assert f["test-array"].encoding["zlib"]
+            assert f["test-array"].encoding["complevel"] == exp_complevel
+            assert f["test-array"].encoding["chunksizes"] == exp_chunksizes
 
 
 def _get_compression_params(complevel):
