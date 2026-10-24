@@ -146,6 +146,18 @@ def test_mixed(tmp_path, fake_scene):
     assert os.path.isfile(fname2)
 
 
+def test_zarr(tmp_path, fake_scene):
+    """Test writing to a zarr store together with a GeoTIFF file."""
+    store = str(tmp_path / "test.zarr")
+    res1 = fake_scene.save_datasets(filename=store, datasets=["test"], writer="zarr", compute=False)
+    fname = str(tmp_path / "geotiff4.tif")
+    res2 = fake_scene.save_datasets(filename=fname, datasets=["test"], writer="geotiff", compute=False)
+    compute_writer_results([res1, res2])
+    assert os.path.isfile(fname)
+    stored = xr.open_zarr(store, consolidated=False)["test"]
+    np.testing.assert_array_equal(stored.values, fake_scene["test"].values)
+
+
 def test_source_only():
     """Test writers who only return dask arrays with no targets.
 

@@ -343,4 +343,7 @@ intersphinx_mapping = {
     "pooch": ("https://www.fatiando.org/pooch/latest/", None),
     "fsspec": ("https://filesystem-spec.readthedocs.io/en/latest/", None),
     "asv": ("https://asv.readthedocs.io/en/latest", None),
+    "zarr": ("https://zarr.readthedocs.io/en/stable", None),
+    "packaging": ("https://packaging.pypa.io/en/stable", None),
+    "numcodecs": ("https://numcodecs.readthedocs.io/en/stable", None),
 }

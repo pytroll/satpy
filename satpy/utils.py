@@ -771,6 +771,31 @@ def normalize_low_res_chunks(
     return tuple(low_res_chunks)
 
 
+def regular_chunks_from_irregular_chunks(
+        old_chunks: tuple[tuple[int, ...], ...]
+) -> tuple[tuple[int, ...], ...]:
+    """Get regular chunks using the largest chunk of each dimension of ``old_chunks``.
+
+    See :func:`chunks_are_irregular` for what makes chunks regular.
+
+    """
+    shape = tuple(sum(dim_chunks) for dim_chunks in old_chunks)
+    new_dim_chunks = tuple(max(dim_chunks) for dim_chunks in old_chunks)
+    return dask.array.core.normalize_chunks(new_dim_chunks, shape=shape)
+
+
+def chunks_are_irregular(chunks_tuple: tuple) -> bool:
+    """Determine if an array is irregularly chunked.
+
+    Zarr does not support saving data in irregular chunks. Regular chunking
+    is when all chunks are the same size (except for the last one).
+
+    """
+    if any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple):
+        return True
+    return any(chunks[-1] > chunks[0] for chunks in chunks_tuple)
+
+
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
     """Check filenames for transfer protocols, convert to FSFile objects if possible."""
     if storage_options is None:
