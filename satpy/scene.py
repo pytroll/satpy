@@ -581,9 +581,14 @@ class Scene:
 
         return datasets_by_area.items()
 
+    # 8< v1.0
     def keys(self, **kwargs):
         """Get DataID keys for the underlying data container."""
         return self._datasets.keys(**kwargs)
+    # >8 v1.0
+    # def keys(self):
+    #     """Get DataID keys for the underlying data container."""
+    #     return self._datasets.keys()
 
     def values(self):
         """Get values for the underlying data container."""
@@ -1347,8 +1352,8 @@ class Scene:
         new_scn = self.copy()
         datasets = compute(*(new_scn._datasets.values()), **kwargs)
 
-        for i, k in enumerate(new_scn._datasets.keys()):
-            new_scn[k] = datasets[i]
+        for k, ds in zip(new_scn._datasets.keys(), datasets):
+            new_scn[k] = ds
 
         return new_scn
 
@@ -1361,8 +1366,8 @@ class Scene:
         new_scn = self.copy()
         datasets = persist(*(new_scn._datasets.values()), **kwargs)
 
-        for i, k in enumerate(new_scn._datasets.keys()):
-            new_scn[k] = datasets[i]
+        for k, ds in zip(new_scn._datasets.keys(), datasets):
+            new_scn[k] = ds
 
         return new_scn
 

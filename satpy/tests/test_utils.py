@@ -221,12 +221,12 @@ def test_make_fake_scene():
     """
     from satpy.tests.utils import make_fake_scene
 
-    assert make_fake_scene({}).keys() == []
+    assert len(make_fake_scene({}).keys()) == 0
     sc = make_fake_scene({
         "six": np.arange(25).reshape(5, 5)
     })
     assert len(sc.keys()) == 1
-    assert sc.keys().pop()["name"] == "six"
+    assert next(iter(sc.keys()))["name"] == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
     sc = make_fake_scene({
         "seven": np.arange(3 * 7).reshape(3, 7),

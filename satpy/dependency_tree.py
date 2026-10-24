@@ -575,11 +575,6 @@ class _DataIDContainer(dict):
 
     """
 
-    def keys(self):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        return sorted(super(_DataIDContainer, self).keys())
-
     def get_key(self, match_key):
         """Get multiple fully-specified keys that match the provided query.
 
