@@ -9,6 +9,7 @@ import warnings
 from unittest import mock
 
 import dask.array as da
+import numcodecs
 import numpy as np
 import pytest
 import xarray as xr
@@ -294,22 +295,20 @@ def test_existing_store_raises_unless_mode_w(writer, tmp_path):
     assert list(_open(tmp_path / "out.zarr").data_vars) == ["other"]
 
 
-@pytest.mark.parametrize("zarr_format", [2, 3])
-def test_append_time(writer, tmp_path, zarr_format):
+@pytest.mark.parametrize("consolidated", [False, True])
+def test_append_time(writer, tmp_path, consolidated):
     """Test appending along a time dimension created from start_time, keeping the first write's attributes."""
     store = tmp_path / "out.zarr"
     first = _data_array()
     second = _data_array(start_time=dt.datetime(2026, 1, 1, 12, 10, 0, 654321, tzinfo=dt.timezone.utc), chunks=3)
-    writer.save_datasets([first], filename=store, append_dim="time", zarr_format=zarr_format)
-    writer.save_datasets([second], filename=store, append_dim="time", zarr_format=5 - zarr_format)
+    writer.save_datasets([first], filename=store, append_dim="time", consolidated=consolidated)
+    writer.save_datasets([second], filename=store, append_dim="time")
     ds = _open(store)
     assert list(ds.time.values) == _times("2026-01-01T12:00:00.123456", "2026-01-01T12:10:00.654321")
     assert ds["test"].dims == ("time", "y", "x")
     np.testing.assert_array_equal(ds["test"].values, np.stack([first.values, second.values]))
     assert ds["test"].attrs["start_time"] == first.attrs["start_time"].isoformat()
-    metadata = open_group(store, mode="r").metadata
-    assert metadata.zarr_format == zarr_format
-    assert (metadata.consolidated_metadata is not None) == (zarr_format == 2)
+    assert (open_group(store, mode="r").metadata.consolidated_metadata is not None) == consolidated
 
 
 @pytest.mark.parametrize("time_dims", [(), ("time",)])
@@ -400,31 +399,23 @@ def test_append_with_encoding_argument(writer, tmp_path):
     assert list(_open(store).time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
 
-@pytest.mark.parametrize("zarr_format", [2, 3])
-def test_append_in_group(writer, tmp_path, zarr_format):
+@pytest.mark.parametrize("consolidated", [False, True])
+def test_append_in_group(writer, tmp_path, consolidated):
     """Test appending inside a group, which keeps the consolidated metadata in the root up to date."""
     store = tmp_path / "out.zarr"
-    _save_steps(writer, store, _hourly(12, 13), zarr_format=zarr_format, xarray_kwargs={"group": "g"})
+    first, second = _hourly(12, 13)
+    _save_steps(writer, store, [first], consolidated=consolidated, xarray_kwargs={"group": "g"})
+    _save_steps(writer, store, [second], xarray_kwargs={"group": "g"})
     assert list(_open(store, group="g").time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
 
 
-@pytest.mark.parametrize(
-    ("kwargs", "other_format_keys"),
-    [
-        pytest.param({}, {".zgroup", ".zattrs", ".zarray", ".zmetadata"}, id="default_format_3"),
-        pytest.param({"zarr_format": 2}, {"zarr.json"}, id="format_2"),
-    ],
-)
 @pytest.mark.parametrize("group", [None, "g"])
-def test_append_requests_only_store_format(writer, tmp_path, kwargs, other_format_keys, group):
-    """Test that appending requests no metadata files of the other zarr format, which cost requests on S3."""
-    store = tmp_path / "out.zarr"
-    first, second = _hourly(12, 13)
-    _save_steps(writer, store, [first], xarray_kwargs={"group": group}, **kwargs)
+def test_requests_no_format_2_files(writer, tmp_path, group):
+    """Test that creating and appending to a store request no zarr format 2 files, which cost requests on S3."""
     with mock.patch.object(LocalStore, "get", autospec=True, side_effect=LocalStore.get) as get:
-        _save_steps(writer, store, [second], xarray_kwargs={"group": group}, **kwargs)
+        _save_steps(writer, tmp_path / "out.zarr", _hourly(12, 13), xarray_kwargs={"group": group})
     requested = {call.args[1].rsplit("/", 1)[-1] for call in get.call_args_list}
-    assert requested.isdisjoint(other_format_keys)
+    assert requested.isdisjoint({".zgroup", ".zattrs", ".zarray", ".zmetadata"})
 
 
 def test_mode_w_with_append_dim(writer, tmp_path):
@@ -438,22 +429,17 @@ def test_mode_w_with_append_dim(writer, tmp_path):
 
 @pytest.mark.filterwarnings("error")
 @pytest.mark.parametrize(
-    ("kwargs", "yaml_config", "zarr_format", "consolidated"),
+    ("kwargs", "consolidated"),
     [
-        pytest.param({}, {}, 3, False, id="default"),
-        pytest.param({"consolidated": True}, {}, 3, True, id="format_3_consolidated"),
-        pytest.param({"zarr_format": 2}, {}, 2, True, id="format_2"),
-        pytest.param({"zarr_format": 2, "consolidated": False}, {}, 2, False, id="format_2_not_consolidated"),
-        pytest.param({}, {"zarr_format": 2}, 2, True, id="yaml_config"),
-        pytest.param({"zarr_format": 3}, {"zarr_format": 2}, 3, False, id="argument_over_yaml_config"),
+        pytest.param({}, False, id="default"),
+        pytest.param({"consolidated": True}, True, id="consolidated"),
     ],
 )
-def test_zarr_format(writer, tmp_path, kwargs, yaml_config, zarr_format, consolidated):
+def test_zarr_format(writer, tmp_path, kwargs, consolidated):
     """Test the zarr format and consolidated metadata of a new store, written without warnings."""
-    with mock.patch.dict(writer.info, yaml_config):
-        writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", **kwargs)
+    writer.save_datasets([_data_array()], filename=tmp_path / "out.zarr", **kwargs)
     group = open_group(tmp_path / "out.zarr", mode="r")
-    assert group["test"].metadata.zarr_format == zarr_format
+    assert group["test"].metadata.zarr_format == 3
     assert (group.metadata.consolidated_metadata is not None) == consolidated
 
 
@@ -485,7 +471,7 @@ def test_irregular_chunks(writer, tmp_path, variable_encoding, encoding, chunks,
 
 
 def test_variable_encoding_used(writer, tmp_path):
-    """Test that a DataArray's encoding is used, without the keys zarr does not understand."""
+    """Test that a DataArray's encoding is used, without the keys of netCDF and of zarr format 2."""
     data_arr = _data_array()
     data_arr.encoding = {
         "dtype": "int16",
@@ -495,6 +481,7 @@ def test_variable_encoding_used(writer, tmp_path):
         "zlib": True,
         "complevel": 4,
         "chunksizes": (4, 6),
+        "compressor": numcodecs.Blosc(),
         "source": "/in.nc",
         "original_shape": (4, 6),
     }
@@ -577,19 +564,10 @@ def test_variable_encoding_ignored_for_stored_variables(writer, tmp_path):
             6,
             id="encoding_argument",
         ),
-        pytest.param(
-            np.float32,
-            {"_FillValue": -9.0, "fill_value": 0.0},
-            None,
-            {"fill_value": -9, "zarr_format": 2},
-            -9,
-            3,
-            id="format_2",
-        ),
     ],
 )
 def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, kwargs, expected_fill, stored_chunks):
-    """Test that new format 3 arrays get their _FillValue as zarr fill_value, so fill-only chunks are skipped."""
+    """Test that new arrays get their _FillValue as zarr fill_value, so fill-only chunks are skipped."""
     data_arr = _masked_data_array()
     if fill_attr is not None:
         data_arr.attrs["_FillValue"] = fill_attr
@@ -597,7 +575,7 @@ def test_zarr_fill_value(writer, tmp_path, dtype, variable_encoding, fill_attr, 
         data_arr = data_arr.fillna(fill_attr).astype(dtype)
     data_arr.encoding = variable_encoding
     input_encoding = copy.deepcopy(variable_encoding)
-    writer.save_datasets([data_arr], filename=tmp_path / "out.zarr", **{"zarr_format": 3, **kwargs})
+    writer.save_datasets([data_arr], filename=tmp_path / "out.zarr", **kwargs)
     assert data_arr.encoding == input_encoding
     array = open_group(tmp_path / "out.zarr", mode="r")["test"]
     np.testing.assert_equal(array.fill_value, expected_fill)
@@ -721,7 +699,6 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("zarr_format", [2, 3])
 @pytest.mark.parametrize(
     "second_kwargs",
     [
@@ -731,16 +708,13 @@ def test_invalid_store_writes_nothing(writer, tmp_path, second_start_time, encod
         pytest.param({"append_dim": "time"}, id="append"),
     ],
 )
-def test_groups_in_one_store(writer, tmp_path, zarr_format, second_kwargs):
-    """Test writing datasets on different grids to groups of one store, all in the format of the store."""
+def test_groups_in_one_store(writer, tmp_path, second_kwargs):
+    """Test writing datasets on different grids to groups of one store."""
     store = tmp_path / "out.zarr"
     fine = [_data_array("C01"), _data_array("C03")]
     coarse = _data_array("C13")
-    writer.save_datasets(fine, filename=store, zarr_format=zarr_format, xarray_kwargs={"group": "1km"})
-    writer.save_datasets(
-        [coarse], filename=store, zarr_format=5 - zarr_format, xarray_kwargs={"group": "2km"}, **second_kwargs
-    )
-    assert open_group(store, mode="r").metadata.zarr_format == zarr_format
+    writer.save_datasets(fine, filename=store, xarray_kwargs={"group": "1km"})
+    writer.save_datasets([coarse], filename=store, xarray_kwargs={"group": "2km"}, **second_kwargs)
     _assert_roundtrip(store, fine, group="1km")
     _assert_roundtrip(store, [coarse], group="2km")
 
@@ -853,16 +827,14 @@ def test_xarray_kwargs_as_arguments(writer, tmp_path):
     store = tmp_path / "out.zarr"
     xarray_kwargs = {
         "append_dim": "time",
-        "zarr_format": 2,
-        "consolidated": False,
+        "consolidated": True,
         "group": "g",
         "encoding": {"test": {"dtype": "int16"}},
     }
     for data_arr in _hourly(12, 13):
         writer.save_datasets([data_arr], filename=store, fill_value=-5, xarray_kwargs=xarray_kwargs)
-    group = open_group(store, mode="r", path="g")
-    assert group.metadata.zarr_format == 2
-    assert group["test"].dtype == np.int16
+    assert open_group(store, mode="r").metadata.consolidated_metadata is not None
+    assert open_group(store, mode="r", path="g")["test"].dtype == np.int16
     ds = _open(store, group="g")
     assert ds["test"].encoding["_FillValue"] == -5
     assert list(ds.time.values) == _times("2026-01-01T12:00", "2026-01-01T13:00")
@@ -978,27 +950,19 @@ def test_icechunk_session_per_dataset(writer, icechunk_repo):
         _assert_roundtrip(repo.readonly_session("main").store, [data_arr])
 
 
-def test_icechunk_zarr_format_2_raises(writer, icechunk_repo):
-    """Test that zarr format 2 is refused for Icechunk."""
-    with pytest.raises(ValueError, match="Icechunk only supports zarr format 3"):
-        writer.save_datasets([_data_array()], store=icechunk_repo.writable_session("main"), zarr_format=2)
-
-
 @pytest.mark.parametrize(
-    ("area", "code", "bbox", "zarr_format"),
+    ("area", "code", "bbox"),
     [
-        pytest.param(AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 2, id="format_2"),
-        pytest.param(AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3, id="format_3"),
-        pytest.param(GEOS_AREA, None, [-3e6, -1e6, 3e6, 1e6], 3, id="no_authority_code"),
-        pytest.param(FLIPPED_AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], 3, id="flipped"),
+        pytest.param(AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], id="authority_code"),
+        pytest.param(GEOS_AREA, None, [-3e6, -1e6, 3e6, 1e6], id="no_authority_code"),
+        pytest.param(FLIPPED_AREA, "EPSG:3395", [-1000.0, -500.0, 5000.0, 1500.0], id="flipped"),
     ],
 )
-def test_geozarr_attrs(writer, tmp_path, area, code, bbox, zarr_format):
+def test_geozarr_attrs(writer, tmp_path, area, code, bbox):
     """Test the GeoZarr proj and spatial attributes of gridded data and the root group."""
     writer.save_datasets(
         [_data_array("C01", area=area), _data_array("rgb", ndim=3, area=area)],
         filename=tmp_path / "out.zarr",
-        zarr_format=zarr_format,
     )
     group = open_group(tmp_path / "out.zarr", mode="r")
     cols, rows = np.meshgrid(np.arange(6) + 0.5, np.arange(4) + 0.5)

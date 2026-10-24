@@ -91,19 +91,20 @@ argument and then by the ``encoding`` argument:
     >>> scn.save_datasets(writer="zarr", filename="/data/zarr/abi.zarr", encoding={"C13": {"chunks": (512, 512)}})
 
 Keys that :meth:`xarray.Dataset.to_zarr` does not use, such as the netCDF ``zlib`` or ``chunksizes`` a
-reader may leave, are dropped. The rest of an encoding left by a reader is applied, so data that a reader
-returns unchanged are stored with the dtype, scaling, and fill value of the input file; operations that
-change the values (e.g. calibration or resampling) drop the encoding.
+reader may leave, and the ``compressor`` of zarr format 2 are dropped. The rest of an encoding left by a
+reader is applied, so data that a reader returns unchanged are stored with the dtype, scaling, and fill
+value of the input file; operations that change the values (e.g. calibration or resampling) drop the
+encoding.
 To store data unpacked that kept a reader's encoding remove the encoding by calling
 ``data_arr = data_arr.drop_encoding()`` first.
-Codecs in ``compressors`` and ``filters`` must be those of the zarr format being written:
-:mod:`zarr.codecs` classes (or the ``numcodecs.zarr3`` wrappers) for format 3, and :mod:`numcodecs:numcodecs`
-classes for format 2, which does not support ``serializer``. Irregular dask chunks, which zarr cannot store,
-are rechunked to regular ones unless the encoding sets ``chunks``.
+Codecs in ``compressors``, ``filters``, and ``serializer`` must be zarr format 3 codecs, such as
+:mod:`zarr.codecs` classes or the :mod:`numcodecs:numcodecs.zarr3` wrappers.
+Irregular dask chunks, which zarr
+cannot store, are rechunked to regular ones unless the encoding sets ``chunks``.
 
 Zarr format 3 separates the ``fill_value`` of an array, which zarr returns for chunks that were never
 written, from the CF ``_FillValue`` attribute that marks missing data in xarray and Satpy. The writer
-sets the ``fill_value`` of new format 3 arrays to the ``_FillValue`` encoding or, for integer data,
+sets the ``fill_value`` of new arrays to the ``_FillValue`` encoding or, for integer data,
 to the ``_FillValue`` attribute. This allows zarr to skip chunks that contain only the fill value.
 For writing float data with no ``_FillValue`` encoding, NaN is the default ``fill_value``.
 A ``fill_value`` in the ``encoding`` argument takes precedence; one in ``DataArray.encoding`` is dropped.
@@ -127,8 +128,7 @@ Data on an ``AreaDefinition`` get the attributes of the ``proj`` and ``spatial``
 and the affine ``spatial:transform``, ``spatial:bbox``, and ``spatial:shape`` of the ``y``/``x`` grid.
 When all variables share one CRS, the ``proj:`` attributes are also written to the group they are written
 to. The root group is the default group if ``group`` is not set in ``xarray_kwargs``.
-The conventions are defined for zarr format 3 but are written for format 2 as well, so validators may
-reject format 2 stores. ``include_geozarr=False`` leaves them out.
+``include_geozarr=False`` leaves them out.
 
 ``include_grid_mapping=True`` adds a CF grid mapping coordinate named ``spatial_ref``, the layout that
 rioxarray currently reads and writes:
@@ -164,18 +164,17 @@ the ``encoding`` argument, so ``encoding={"4": ...}`` applies to the variable ``
 Zarr format and consolidated metadata
 -------------------------------------
 
-``zarr_format`` defaults to the ``zarr_format`` of the writer YAML configuration, if set, and otherwise
-to the default of the installed zarr-python (3 for zarr-python 3). Consolidated metadata is written for
-zarr format 2 and not for format 3, where it is not part of the specification. Both can be changed
-with ``zarr_format=`` and ``consolidated=``. Consolidated metadata mainly speeds up opening stores with
-many variables on object storage such as S3.
+The writer only writes zarr format 3. :meth:`xarray.Dataset.to_zarr` also supports zarr format 2, but this
+writer does not. It does not detect existing format 2 stores either: with ``mode="a"`` or ``append_dim`` it
+writes a separate format 3 hierarchy into the same location, which zarr-python then reads instead of the
+format 2 data.
 
-An existing store is looked for in the format of new stores first and in the other format only if it is
-not found. Pass the ``zarr_format`` of the stores appended to, so that this costs no requests for the
-metadata files of the other format on object storage.
+Consolidated metadata is not part of the zarr format 3 specification and is not written by default.
+``consolidated=True`` writes it, which mainly speeds up opening stores with many variables on object
+storage such as S3.
 
 :func:`xarray.open_zarr` looks for consolidated metadata by default and emits a ``RuntimeWarning`` when a
-store has none, so open format 3 stores written with the defaults with ``consolidated=False``:
+store has none, so open stores written with the defaults with ``consolidated=False``:
 
     >>> import xarray as xr
     >>> ds = xr.open_zarr("/data/zarr/abi_c13.zarr", consolidated=False)
@@ -200,8 +199,8 @@ an existing group when ``group`` is set in ``xarray_kwargs``:
 - ``"r+"`` only overwrites variables that are already stored, in a store that must exist; new variables
   raise a ``ValueError``. It is the default when ``region`` is set in ``xarray_kwargs``.
 
-Unless ``mode="w"`` replaces the whole store, a write into an existing store uses the zarr format of the
-store and ignores ``zarr_format``, and ``consolidated`` defaults to the store's setting.
+Unless ``mode="w"`` replaces the whole store, ``consolidated`` defaults to the setting of the existing
+store.
 
 Appending
 ---------
@@ -216,9 +215,8 @@ is created, so the same call works for the first and every following write:
     ...     scn.save_datasets(writer="zarr", filename="/data/zarr/abi_c13.zarr", append_dim="time")
 
 Times are stored as microseconds since 1970-01-01 unless the ``time`` encoding sets other units, so later
-appends with sub-second times round-trip exactly. When appending, or writing a group into an existing
-store, the zarr format and the consolidated metadata setting are taken from the root of the existing store
-and ``zarr_format`` is ignored. New data are rechunked to the store's chunks (``align_chunks=True``).
+appends with sub-second times round-trip exactly. New data are rechunked to the store's chunks
+(``align_chunks=True``).
 Entries of the ``encoding`` argument for variables that are already in the store are not used.
 
 Appended steps are added at the end of the store in the order they are written; the writer does not
@@ -264,9 +262,8 @@ raise before any store is written.
 Icechunk
 --------
 
-An `Icechunk <https://icechunk.io>`_ ``Session`` can be passed as ``store``. Icechunk supports only zarr
-format 3, so new stores are written in format 3 and ``zarr_format=2`` raises a ``ValueError``. Icechunk
-stores do not support consolidated metadata, so none is written to them, even with ``consolidated=True``.
+An `Icechunk <https://icechunk.io>`_ ``Session`` can be passed as ``store``. Icechunk stores do not
+support consolidated metadata, so none is written to them, even with ``consolidated=True``.
 With ``commit``, the session is committed after the data are written, inside the same dask computation:
 
     >>> import icechunk
@@ -307,8 +304,8 @@ not with ``dask.distributed``.
       ``Session.rebase()`` with ``icechunk.BasicConflictSolver()`` resolves this for region writes of
       different time steps from separate processes, but not for concurrent appends, which both resize the
       arrays.
-    - Sharding: a default ``shards`` encoding for zarr format 3, so that small chunks for fast partial
-      reads are not stored as one object each; ``shards`` can currently only be set with ``encoding``.
+    - Sharding: a default ``shards`` encoding, so that small chunks for fast partial reads are not stored as
+      one object each; ``shards`` can currently only be set with ``encoding``.
     - obstore: URL filenames are opened with fsspec. A :class:`zarr.storage.ObjectStore` can already be
       passed as ``store``; creating one from the URL and credentials would let ``filename`` use obstore.
     - Append checks: xarray raises for appended data whose dimensions or sizes differ from the stored ones
@@ -370,7 +367,6 @@ _TO_ZARR_ARGUMENT_DEFAULTS = {
     "storage_options": None,
     "mode": None,
     "append_dim": None,
-    "zarr_format": None,
     "consolidated": None,
     "encoding": None,
     "compute": True,
@@ -383,8 +379,9 @@ _TIME_ENCODING = {
     "calendar": "proleptic_gregorian",
     "dtype": "int64",
 }
-# Keys of DataArray.encoding that Dataset.to_zarr understands; others, such as the netCDF "zlib" or
-# "chunksizes" a reader may leave, are dropped. "fill_value" is set from _FillValue instead.
+# Keys of DataArray.encoding that Dataset.to_zarr understands for zarr format 3; others, such as the netCDF "zlib"
+# or "chunksizes" a reader may leave, or the zarr format 2 "compressor", are dropped. "fill_value" is set from
+# _FillValue instead.
 _ZARR_ENCODING_KEYS = frozenset(
     {
         "dtype",
@@ -396,7 +393,6 @@ _ZARR_ENCODING_KEYS = frozenset(
         "calendar",
         "chunks",
         "shards",
-        "compressor",
         "compressors",
         "filters",
         "serializer",
@@ -473,7 +469,6 @@ class ZarrWriter(Writer):
         fill_value: float | int | None = None,
         append_dim: Hashable | None = None,
         mode: str | None = None,
-        zarr_format: int | None = None,
         consolidated: bool | None = None,
         encoding: dict[str, dict] | None = None,
         include_lonlats: bool | None = None,
@@ -501,16 +496,15 @@ class ZarrWriter(Writer):
             split_variables: Write every dataset to its own store instead of all datasets to one store.
             commit: Commit message for Icechunk sessions passed as ``store``. The commit happens after
                 the data are written.
-            fill_value: ``_FillValue`` encoding of all data variables, overriding their own ``encoding``.
-                For zarr format 3, also the zarr ``fill_value`` of new arrays.
+            fill_value: ``_FillValue`` encoding of all data variables, overriding their own ``encoding``,
+                and the zarr ``fill_value`` of new arrays.
             append_dim: Dimension to append along. ``"time"`` is added from ``start_time`` when missing.
             mode: Passed to :meth:`xarray.Dataset.to_zarr`. ``None`` creates a new store, or appends with
                 ``"a-"`` when ``append_dim`` is given, which leaves the stored variables without the append
                 dimension unchanged. ``"w"`` overwrites the store, or only the group given in
                 ``xarray_kwargs``.
-            zarr_format: Zarr format (2 or 3) of new stores.
-            consolidated: Write consolidated metadata. Defaults to ``True`` for format 2 and ``False``
-                for format 3, or to the existing store's state when writing to an existing store.
+            consolidated: Write consolidated metadata. Defaults to ``False``, or to the existing store's
+                state when writing to an existing store.
             encoding: Per-variable encoding for :meth:`xarray.Dataset.to_zarr`, merged over each
                 variable's own ``encoding`` and the writer's defaults. Variables with ``chunks`` in either
                 are not rechunked by the writer. Each store gets the entries of its own variables, except
@@ -528,8 +522,8 @@ class ZarrWriter(Writer):
                 ``convert_to_cf`` is ``True``. ``pretty`` defaults to ``True``.
             xarray_kwargs: Other :meth:`xarray.Dataset.to_zarr` keyword arguments, which override the
                 arguments chosen by the writer. ``store``, ``storage_options``, ``mode``,
-                ``append_dim``, ``zarr_format``, ``consolidated``, ``encoding``, and ``compute`` are used
-                as the arguments of this method; passing one both ways raises an error.
+                ``append_dim``, ``consolidated``, ``encoding``, and ``compute`` are used as the arguments
+                of this method; passing one both ways raises an error.
             kwargs: Satpy keyword arguments that do not apply to this writer (``overlay``,
                 ``decorate``) are ignored; anything else is ignored with a warning.
 
@@ -546,7 +540,6 @@ class ZarrWriter(Writer):
             storage_options=storage_options,
             mode=mode,
             append_dim=append_dim,
-            zarr_format=zarr_format,
             consolidated=consolidated,
             encoding=encoding,
             compute=compute,
@@ -576,8 +569,6 @@ class ZarrWriter(Writer):
             store_mode=_StoreMode(
                 mode=_resolve_mode(to_zarr_args["mode"], to_zarr_args["append_dim"], xarray_kwargs.get("region")),
                 append_dim=to_zarr_args["append_dim"],
-                zarr_format=to_zarr_args["zarr_format"],
-                configured_zarr_format=self.info.get("zarr_format"),
                 consolidated=to_zarr_args["consolidated"],
                 xarray_kwargs=xarray_kwargs,
             ),
@@ -642,12 +633,6 @@ def _check_versions() -> None:
 
 def _package_version(package: str) -> Version:
     return Version(importlib.metadata.version(package))
-
-
-def _default_zarr_format() -> int:
-    import zarr
-
-    return zarr.config.get("default_zarr_format")
 
 
 def _resolve_mode(mode: str | None, append_dim: Hashable | None, region) -> str:
@@ -849,10 +834,9 @@ def _is_icechunk_session(obj) -> bool:
 
 @dataclass(frozen=True)
 class _StoreLayout:
-    """The zarr format of one ``to_zarr`` call and the existing arrays that it appends to."""
+    """Whether one ``to_zarr`` call consolidates the metadata, and the existing arrays that it appends to."""
 
-    zarr_format: int
-    consolidated: bool
+    consolidated: bool = False
     # Only set when the group written to exists already, as xarray fails to append to a new one
     append_dim: Hashable | None = None
     # Names of the arrays, including coordinates, already in the group written to. They keep their stored encoding
@@ -862,14 +846,11 @@ class _StoreLayout:
 
 @dataclass(frozen=True)
 class _StoreMode:
-    """Decide whether ``to_zarr`` creates, overwrites, or appends to each store, and in which zarr format."""
+    """Decide whether ``to_zarr`` creates, overwrites, or appends to each store, and whether it consolidates."""
 
     # The to_zarr mode, with xarray's default already chosen for None
     mode: str
     append_dim: Hashable | None
-    zarr_format: int | None
-    # The zarr_format of the writer YAML configuration, used when 'zarr_format' is not given
-    configured_zarr_format: int | None
     consolidated: bool | None
     # The other to_zarr arguments, which override the choices of the writer
     xarray_kwargs: dict
@@ -884,25 +865,13 @@ class _StoreMode:
         """Whether the group written to, or the whole store without 'group', keeps what it has stored already."""
         return self.mode not in _NEW_GROUP_MODES
 
-    @property
-    def new_zarr_format(self) -> int:
-        """The zarr format of new stores."""
-        return self.zarr_format or self.configured_zarr_format or _default_zarr_format()
-
     def resolve(self, target: _Target) -> _StoreLayout:
-        """Choose the zarr format and consolidation of the write to ``target`` and find what it appends to."""
-        is_icechunk = _is_icechunk(target.store)
-        if is_icechunk and self.zarr_format == 2:
-            raise ValueError(
-                f"Icechunk only supports zarr format 3, but zarr_format=2 was requested for {target.name!r}."
-            )
-        # xarray fails to append to a store or group that does not exist yet, or to one with another zarr_format
-        layout = self._read_layout(target)
-        if layout is None:
-            zarr_format = self.new_zarr_format
-            layout = _StoreLayout(zarr_format, consolidated=zarr_format == 2)
-        if is_icechunk:
-            return replace(layout, zarr_format=3, consolidated=False)
+        """Choose the consolidation of the write to ``target`` and find what it appends to."""
+        # xarray fails to append to a store or group that does not exist yet
+        layout = self._read_layout(target) or _StoreLayout()
+        if _is_icechunk(target.store):
+            # Icechunk stores do not support consolidated metadata, which xarray before 2026.7 still tries to write
+            return replace(layout, consolidated=False)
         if self.consolidated is not None:
             return replace(layout, consolidated=self.consolidated)
         return layout
@@ -911,28 +880,18 @@ class _StoreMode:
         """Read the layout of the existing store of ``target``, or return ``None`` if there is none to match."""
         if self.group is None and not self.keeps_group:
             # The whole store is created or overwritten. A new group, though, is still written into the existing
-            # store, whose zarr format it has to use.
+            # store, whose consolidated metadata it has to keep up to date.
             return None
         import zarr
 
         not_found = (FileNotFoundError, zarr.errors.NodeNotFoundError)
         # Read the root even when writing a group: with consolidated=True, xarray writes the consolidated
-        # metadata of the whole store only to the root, and a group that does not exist yet must get the
-        # root's zarr format because zarr-python cannot read a store whose groups mix formats.
-        # Given no format, zarr-python requests the metadata files of both. The format of new stores is looked for
-        # first, so that a store in it, usually zarr format 3, costs no requests for files of the other format.
-        formats: tuple[typing.Literal[2, 3], ...] = (2, 3) if self.new_zarr_format == 2 else (3, 2)
-        for zarr_format in formats:
-            try:
-                root = zarr.open_group(
-                    target.store, mode="r", zarr_format=zarr_format, storage_options=target.storage_options
-                )
-                break
-            except not_found:
-                pass
-        else:
+        # metadata of the whole store only to the root.
+        try:
+            root = zarr.open_group(target.store, mode="r", zarr_format=3, storage_options=target.storage_options)
+        except not_found:
             return None
-        layout = _StoreLayout(root.metadata.zarr_format, root.metadata.consolidated_metadata is not None)
+        layout = _StoreLayout(consolidated=root.metadata.consolidated_metadata is not None)
         if not self.keeps_group:
             # The group is created or overwritten, so nothing in it is appended to
             return layout
@@ -946,7 +905,7 @@ class _StoreMode:
                     target.store,
                     mode="r",
                     path=self.group,
-                    zarr_format=root.metadata.zarr_format,
+                    zarr_format=3,
                     use_consolidated=False,
                     storage_options=target.storage_options,
                 )
@@ -967,7 +926,7 @@ class _StoreMode:
             "mode": self.mode,
             "align_chunks": True,
             "compute": False,
-            "zarr_format": layout.zarr_format,
+            "zarr_format": 3,
             "consolidated": layout.consolidated,
         }
         if target.storage_options is not None:
@@ -1382,7 +1341,7 @@ class _EncodingPolicy:
             # xarray refuses a _FillValue attribute next to a _FillValue encoding, and for stored variables
             if name in layout.stored or "_FillValue" in var_encoding:
                 var.attrs.pop("_FillValue", None)
-            if name not in layout.stored and layout.zarr_format == 3:
+            if name not in layout.stored:
                 _set_zarr_fill_value(var, var_encoding)
 
 
@@ -1429,7 +1388,7 @@ class _WriteJob:
     def to_delayed(self) -> Delayed:
         """Write the store metadata and return the delayed write of the data, followed by the commit if any."""
         with warnings.catch_warnings():
-            if self.to_zarr_kwargs.get("zarr_format") == 3 and self.to_zarr_kwargs.get("consolidated"):
+            if self.to_zarr_kwargs.get("consolidated"):
                 warnings.filterwarnings(
                     "ignore", message="Consolidated metadata is currently not part", category=UserWarning
                 )
