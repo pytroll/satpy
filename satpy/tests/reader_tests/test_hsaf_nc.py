@@ -19,6 +19,7 @@ from satpy.readers.core.loading import load_reader
 FILE_TYPE_H60 = "hsaf_h60_nc"
 FILE_TYPE_H63 = "hsaf_h63_nc"
 FILE_TYPE_H90 = "hsaf_h90_nc"
+FILE_TYPE_H40B = "hsaf_h40b_nc"
 
 # parameters per file type
 FILE_PARAMS = {
@@ -36,13 +37,18 @@ FILE_PARAMS = {
         "fake_file": "h90_20251105_0000_fdk.nc",
         "yaml_file": "hsaf_nc.yaml",
         "platform": "MSG2",
+    },
+    FILE_TYPE_H40B: {
+        "fake_file": "W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_202511050000_PINFCI.nc",
+        "yaml_file": "hsaf_nc.yaml",
+        "platform": "MTG1",
     }
 }
 
 # Avoid too many arguments for test_load_datasets
 LoadDatasetsParams = namedtuple(
     "LoadDatasetsParams",
-    ["file_type", "loadable_ids", "unit", "resolution", "area_name", "platform"]
+    ["file_type", "loadable_ids", "unit", "resolution", "area_name", "platform", "end_time_delta_min",]
 )
 
 # constants for fake test data
@@ -102,6 +108,7 @@ class TestHSAFNCReader:
             (FILE_PARAMS[FILE_TYPE_H60], 1),
             (FILE_PARAMS[FILE_TYPE_H63], 1),
             (FILE_PARAMS[FILE_TYPE_H90], 1),
+            (FILE_PARAMS[FILE_TYPE_H40B], 1),
         ],
     )
     def test_reader_creation(self, file_type, expected_loadables):
@@ -116,14 +123,18 @@ class TestHSAFNCReader:
         "params",
         [
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km", "Meteosat-10"
+                FILE_PARAMS[FILE_TYPE_H60], ["rr", "qind"], "mm/h", 3000, "msg_seviri_fes_3km", "Meteosat-10", 15
             ),
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km", "Meteosat-9"
+                FILE_PARAMS[FILE_TYPE_H63], ["rr", "qind"], "mm/h", 3000, "msg_seviri_iodc_3km", "Meteosat-9", 15
             ),
             LoadDatasetsParams(
-                FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km", "Meteosat-9"
+                FILE_PARAMS[FILE_TYPE_H90], ["acc_rr", "qind"], "mm", 3000, "msg_seviri_iodc_3km", "Meteosat-9", 15
             ),
+            LoadDatasetsParams(
+                FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12", 10
+            ),
+
         ],
     )
     def test_load_datasets(self, params):
@@ -146,7 +157,9 @@ class TestHSAFNCReader:
         assert data.attrs["units"] == params.unit
         assert data.attrs["resolution"] == params.resolution
         assert data.attrs["start_time"] == dt.datetime(2025, 11, 5, 0, 0)
-        assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 15)
+        assert data.attrs["end_time"] == dt.datetime(2025, 11, 5, 0, 0) + dt.timedelta(
+            minutes=params.end_time_delta_min
+        )
         assert data.attrs["area"].area_id == params.area_name
         assert data.dims == ("y", "x")
 
