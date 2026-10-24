@@ -66,7 +66,7 @@ Instead of a filename, a ``store`` keyword argument can be used and accepts any 
 
 .. note::
 
-   When opening a zarr store with xarray use ``xr.open_zarr(store)``. Include ``consolidate=False``
+   When opening a zarr store with xarray use ``xr.open_zarr(store)``. Include ``consolidated=False``
    to match the default storage method of this zarr writer and avoid unnecessary data accesses.
 
 With ``split_variables=True`` and more than one dataset, ``store`` must be a dictionary that maps every
@@ -127,9 +127,8 @@ Data on an ``AreaDefinition`` get the attributes of the ``proj`` and ``spatial``
 and the affine ``spatial:transform``, ``spatial:bbox``, and ``spatial:shape`` of the ``y``/``x`` grid.
 When all variables share one CRS, the ``proj:`` attributes are also written to the group they are written
 to. The root group is the default group if ``group`` is not set in ``xarray_kwargs``.
-The
-conventions are defined for zarr format 3 but are written for format 2 as well, so validators may reject
-format 2 stores. ``include_geozarr=False`` leaves them out.
+The conventions are defined for zarr format 3 but are written for format 2 as well, so validators may
+reject format 2 stores. ``include_geozarr=False`` leaves them out.
 
 ``include_grid_mapping=True`` adds a CF grid mapping coordinate named ``spatial_ref``, the layout that
 rioxarray currently reads and writes:
@@ -184,7 +183,25 @@ store has none, so open format 3 stores written with the defaults with ``consoli
 Open modes
 ----------
 
-TODO: w versus w- versus a versus a-
+``mode`` is passed to :meth:`xarray.Dataset.to_zarr` and decides what happens to an existing store, or to
+an existing group when ``group`` is set in ``xarray_kwargs``:
+
+- ``"w-"`` creates the store or group and raises a ``FileExistsError`` if it exists already. This is the
+  default without ``append_dim``. It can add a new group to an existing store.
+- ``"w"`` creates the store or group and replaces an existing one. Without ``group`` the whole store is
+  deleted, including its other groups; with ``group`` only that group is replaced.
+- ``"a"`` creates the store or group if it does not exist yet and otherwise writes into it: stored
+  variables that are written again are overwritten, new variables are added, and the other stored
+  variables are kept. Overwritten variables must have their stored sizes and keep their stored encoding.
+  With ``append_dim``, the variables without the append dimension are rewritten with every write.
+- ``"a-"`` is the default with ``append_dim``. It works like ``"a"``, except that stored variables without
+  the append dimension, such as ``x`` and ``y``, keep the values of the first write. Without
+  ``append_dim`` it is the same as ``"a"``.
+- ``"r+"`` only overwrites variables that are already stored, in a store that must exist; new variables
+  raise a ``ValueError``. It is the default when ``region`` is set in ``xarray_kwargs``.
+
+Unless ``mode="w"`` replaces the whole store, a write into an existing store uses the zarr format of the
+store and ignores ``zarr_format``, and ``consolidated`` defaults to the store's setting.
 
 Appending
 ---------
@@ -220,10 +237,10 @@ append dimension too. The ``x``, ``y``, and lon/lat coordinates of an area, and 
 without the append dimension, keep the values of the first write, as appends default to xarray's
 ``mode="a-"``. Pass ``mode="a"`` to rewrite them with every write.
 
-Appended data must have the stored ``x``, ``y``, and ``bands`` coordinates, as xarray only compares
-their sizes: data on another area, or with other bands, raise before anything is written. For this, the
-writer reads the stored values of these coordinates, with one small request each. The ``x`` and ``y`` of
-swath data are not compared.
+The writer does not compare appended data with the stored data. xarray raises when their dimensions or
+sizes differ, but data on another area of the same size, or with the same number of other ``bands``, can
+be appended without an error. With ``mode="a-"`` they then get the stored ``x``, ``y``, and ``bands``; with
+``mode="a"`` they replace those of the earlier steps.
 
 Without ``append_dim``, ``mode`` keeps xarray's default: a new store is created and writing to an
 existing one fails. Use ``mode="w"`` to overwrite. With ``append_dim="time"``, ``mode="w"`` replaces the
@@ -238,10 +255,11 @@ in-memory coordinates immediately, so a store whose delayed result is never comp
 metadata and blocks a later write without ``mode="w"``.
 
 This also happens to the stores written before a store that xarray rejects, as with
-``split_variables=True``. Before writing any store, the writer therefore checks that appended data have
-the dimensions and sizes of the stored data. Other errors xarray raises for one store, such as a store to
-create that exists already, leave the stores before it with metadata only, or with an appended step
-without data.
+``split_variables=True``. Errors xarray raises for one store, such as a store to create that exists
+already, or appended data whose dimensions or sizes differ from the stored ones, leave the stores before
+it with metadata only, or with an appended step without data. Errors in the writer's own arguments, such
+as ``encoding`` entries for unknown variables or a missing ``start_time`` with ``append_dim="time"``,
+raise before any store is written.
 
 Icechunk
 --------
@@ -293,6 +311,12 @@ not with ``dask.distributed``.
       reads are not stored as one object each; ``shards`` can currently only be set with ``encoding``.
     - obstore: URL filenames are opened with fsspec. A :class:`zarr.storage.ObjectStore` can already be
       passed as ``store``; creating one from the URL and credentials would let ``filename`` use obstore.
+    - Append checks: xarray raises for appended data whose dimensions or sizes differ from the stored ones
+      only when it writes their store, after the stores before it already got an appended step without
+      data (see Delayed writing). Consider comparing the sizes of every store with its stored ones before
+      writing any. The writer already reads the metadata of the stored arrays, for their names, so this
+      costs no requests; it could also compare the stored ``x``, ``y``, and ``bands`` values, which catches
+      data on another area of the same size, for one request per coordinate.
     - Time bounds: when ``append_dim="time"`` adds the ``time`` dimension, only the ``start_time`` of each
       step is kept, as its ``time`` coordinate (see Appending). A ``time_bnds`` variable from
       ``start_time``/``end_time``, as :func:`satpy.cf.coords.add_time_bounds_dimension` adds for data that
@@ -310,7 +334,7 @@ import math
 import os
 import typing
 import warnings
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import dask
 import dask.array as da
@@ -330,7 +354,7 @@ from satpy.writers.core.base import Writer
 from satpy.writers.core.compute import compute_writer_results
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
+    from collections.abc import Callable, Collection, Hashable, Iterable
     from os import PathLike
     from typing import Any
 
@@ -603,7 +627,6 @@ class _ZarrSaver:
     def _prepare(self, target: _Target) -> _WriteJob:
         layout = self.store_mode.resolve(target)
         ds = self.store_mode.expand(self.builder.build(target.variables), target)
-        layout.check_append(ds, target.name)
         ds, encoding = self.encoding.apply(ds, layout)
         return _WriteJob(target, ds, {**self.store_mode.to_zarr_kwargs(target, layout), "encoding": encoding})
 
@@ -832,46 +855,9 @@ class _StoreLayout:
     consolidated: bool
     # Only set when the group written to exists already, as xarray fails to append to a new one
     append_dim: Hashable | None = None
-    # Arrays, including coordinates, already in the group written to, with their sizes by dimension. They keep their
-    # stored encoding because xarray refuses a new one.
-    stored: Mapping[str, Mapping[Hashable, int]] = field(default_factory=dict)
-    # Values of the stored coordinates that appended data must have too, such as x and y
-    grid_coords: Mapping[str, np.ndarray] = field(default_factory=dict)
-
-    def check_append(self, ds: xr.Dataset, name: str) -> None:
-        """Raise if ``ds`` does not have the dimensions, sizes, and ``grid_coords`` of the stored data."""
-        if self.append_dim is None:
-            return
-        # xarray checks the dimensions only when writing, after the stores before this one
-        for var_name, var in ds.variables.items():
-            stored = self.stored.get(str(var_name))
-            if stored is not None and not _sizes_match(stored, var.sizes, self.append_dim):
-                raise ValueError(
-                    f"Cannot append {name!r}: {var_name!r} has the sizes {dict(var.sizes)}, which do not "
-                    f"match its stored sizes {dict(stored)} apart from {self.append_dim!r}."
-                )
-        for coord, stored_values in self.grid_coords.items():
-            if coord in ds.coords and not _same_values(stored_values, ds[coord].values):
-                raise ValueError(
-                    f"Cannot append {name!r}: its {coord!r} coordinate differs from the stored one. "
-                    "Write data on another area, or with other bands, to another store or group."
-                )
-
-
-def _sizes_match(stored: Mapping[Hashable, int], new: Mapping[Hashable, int], append_dim: Hashable) -> bool:
-    return stored.keys() == new.keys() and all(stored[dim] == size for dim, size in new.items() if dim != append_dim)
-
-
-def _same_values(stored: np.ndarray, new: np.ndarray) -> bool:
-    # The sizes are compared first, so np.allclose does not broadcast
-    # The x and y of equivalent areas may differ by rounding
-    return bool(np.allclose(stored, new)) if new.dtype.kind == "f" else bool(np.array_equal(stored, new))
-
-
-def _stored_sizes(array) -> dict[Hashable, int]:
-    # xarray stores the dimension names in the metadata of zarr format 3 and in an attribute for format 2
-    dims = getattr(array.metadata, "dimension_names", None) or array.attrs.get("_ARRAY_DIMENSIONS", ())
-    return dict(zip(dims, array.shape))
+    # Names of the arrays, including coordinates, already in the group written to. They keep their stored encoding
+    # because xarray refuses a new one.
+    stored: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -966,15 +952,7 @@ class _StoreMode:
                 )
             except not_found:
                 return layout
-        arrays = dict(zarr_group.arrays())
-        layout = replace(
-            layout, append_dim=self.append_dim, stored={name: _stored_sizes(array) for name, array in arrays.items()}
-        )
-        if self.append_dim is None:
-            return layout
-        # xarray only compares the sizes of the stored coordinates with those of appended data
-        names = [name for name in _grid_coord_names(target.variables.values()) if name in arrays]
-        return replace(layout, grid_coords={name: np.asarray(arrays[name][:]) for name in names})
+        return replace(layout, append_dim=self.append_dim, stored=frozenset(zarr_group.array_keys()))
 
     def expand(self, ds: xr.Dataset, target: _Target) -> xr.Dataset:
         """Add the append dimension to ``ds`` and to its coordinates that differ for every step."""
@@ -1325,12 +1303,6 @@ def _expand_coords(ds: xr.Dataset, append_dim: Hashable, data_arrs: Iterable[xr.
             if coord.ndim > 0 and name not in fixed and append_dim not in coord.dims
         }
     )
-
-
-def _grid_coord_names(data_arrs: Collection[xr.DataArray]) -> list[str]:
-    # The x and y of swath data, such as pixel indices, do not locate the data, unlike those of an area
-    names = ["bands"] if _on_swath(data_arrs) else ["bands", "y", "x"]
-    return [name for name in names if any(name in data_arr.coords for data_arr in data_arrs)]
 
 
 def _on_swath(data_arrs: Iterable[xr.DataArray]) -> bool:
