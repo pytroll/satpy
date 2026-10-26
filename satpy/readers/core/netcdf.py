@@ -69,6 +69,16 @@ class NetCDF4FileHandler(BaseFileHandler):
     first time it is accessed and kept there. Warning, this part of the API is
     provisional and subject to change.
 
+    The ``xarray.DataArray`` and ``xarray.Dataset`` objects that variables and
+    groups are read into may share their data with later reads for the same
+    same key: their dask arrays, scalar variables, which are loaded
+    into memory, and the arrays in their attributes. Don't modify those in
+    place, e.g. with ``data[...] = ...``, with ``+=`` on a scalar or by
+    changing an array in ``attrs``, but create new ones instead
+    (``data = data * factor``). Adding, removing or replacing attributes,
+    coordinates or the ``data`` of a returned object doesn't change later
+    reads, except for cached variables, which are the same object every time.
+
     ``open_strategy`` selects how the file is opened and how variables are
     turned into ``xarray.DataArray`` objects. Every strategy holds what it
     opened for the lifetime of this file handler; call ``close`` to release it
@@ -168,7 +178,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.close()
 
     def __getitem__(self, key):
-        """Get item for given key."""
+        """Get item for given key.
+
+        Don't modify a returned variable or group in place, see the class docstring.
+
+        """
         return self._get_item(key, always_cache=False)
 
     def _get_item(self, key, always_cache):
@@ -327,7 +341,8 @@ class _NetCDF4Opener:
 
     def read_group(self, key):
         """Read group ``key`` as a Dataset of dask arrays with xarray, whatever the open strategy."""
-        # Copied so callers can modify metadata without touching the shared dataset.
+        # Copied so callers can modify metadata without touching the shared dataset. The data is still shared,
+        # which is why callers must not modify it in place (see ``NetCDF4FileHandler``).
         return self._get_dataset(key).copy()
 
     def _open_with_engine(self, open_func):
@@ -498,7 +513,7 @@ class _SharedStoreOpener(_NetCDF4Opener):
         # read after the file handler was closed.
         if not val.chunks:
             val.load()
-        # Copied so callers can modify metadata without touching the shared dataset.
+        # Copied so callers can modify metadata without touching the shared dataset, see ``read_group``.
         return val.copy(deep=False)
 
     def load_variable(self, key):
