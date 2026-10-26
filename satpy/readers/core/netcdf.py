@@ -153,7 +153,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Close every file object this file handler is holding open.
 
         Called automatically when the file handler is deleted. Call it directly
-        to release the file before then, for example to write to it.
+        to release the file before then, for example to write to it. Reading
+        from the file handler after that opens the file again.
 
         """
         if self._opener is not None:
@@ -392,7 +393,7 @@ class _NetCDF4Opener:
         return self._datasets[group]
 
     def close(self):
-        """Close everything opened from the file. What can be reopened is reopened on the next access."""
+        """Close everything opened from the file. It is opened again when it is next read from."""
         for nc in self._datasets.values():
             with suppress(RuntimeError):
                 nc.close()
@@ -440,8 +441,10 @@ class _FileHandleOpener(_NetCDF4Opener):
     """Opener for the "file_handle" open strategy: a netCDF4/h5netcdf file handle kept open.
 
     Variables are read from the file handle without xarray decoding them. The
-    file handle isn't reopened once closed. Groups are still read with xarray,
-    through a backend store which is opened when a group is first read.
+    file handle is reopened when something is read after ``close``, but the
+    arrays read from it before can't be read anymore. Groups are still read
+    with xarray, through a backend store which is opened when a group is first
+    read.
 
     """
 
@@ -452,11 +455,14 @@ class _FileHandleOpener(_NetCDF4Opener):
         self.file_handle = None
 
     def close(self):
-        """Close everything opened from the file, including the file handle, which isn't reopened."""
+        """Close everything opened from the file, including the file handle."""
         super().close()
         if self.file_handle is not None:
             with suppress(RuntimeError):
                 self.file_handle.close()
+        # netCDF-C reuses the ids of closed files, so reading through the closed
+        # file handle could silently read from another file opened since.
+        self.file_handle = None
 
     def get_metadata_root(self):
         """Get the file handle, opening the file if it wasn't yet."""
@@ -488,7 +494,7 @@ class _FileHandleOpener(_NetCDF4Opener):
         return self._to_dataarray(key, _read_data)
 
     def _to_dataarray(self, key, get_data):
-        var = self.file_handle[key]
+        var = self.get_metadata_root()[key]
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
         return xr.DataArray(get_data(var), dims=var.dimensions, attrs=self.accessor.get_object_attrs(var),
