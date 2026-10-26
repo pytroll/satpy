@@ -1,0 +1,7 @@
+enhancements:
+  toa_brightness_temperature:
+    standard_name: toa_brightness_temperature
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.contrast.stretch
+        kwargs: {stretch: crude, min_stretch: 200.0, max_stretch: 330.0}
