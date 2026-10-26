@@ -10,6 +10,9 @@ from contextlib import suppress
 import dask.array as da
 import numpy as np
 import xarray as xr
+from dask.array.core import normalize_chunks
+from dask.base import tokenize
+from xarray.backends import AbstractDataStore
 
 from satpy.readers.core.file_handlers import BaseFileHandler
 from satpy.readers.core.remote import open_file_or_filename
@@ -389,8 +392,13 @@ class _NetCDF4Opener:
         if group not in self._datasets:
             root_store = self._get_root_store()
             store = root_store.get_child_store(group) if group else root_store
+            store = _TokenizedStore(store, self._tokenize(self._store_open_kwargs, group))
             self._datasets[group] = xr.open_dataset(store, **self.open_dataset_kwargs)
         return self._datasets[group]
+
+    def _tokenize(self, *args):
+        """Get a dask token of the file, its engine and ``args``."""
+        return tokenize(self.filename, _get_mtime(self.filename), self.accessor.engine, *args)
 
     def close(self):
         """Close everything opened from the file. It is opened again when it is next read from."""
@@ -402,6 +410,67 @@ class _NetCDF4Opener:
             with suppress(RuntimeError):
                 self._root_store.close()
         self._root_store = None
+
+
+class _TokenizedStore(AbstractDataStore):
+    """Wrapper of an xarray backend store that dask tokenizes as ``token``.
+
+    ``xarray.open_dataset`` names the dask arrays it creates from a store after
+    a dask token of the store. For the stores of xarray this token is random:
+    it includes the id of their file manager and the token of their lock,
+    which change for every store and every process respectively (see
+    https://github.com/pydata/xarray/issues/11814). Wrapping them gives
+    arrays read from the same file with the same options the same names, as
+    ``xarray.open_dataset`` does for a file opened by its name, so that dask
+    and the caches keyed by those names can reuse them. For example, the
+    ``cache_dir`` of the nearest neighbour and bilinear resamplers is keyed
+    by the hash of a swath definition, which pyresample computes from the
+    names of the dask arrays of its longitudes and latitudes.
+
+    Everything else is the wrapped store's, whatever xarray uses of it: other
+    attributes are looked up on the wrapped store by ``__getattr__``, and the
+    methods of ``AbstractDataStore``, which are found before ``__getattr__`` is
+    tried, call those of the wrapped store (see ``_call_store_method``).
+
+    """
+
+    __slots__ = ("_store", "_token")
+
+    def __init__(self, store, token):
+        """Wrap ``store``."""
+        self._store = store
+        self._token = token
+
+    def __getattr__(self, name):
+        """Get attribute ``name`` of the wrapped store."""
+        # Not ``self._store``, which calls this again and again when it isn't set yet (e.g. while unpickling).
+        return getattr(object.__getattribute__(self, "_store"), name)
+
+    def __dask_tokenize__(self):
+        """Get the dask token of the store."""
+        return self._token
+
+
+def _call_store_method(name):
+    """Create a ``_TokenizedStore`` method calling method ``name`` of the wrapped store."""
+    def method(self, *args, **kwargs):
+        return getattr(self._store, name)(*args, **kwargs)
+
+    method.__name__ = name
+    return method
+
+
+for _name, _attr in vars(AbstractDataStore).items():
+    if callable(_attr) and not _name.startswith("_"):
+        setattr(_TokenizedStore, _name, _call_store_method(_name))
+
+
+def _get_mtime(filename):
+    """Get the modification time of local file ``filename``, or None for a remote file."""
+    try:
+        return os.path.getmtime(filename)
+    except (TypeError, OSError):
+        return None
 
 
 class _SharedStoreOpener(_NetCDF4Opener):
@@ -481,8 +550,18 @@ class _FileHandleOpener(_NetCDF4Opener):
         return file_handle
 
     def read_variable(self, key):
-        """Wrap variable ``key`` of the file handle in a dask array."""
-        return self._to_dataarray(key, da.from_array)
+        """Wrap variable ``key`` of the file handle in a dask array.
+
+        Dask can't tokenize the variable, so it would give the array a random
+        name. It is named after the file, the options it is opened with and
+        the chunks instead, see ``_TokenizedStore`` for why. The chunks are
+        resolved like ``dask.array.from_array`` does for ``chunks="auto"``.
+
+        """
+        var = self.get_metadata_root()[key]
+        chunks = normalize_chunks("auto", var.shape, dtype=var.dtype, previous_chunks=getattr(var, "chunks", None))
+        name = f"{var.name}-{self._tokenize(self._auto_maskandscale, key, chunks)}"
+        return self._to_dataarray(var, da.from_array(var, chunks=chunks, name=name))
 
     def load_variable(self, key):
         """Read variable ``key`` of the file handle into memory.
@@ -491,14 +570,13 @@ class _FileHandleOpener(_NetCDF4Opener):
         dask array of ``read_variable``.
 
         """
-        return self._to_dataarray(key, _read_data)
-
-    def _to_dataarray(self, key, get_data):
         var = self.get_metadata_root()[key]
+        return self._to_dataarray(var, _read_data(var))
+
+    def _to_dataarray(self, var, data):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
-        return xr.DataArray(get_data(var), dims=var.dimensions, attrs=self.accessor.get_object_attrs(var),
-                            name=var.name)
+        return xr.DataArray(data, dims=var.dimensions, attrs=self.accessor.get_object_attrs(var), name=var.name)
 
 
 class NetCDF4FileContent(Mapping):
