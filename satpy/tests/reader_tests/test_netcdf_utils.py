@@ -12,6 +12,7 @@ from satpy.readers.core.netcdf import (
     NetCDF4FileHandler,
     NetCDF4FsspecFileHandler,
     _FileHandleOpener,
+    _TokenizedStore,
 )
 
 # NOTE:
@@ -281,8 +282,29 @@ class TestNetCDF4FileHandler:
                     file_handler[var]
 
         store_open.assert_called_once()
-        groups = [call.args[0]._group for call in open_dataset.call_args_list]
+        groups = [call.args[0]._store._group for call in open_dataset.call_args_list]
         assert sorted(groups, key=str) == [None, "test_group"]
+
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
+    def test_dask_names(self, netcdf_file, tmp_path, strategy, engine):
+        """Test that dask arrays read from the same file have the same names, and from another file not."""
+        import shutil
+
+        file_copy = shutil.copy(netcdf_file, tmp_path / "copy.nc")
+        file_handlers = [NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+                         for filename in (netcdf_file, netcdf_file, file_copy)]
+        for key in ("ds2_f", "test_group/ds1_f"):
+            names = [file_handler[key].data.name for file_handler in file_handlers]
+            assert names[0] == names[1] != names[2]
+
+    @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
+    def test_dask_names_depend_on_options(self, netcdf_file, strategy):
+        """Test that dask arrays read with and without masking and scaling have different names."""
+        names = [NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy,
+                                    auto_maskandscale=auto_maskandscale)["ds2_f"].data.name
+                 for auto_maskandscale in (False, True)]
+        assert names[0] != names[1]
 
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
     @pytest.mark.parametrize("key", ["ds2_f", "test_group"])
@@ -387,6 +409,25 @@ class TestNetCDF4FileHandler:
         with pytest.raises(ValueError, match="can't apply auto_maskandscale=True"):
             NetCDF4FileHandler(netcdf_file, {}, {}, engine="h5netcdf", open_strategy="file_handle",
                                auto_maskandscale=True)
+
+
+def test_tokenized_store_uses_wrapped_store():
+    """Test that a _TokenizedStore gets its attributes and the results of its methods from the wrapped store."""
+    store = mock.Mock()
+    tokenized_store = _TokenizedStore(store, "token")
+
+    assert tokenized_store.ds is store.ds
+    for name in ("get_variables", "get_attrs", "get_dimensions", "load", "close"):
+        assert getattr(tokenized_store, name)() is getattr(store, name).return_value
+
+
+def test_tokenized_store_pickle():
+    """Test that a _TokenizedStore can be pickled."""
+    import pickle
+    from types import SimpleNamespace
+
+    tokenized_store = pickle.loads(pickle.dumps(_TokenizedStore(SimpleNamespace(ds="ds"), "token")))
+    assert tokenized_store.ds == "ds"
 
 
 def _variable_keys(name, attr_names=("test_attr_str", "test_attr_int", "test_attr_float")):
