@@ -246,8 +246,6 @@ class TestNetCDF4FileHandler:
         assert data.chunks is None
         assert data.dtype == expected.dtype
         np.testing.assert_array_equal(data.values, expected)
-        # kept in memory: the file handle of the "file_handle" open strategy can't be read anymore once closed
-        file_handler.close()
         assert file_handler.get_and_cache_npxr(var_name) is data
 
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
@@ -654,16 +652,13 @@ class TestNetCDF4FileContent:
         assert not _is_open(file_handle)
 
     def test_readable_after_close(self, netcdf_file, strategy, engine):
-        """Test that the file content can still be read after closing the file handler if the file can be reopened."""
+        """Test that the file content can still be read after closing the file handler, reopening the file."""
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
         assert file_handler["ds2_f/attr/test_attr_str"] == "test_string"
         file_handler.close()
 
         # remembered
         assert file_handler["ds2_f/attr/test_attr_str"] == "test_string"
-        if strategy == "file_handle":
-            # the file handle can't be reopened
-            return
         assert file_handler["test_group/ds1_i/attr/test_attr_int"] == 0
         assert file_handler.accessor.is_group(file_handler.file_content["test_group"])
         np.testing.assert_array_equal(file_handler["ds2_s"], np.arange(10))
