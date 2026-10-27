@@ -288,3 +288,19 @@ class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
         key = make_dataid(name="longitude")
         with pytest.raises(NotImplementedError):
             file_handler.get_dataset(key, dict())
+
+
+def test_read_records_logs_repeated_record_class(tmp_path, caplog):
+    """Test that a record class seen in two separate runs is logged properly."""
+    structure = [(1, ("giadr", 1)), (1, ("giadr", 2))]
+    sections = create_sections(structure)
+    fname = tmp_path / "repeated_records"
+    with open(fname, "wb") as fd:
+        for key in [("giadr", 1), ("giadr", 2), ("giadr", 1)]:
+            sections[key].tofile(fd)
+
+    with caplog.at_level("DEBUG", logger="satpy.readers.eps_l1b"):
+        records, _ = eps.read_records(fname)
+
+    assert records[("giadr", 1)].shape == (2,)
+    assert "Multiple records for ('giadr'" in caplog.text
