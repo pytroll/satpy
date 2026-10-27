@@ -102,7 +102,7 @@ def read_records(filename):
                 record = np.fromfile(fdes, dtype=dtype, count=count)
             offset += dtype.itemsize * count
             if rec_class in sections:
-                logger.debug("Multiple records for ", str(rec_class))
+                logger.debug("Multiple records for %s", str(rec_class))
                 sections[rec_class] = np.hstack((sections[rec_class], record))
             else:
                 sections[rec_class] = record
