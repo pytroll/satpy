@@ -125,6 +125,28 @@ def cf_netcdf_file(tmp_path_factory):
     return filename
 
 
+@pytest.fixture
+def file_cache():
+    """Get xarray's global file cache, with garbage collection disabled during the test.
+
+    Collecting the garbage of other tests can close files they left in the
+    cache, so collect it first, and don't let it be collected in the middle of
+    a test that counts the files in the cache. This also tests that files are
+    closed without garbage collection.
+
+    """
+    import gc
+
+    from xarray.backends.file_manager import FILE_CACHE
+
+    gc.collect()
+    gc.disable()
+    try:
+        yield FILE_CACHE
+    finally:
+        gc.enable()
+
+
 class TestNetCDF4FileHandler:
     """Test NetCDF4 File Handler Utility class."""
 
@@ -280,6 +302,8 @@ class TestNetCDF4FileHandler:
             for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
                 for _ in range(3):
                     file_handler[var]
+        # The calls of the mocks keep the store until garbage collection, and so the file in xarray's file cache.
+        file_handler.close()
 
         store_open.assert_called_once()
         groups = [call.args[0]._store._group for call in open_dataset.call_args_list]
@@ -324,11 +348,9 @@ class TestNetCDF4FileHandler:
         ("shared_store", 1),
         ("file_handle", 0),
     ])
-    def test_open_strategies(self, netcdf_file, engine, strategy, exp_new_cache_entries):
+    def test_open_strategies(self, netcdf_file, file_cache, engine, strategy, exp_new_cache_entries):
         """Test that every open strategy reads the same data and holds the expected number of files open."""
-        from xarray.backends.file_manager import FILE_CACHE
-
-        num_cached_before = len(FILE_CACHE)
+        num_cached_before = len(file_cache)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy=strategy)
         expected = np.arange(10. * 100).reshape((10, 100))
         for var_name in ("test_group/ds1_f", "ds2_f"):
@@ -338,65 +360,54 @@ class TestNetCDF4FileHandler:
             np.testing.assert_array_equal(data.values, expected)
         # a second access must not open anything new
         file_handler["ds2_i"]
-        assert len(FILE_CACHE) - num_cached_before == exp_new_cache_entries
+        assert len(file_cache) - num_cached_before == exp_new_cache_entries
 
         file_handler.close()
-        assert len(FILE_CACHE) == num_cached_before
+        assert len(file_cache) == num_cached_before
         assert not file_handler._opener._datasets
         assert file_handler._opener._root_store is None
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
-    def test_file_handle_strategy_closes_group_store(self, netcdf_file, engine):
+    def test_file_handle_strategy_closes_group_store(self, netcdf_file, file_cache, engine):
         """Test that close() releases the file handle and the backend store used to read groups with "file_handle"."""
-        from xarray.backends.file_manager import FILE_CACHE
-
-        num_cached_before = len(FILE_CACHE)
+        num_cached_before = len(file_cache)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="file_handle")
         file_handle = file_handler._opener.file_handle
         group = file_handler["test_group"]
         np.testing.assert_array_equal(group["ds1_i"], np.arange(10 * 100).reshape((10, 100)))
         # groups are read with xarray, from a backend store opened besides the file handle
-        assert len(FILE_CACHE) == num_cached_before + 1
+        assert len(file_cache) == num_cached_before + 1
 
         file_handler.close()
-        assert len(FILE_CACHE) == num_cached_before
+        assert len(file_cache) == num_cached_before
         assert not _is_open(file_handle)
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
-    def test_scalar_read_after_close_does_not_reopen_file(self, netcdf_file, engine):
+    def test_scalar_read_after_close_does_not_reopen_file(self, netcdf_file, file_cache, engine):
         """Test that scalar variables are in memory, so reading them after close() doesn't reopen the file."""
-        from xarray.backends.file_manager import FILE_CACHE
-
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
         scalar = file_handler["ds2_sc"]
         file_handler.close()
-        num_cached_after_close = len(FILE_CACHE)
+        num_cached_after_close = len(file_cache)
 
         assert scalar.values == 42
-        assert len(FILE_CACHE) == num_cached_after_close
+        assert len(file_cache) == num_cached_after_close
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
-    def test_file_open_for_arrays_of_deleted_handler(self, netcdf_file, engine):
+    def test_file_open_for_arrays_of_deleted_handler(self, netcdf_file, file_cache, engine):
         """Test that deleting the file handler leaves the file open until the dask arrays read from it are deleted."""
-        import gc
+        num_cached_before = len(file_cache)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
+        data = file_handler["ds2_f"]
+        file_handle = file_handler._opener.get_metadata_root()
+        del file_handler
+        # computed in another thread, the array could be reading from the file right now
+        assert _is_open(file_handle)
+        np.testing.assert_array_equal(data, np.arange(10. * 100).reshape((10, 100)))
+        assert len(file_cache) == num_cached_before + 1
 
-        from xarray.backends.file_manager import FILE_CACHE
-
-        num_cached_before = len(FILE_CACHE)
-        gc.disable()
-        try:
-            file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
-            data = file_handler["ds2_f"]
-            file_handle = file_handler._opener.get_metadata_root()
-            del file_handler
-            # computed in another thread, the array could be reading from the file right now
-            assert _is_open(file_handle)
-            np.testing.assert_array_equal(data, np.arange(10. * 100).reshape((10, 100)))
-            assert len(FILE_CACHE) == num_cached_before + 1
-            del data
-        finally:
-            gc.enable()
-        assert len(FILE_CACHE) == num_cached_before
+        del data
+        assert len(file_cache) == num_cached_before
         assert not _is_open(file_handle)
 
     def test_invalid_open_strategy(self, netcdf_file):
@@ -714,26 +725,19 @@ class TestNetCDF4FileContent:
         assert list(file_content) == expected_keys
         assert file_content["ds2_f/shape"] == (10, 100)
 
-    def test_file_closed_when_handler_deleted(self, netcdf_file, strategy, engine):
+    def test_file_closed_when_handler_deleted(self, netcdf_file, file_cache, strategy, engine):
         """Test that the file content doesn't keep the file handler (and its file) alive."""
-        import gc
         import weakref
 
-        from xarray.backends.file_manager import FILE_CACHE
-
-        num_cached_before = len(FILE_CACHE)
-        gc.disable()
-        try:
-            file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
-            file_content = file_handler.file_content
-            assert len(file_content) == len(EXPECTED_FILE_CONTENT_KEYS)
-            file_handle = file_handler._opener.get_metadata_root()
-            handler_ref = weakref.ref(file_handler)
-            del file_handler
-            assert handler_ref() is None
-        finally:
-            gc.enable()
-        assert len(FILE_CACHE) == num_cached_before
+        num_cached_before = len(file_cache)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
+        file_content = file_handler.file_content
+        assert len(file_content) == len(EXPECTED_FILE_CONTENT_KEYS)
+        file_handle = file_handler._opener.get_metadata_root()
+        handler_ref = weakref.ref(file_handler)
+        del file_handler
+        assert handler_ref() is None
+        assert len(file_cache) == num_cached_before
         assert not _is_open(file_handle)
 
     def test_readable_after_close(self, netcdf_file, strategy, engine):
@@ -765,15 +769,13 @@ def _has_open_file(opener):
 class TestDeferOpen:
     """Test opening the file only when something is first read from it."""
 
-    def test_not_opened_until_read(self, netcdf_file, strategy, engine):
+    def test_not_opened_until_read(self, netcdf_file, file_cache, strategy, engine):
         """Test that the file is opened on the first read."""
-        from xarray.backends.file_manager import FILE_CACHE
-
-        num_cached_before = len(FILE_CACHE)
+        num_cached_before = len(file_cache)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
                                           defer_open=True)
         assert not _has_open_file(file_handler._opener)
-        assert len(FILE_CACHE) == num_cached_before
+        assert len(file_cache) == num_cached_before
 
         assert file_handler["/attr/test_attr_str"] == "test_string"
         assert file_handler.accessor.engine == ("netcdf4" if isinstance(engine, list) else engine)
