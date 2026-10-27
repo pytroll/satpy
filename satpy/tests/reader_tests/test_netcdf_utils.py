@@ -571,6 +571,26 @@ class TestNetCDF4FileContent:
         walked = dict(file_handler.file_content.items())
         assert {key: walked[key] for key in expected} == expected
 
+    def test_group_children_named_attr_and_dimension(self, tmp_path, strategy, engine):
+        """Test that the attributes and dimensions of a group come before its children named "attr" and "dimension"."""
+        from netCDF4 import Dataset
+        filename = tmp_path / "test_attr_children.nc"
+        with Dataset(filename, "w") as nc:
+            group = nc.createGroup("group")
+            group.createDimension("x", 3)
+            group.createDimension("shape", 2)
+            group.units = "group"
+            group.createVariable("attr", np.float32, ("x",)).units = "K"
+            group.createVariable("dimension", np.float32, ("x",))
+        expected = {"group/attr/units": "group", "group/attr/shape": (3,), "group/attr/attr/units": "K",
+                    "group/dimension/x": 3, "group/dimension/shape": 2, "group/dimension/dtype": np.float32}
+
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        assert {key: file_handler[key] for key in expected} == expected
+        file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+        walked = dict(file_handler.file_content.items())
+        assert {key: walked[key] for key in expected} == expected
+
     @pytest.mark.parametrize("key", [
         "fake_ds",
         "",
@@ -610,14 +630,14 @@ class TestNetCDF4FileContent:
         assert file_content["group/subgroup/var/shape"] == (2, 3, 4)
         assert list(file_content) == [
             "group",
+            "group/dimension/group_dim",
             "group/subgroup",
+            "group/subgroup/dimension/subgroup_dim",
             "group/subgroup/var",
             "group/subgroup/var/dtype",
             "group/subgroup/var/shape",
             "group/subgroup/var/dimensions",
             "group/subgroup/var/attr/units",
-            "group/subgroup/dimension/subgroup_dim",
-            "group/dimension/group_dim",
             "/attrs",
             "/dimension/root_dim",
         ]

@@ -684,10 +684,14 @@ class NetCDF4FileContent(Mapping):
         obj = root
         for index, part in enumerate(parts):
             child = self._get_child(obj, part)
-            if child is not None:
-                obj = child
-                continue
-            return self._read_from_object(obj, part, parts[index + 1:], key)
+            if child is None:
+                return self._read_from_object(obj, part, parts[index + 1:], key)
+            if obj is not root and part in ("attr", "dimension"):
+                # The attributes and dimensions of a group come before its children named "attr" or "dimension", as
+                # when walking through the file (those of the root group are under "/attr" and "/dimension").
+                with suppress(KeyError):
+                    return self._read_from_object(obj, part, parts[index + 1:], key)
+            obj = child
         return obj
 
     def _read_from_object(self, obj, part, rest, key):
@@ -743,9 +747,10 @@ class NetCDF4FileContent(Mapping):
         for group_name, subgroup in group.groups.items():
             full_name = prefix + group_name
             yield full_name, subgroup
+            # before the children, so that they come before those of children named "attr" or "dimension"
             yield from self._walk_attrs(full_name, subgroup)
-            yield from self._walk_group(full_name, subgroup)
             yield from self._walk_dimensions(full_name, subgroup)
+            yield from self._walk_group(full_name, subgroup)
         for var_name, var in group.variables.items():
             full_name = prefix + var_name
             yield full_name, var
