@@ -1,4 +1,4 @@
-"""Interface to VIRR (Visible and Infra-Red Radiometer) level 1b format.
+"""Interface to FY-3 VIRR (Visible and Infra-Red Radiometer) level 1b format.
 
 The file format is HDF5. Important attributes:
 
@@ -12,10 +12,6 @@ The file format is HDF5. Important attributes:
     - RefSB_Cal_Coefficients
     - RefSB_Effective_Wavelength
     - Emmisive_Centroid_Wave_Number
-
-Supported satellites:
-
-    - FY-3B and FY-3C.
 
 For more information:
 
@@ -45,6 +41,7 @@ FY3A_REF_COEFFS = [
     0.0790, -0.960,
     0.0455, -0.590]
 
+# CMA - 2016 - https://www.nsmc.org.cn/nsmc/en/news/100161.html
 FY3B_REF_COEFFS = [
     0.1443, -1.798,
     0.1474, -1.844,
