@@ -375,6 +375,30 @@ class TestNetCDF4FileHandler:
         assert scalar.values == 42
         assert len(FILE_CACHE) == num_cached_after_close
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    def test_file_open_for_arrays_of_deleted_handler(self, netcdf_file, engine):
+        """Test that deleting the file handler leaves the file open until the dask arrays read from it are deleted."""
+        import gc
+
+        from xarray.backends.file_manager import FILE_CACHE
+
+        num_cached_before = len(FILE_CACHE)
+        gc.disable()
+        try:
+            file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
+            data = file_handler["ds2_f"]
+            file_handle = file_handler._opener.get_metadata_root()
+            del file_handler
+            # computed in another thread, the array could be reading from the file right now
+            assert _is_open(file_handle)
+            np.testing.assert_array_equal(data, np.arange(10. * 100).reshape((10, 100)))
+            assert len(FILE_CACHE) == num_cached_before + 1
+            del data
+        finally:
+            gc.enable()
+        assert len(FILE_CACHE) == num_cached_before
+        assert not _is_open(file_handle)
+
     def test_invalid_open_strategy(self, netcdf_file):
         """Test that unknown open strategies are rejected."""
         with pytest.raises(ValueError, match="Unknown open_strategy"):

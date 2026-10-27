@@ -101,7 +101,7 @@ class NetCDF4FileHandler(BaseFileHandler):
       the overhead of xarray, which may be useful if you have a dataset
       distributed over many files, such as for FCI. Note that the arrays
       created this way can't be pickled (e.g. for dask distributed workers)
-      and can't be read anymore once the file handler is closed.
+      and can't be read anymore once the file handler is closed or deleted.
 
     By default the file is opened when the file handler is created, so that
     an unreadable file fails right away. With ``defer_open=True`` the file
@@ -146,7 +146,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         opener_cls = _FileHandleOpener if open_strategy == "file_handle" else _SharedStoreOpener
         self._opener = opener_cls(filename, engine, xarray_kwargs, auto_maskandscale)
         # The file content references the opener, not this file handler, so
-        # deleting the file handler closes the file right away.
+        # deleting the file handler releases the file right away (see ``__del__``).
         self.file_content = NetCDF4FileContent(self._opener,
                                                listed_keys=_get_required_variable_names(filetype_info))
         if not defer_open:
@@ -165,17 +165,26 @@ class NetCDF4FileHandler(BaseFileHandler):
     def close(self):
         """Close every file object this file handler is holding open.
 
-        Called automatically when the file handler is deleted. Call it directly
-        to release the file before then, for example to write to it. Reading
-        from the file handler after that opens the file again.
+        Call it to release the file before the file handler is deleted, for
+        example to write to it. Reading from the file handler after that opens
+        the file again. Don't close it while dask arrays read from it are
+        being computed.
 
         """
         if self._opener is not None:
             self._opener.close()
 
     def __del__(self):
-        """Delete the file handler."""
-        self.close()
+        """Delete the file handler, leaving the file open for the dask arrays read from it.
+
+        xarray closes the file once those are deleted too, like for a file
+        opened with ``xarray.open_dataset``. Closing it right away could close
+        it under such an array being computed in another thread. The file
+        handle of ``open_strategy="file_handle"`` is closed right away though.
+
+        """
+        if self._opener is not None:
+            self._opener.release()
 
     def __getitem__(self, key):
         """Get item for given key.
@@ -426,6 +435,16 @@ class _NetCDF4Opener:
                 self._root_store.close()
         self._root_store = None
 
+    def release(self):
+        """Stop holding what was opened from the file, leaving it to xarray to close the file.
+
+        xarray closes it once nothing uses it anymore, including the dask
+        arrays read from it, unlike ``close``.
+
+        """
+        self._datasets.clear()
+        self._root_store = None
+
 
 class _TokenizedStore(AbstractDataStore):
     """Wrapper of an xarray backend store that dask tokenizes as ``token``.
@@ -541,6 +560,20 @@ class _FileHandleOpener(_NetCDF4Opener):
     def close(self):
         """Close everything opened from the file, including the file handle."""
         super().close()
+        self._close_file_handle()
+
+    def release(self):
+        """Stop holding what was opened from the file like the base class, but close the file handle.
+
+        Nothing but garbage collection would close the file handle once it is
+        released, and the arrays read from it can't be read after the file
+        handler is deleted anyway.
+
+        """
+        super().release()
+        self._close_file_handle()
+
+    def _close_file_handle(self):
         if self.file_handle is not None:
             with suppress(RuntimeError):
                 self.file_handle.close()
