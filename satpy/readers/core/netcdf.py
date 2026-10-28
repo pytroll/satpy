@@ -123,7 +123,8 @@ class NetCDF4FileHandler(BaseFileHandler):
       the overhead of xarray, which may be useful if you have a dataset
       distributed over many files, such as for FCI. Note that the arrays
       created this way can't be pickled (e.g. for dask distributed workers)
-      and can't be read anymore once the file handler is closed or deleted.
+      and raise an error when computed after the file handler is closed or
+      deleted.
 
     By default the file is opened when the file handler is created, so that
     an unreadable file fails right away. With ``defer_open=True`` the file
@@ -140,9 +141,8 @@ class NetCDF4FileHandler(BaseFileHandler):
     them are deleted. This does not apply to the "file_handle" ``open_strategy``
     in which case files are closed immediately. In this case the file handler
     and therefore the reader that references it and the Scene that references
-    the reader must not be deleted until all computations are done. This could
-    result in an error or in the worst case could provide data from another
-    file that was opened.
+    the reader must not be deleted until all computations are done. Computing
+    the arrays read from the file handle after that raises an error.
 
     Args:
         filename (str): File to read.
@@ -572,7 +572,8 @@ class _FileHandleOpener(_NetCDF4Opener):
 
     Variables are read from the file handle without xarray decoding them. The
     file handle is reopened when something is read after ``close``, but the
-    arrays read from it before can't be read anymore. Groups are still read
+    arrays read from it before raise an error when computed (see
+    ``_FileHandleVariable``). Groups are still read
     with xarray, through a backend store which is opened when a group is first
     read.
 
@@ -592,7 +593,7 @@ class _FileHandleOpener(_NetCDF4Opener):
     def release(self):
         """Stop holding what was opened from the file and close the file handle.
 
-        The arrays read from the file handle shouldn't be read after it is closed.
+        The arrays read from the file handle raise an error when computed after that.
 
         """
         super().release()
@@ -602,8 +603,9 @@ class _FileHandleOpener(_NetCDF4Opener):
         if self.file_handle is not None:
             with suppress(RuntimeError):
                 self.file_handle.close()
-        # netCDF-C reuses the ids of closed files, so reading through the closed
-        # file handle could silently read from another file opened since.
+        # netCDF-C may give the id of a closed file to the next file opened, and
+        # netCDF4 objects keep reading by that id, so reading through the closed
+        # file handle could silently read from another file (see ``_FileHandleVariable``).
         self.file_handle = None
 
     def get_metadata_root(self):
@@ -633,10 +635,12 @@ class _FileHandleOpener(_NetCDF4Opener):
         resolved like ``dask.array.from_array`` does for ``chunks="auto"``.
 
         """
-        var = self.get_metadata_root()[key]
+        file_handle = self.get_metadata_root()
+        var = file_handle[key]
         chunks = normalize_chunks("auto", var.shape, dtype=var.dtype, previous_chunks=getattr(var, "chunks", None))
         name = f"{var.name}-{self._tokenize(self._auto_maskandscale, key, chunks)}"
-        return self._to_dataarray(var, da.from_array(var, chunks=chunks, name=name))
+        array = _FileHandleVariable(var, key, file_handle, self.accessor, self.filename)
+        return self._to_dataarray(var, da.from_array(array, chunks=chunks, name=name))
 
     def load_variable(self, key):
         """Read variable ``key`` of the file handle into memory.
@@ -652,6 +656,39 @@ class _FileHandleOpener(_NetCDF4Opener):
         # Don't get coordinates for historical reasons.
         # They weren't used downstream and take more work to gather.
         return xr.DataArray(data, dims=var.dimensions, attrs=self.accessor.get_object_attrs(var), name=var.name)
+
+
+class _FileHandleVariable:
+    """Variable of a file handle that raises an error when it is read after the file handle is closed.
+
+    netCDF-C may give the id of a closed file to the next file opened (see
+    https://docs.unidata.ucar.edu/netcdf-c/current/group__datasets.html#ga07cbeee9c98b5b21713df60310edc3b1),
+    and netCDF4 variables read by that id without checking that their file is
+    still open, so they could silently read from another file. h5netcdf raises
+    its own errors instead, but less clear ones. This is the array that
+    ``_FileHandleOpener`` wraps in a dask array.
+
+    """
+
+    def __init__(self, var, key, file_handle, accessor, filename):
+        """Wrap variable ``key`` of ``file_handle``."""
+        self._var = var
+        self._key = key
+        self._file_handle = file_handle
+        self._accessor = accessor
+        self._filename = filename
+        self.shape = var.shape
+        self.dtype = var.dtype
+        self.ndim = var.ndim
+
+    def __getitem__(self, index):
+        """Read ``index`` of the variable from the file, unless the file handle is closed."""
+        if not self._accessor.is_open(self._file_handle):
+            raise ValueError(
+                f"Can't read variable {self._key!r} of {self._filename}: the file handler it was read from "
+                "with open_strategy='file_handle' was closed or deleted."
+            )
+        return self._var[index]
 
 
 class NetCDF4FileContent(Mapping):
@@ -897,6 +934,11 @@ class NetCDF4Accessor:
         return netCDF4.Dataset(filename, "r")
 
     @staticmethod
+    def is_open(file_handle):
+        """Check if file_handle is open."""
+        return file_handle.isopen()
+
+    @staticmethod
     def is_variable(obj):
         """Check if obj is a variable."""
         import netCDF4
@@ -942,6 +984,12 @@ class H5NetcdfAccessor:
 
         f_obj = open_file_or_filename(filename)
         return h5netcdf.File(f_obj, "r")
+
+    @staticmethod
+    def is_open(file_handle):
+        """Check if file_handle is open."""
+        # h5netcdf has no public way to tell
+        return not file_handle._closed
 
     @staticmethod
     def is_variable(obj):
