@@ -421,6 +421,30 @@ class TestNetCDF4FileHandler:
         assert len(file_cache) == num_cached_before
         assert not _is_open(file_handle)
 
+    @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
+    @pytest.mark.parametrize("delete", [pytest.param(False, id="closed"), pytest.param(True, id="deleted")])
+    def test_file_handle_arrays_fail_after_close(self, netcdf_file, tmp_path, engine, delete):
+        """Test that arrays read with "file_handle" fail when computed after the file handler is closed or deleted.
+
+        netCDF-C gives the id of a closed file to the next file it opens, so
+        they could otherwise read from that file without any error.
+
+        """
+        import shutil
+
+        from netCDF4 import Dataset
+
+        file_copy = shutil.copy(netcdf_file, tmp_path / "copy.nc")
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="file_handle")
+        data = file_handler["ds2_f"].data
+        if delete:
+            del file_handler
+        else:
+            file_handler.close()
+
+        with Dataset(file_copy), pytest.raises(ValueError, match="was closed or deleted"):
+            data.compute()
+
     def test_invalid_open_strategy(self, netcdf_file):
         """Test that unknown open strategies are rejected."""
         with pytest.raises(ValueError, match="Unknown open_strategy"):
