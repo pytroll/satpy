@@ -162,11 +162,19 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     """
 
-    def __init__(self, filename: str | os.PathLike | FSFile, filename_info: dict[str, Any],
-                 filetype_info: dict[str, Any], auto_maskandscale: bool = False,
-                 xarray_kwargs: dict[str, Any] | None = None, cache_var_size: int = 0,
-                 cache_handle: bool | None = None, engine: str | list[str] = "netcdf4",
-                 open_strategy: str | None = None, defer_open: bool = False) -> None:
+    def __init__(
+        self,
+        filename: str | os.PathLike | FSFile,
+        filename_info: dict[str, Any],
+        filetype_info: dict[str, Any],
+        auto_maskandscale: bool = False,
+        xarray_kwargs: dict[str, Any] | None = None,
+        cache_var_size: int = 0,
+        cache_handle: bool | None = None,
+        engine: str | list[str] = "netcdf4",
+        open_strategy: str | None = None,
+        defer_open: bool = False,
+    ) -> None:
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
         self.engine = engine
@@ -179,7 +187,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         # The file content references the opener, not this file handler, so
         # deleting the file handler releases the file right away (see ``__del__``).
         self.file_content: Mapping[str, Any] = NetCDF4FileContent(
-            self._opener, listed_keys=_get_required_variable_names(filetype_info))
+            self._opener, listed_keys=_get_required_variable_names(filetype_info)
+        )
         if not defer_open:
             self._opener.open()
 
@@ -237,9 +246,11 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def _is_small_variable(self, var: netCDF4.Variable | h5netcdf.Variable) -> bool:
         """Tell if variable object ``var`` is smaller than ``cache_var_size``."""
-        return (self._cache_var_size > 0
-                and isinstance(var.dtype, np.dtype)  # vlen may be str
-                and math.prod(var.shape) * var.dtype.itemsize < self._cache_var_size)
+        return (
+            self._cache_var_size > 0
+            and isinstance(var.dtype, np.dtype)  # vlen may be str
+            and math.prod(var.shape) * var.dtype.itemsize < self._cache_var_size
+        )
 
     def _cache_variable(self, key: str) -> xr.DataArray:
         """Read variable ``key`` into memory and keep it for the next reads."""
@@ -270,7 +281,8 @@ def _resolve_open_strategy(strategy, cache_handle):
             "The 'cache_handle' argument is deprecated and will be removed in Satpy 1.0. "
             "Use open_strategy='file_handle' instead of cache_handle=True.",
             DeprecationWarning,
-            stacklevel=3)
+            stacklevel=3,
+        )
         # >8 v1.0
         handle_strategy = "file_handle" if cache_handle else DEFAULT_OPEN_STRATEGY
         if strategy is not None and strategy != handle_strategy:
@@ -500,6 +512,7 @@ class _TokenizedStore(AbstractDataStore):
 
 def _call_store_method(name):
     """Create a ``_TokenizedStore`` method calling method ``name`` of the wrapped store."""
+
     def method(self, *args, **kwargs):
         return getattr(self._store, name)(*args, **kwargs)
 
@@ -605,8 +618,10 @@ class _FileHandleOpener(_NetCDF4Opener):
             file_handle.set_auto_maskandscale(self._auto_maskandscale)
         elif self._auto_maskandscale:
             file_handle.close()
-            raise ValueError(f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
-                             f"{accessor.engine} engine. Use another open_strategy or engine.")
+            raise ValueError(
+                f"open_strategy='file_handle' can't apply auto_maskandscale=True with the "
+                f"{accessor.engine} engine. Use another open_strategy or engine."
+            )
         return file_handle
 
     def read_variable(self, key):
@@ -730,12 +745,12 @@ class NetCDF4FileContent(Mapping):
         for index, part in enumerate(parts):
             child = self._get_child(obj, part)
             if child is None:
-                return self._read_from_object(obj, part, parts[index + 1:], key)
+                return self._read_from_object(obj, part, parts[index + 1 :], key)
             if obj is not root and part in ("attr", "dimension"):
                 # The attributes and dimensions of a group come before its children named "attr" or "dimension", as
                 # when walking through the file (those of the root group are under "/attr" and "/dimension").
                 with suppress(KeyError):
-                    return self._read_from_object(obj, part, parts[index + 1:], key)
+                    return self._read_from_object(obj, part, parts[index + 1 :], key)
             obj = child
         return obj
 
@@ -872,23 +887,27 @@ _ALL_STORE_OPEN_PARAMS = _STORE_OPEN_PARAMS["netcdf4"] | _STORE_OPEN_PARAMS["h5n
 
 class NetCDF4Accessor:
     """Accessor using the netCDF4 library as engine."""
+
     engine = "netcdf4"
 
     def create_file_handle(self, filename):
         """Create a file handle."""
         import netCDF4
+
         return netCDF4.Dataset(filename, "r")
 
     @staticmethod
     def is_variable(obj):
         """Check if obj is a variable."""
         import netCDF4
+
         return isinstance(obj, netCDF4.Variable)
 
     @staticmethod
     def is_group(obj):
         """Check if obj is a group."""
         import netCDF4
+
         return isinstance(obj, netCDF4.Group)
 
     @staticmethod
@@ -914,11 +933,13 @@ class NetCDF4Accessor:
 
 class H5NetcdfAccessor:
     """Accessor using the h5netcdf library as engine."""
+
     engine = "h5netcdf"
 
     def create_file_handle(self, filename):
         """Create a file handle."""
         import h5netcdf
+
         f_obj = open_file_or_filename(filename)
         return h5netcdf.File(f_obj, "r")
 
@@ -926,12 +947,14 @@ class H5NetcdfAccessor:
     def is_variable(obj):
         """Check if obj is a variable."""
         import h5netcdf
+
         return isinstance(obj, h5netcdf.Variable)
 
     @staticmethod
     def is_group(obj):
         """Check if obj is a group."""
         import h5netcdf
+
         return isinstance(obj, h5netcdf.Group)
 
     @staticmethod
