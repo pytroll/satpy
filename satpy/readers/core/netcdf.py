@@ -87,7 +87,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     Data Consistency
     ^^^^^^^^^^^^^^^^
 
-    When data are ready into ``xarray.DataArray`` or ``xarray.Dataset`` objects
+    When data are read into ``xarray.DataArray`` or ``xarray.Dataset`` objects
     the underlying data may be shared with later reads for that same item. It
     is important not to modify these objects in place including: their dask
     arrays, scalar variables, which are loaded
@@ -104,7 +104,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     The ``open_strategy`` keyword argument selects how the file is opened and how variables are
     turned into ``xarray.DataArray`` objects. Every strategy holds what it
     opened for the lifetime of this file handler; call ``close`` to release it
-    sooner.
+    sooner. While a file is open, it can't be deleted or renamed on Windows.
 
     - ``"shared_store"`` (default): open the file once as an xarray backend
       store and derive a child store per accessed group. All groups share one
@@ -112,6 +112,11 @@ class NetCDF4FileHandler(BaseFileHandler):
       (``xarray.set_options(file_cache_maxsize=...)``, 128 by default), and
       only the groups that are accessed are decoded by xarray. The metadata
       in ``file_content`` is read from the same (undecoded) file handle.
+      With more files than the cache holds, e.g. a ``Scene`` of more than 128
+      files, xarray closes the least recently used ones and reopens them when
+      they are read from again, which happens about once per dataset loaded
+      from each file. If that is too slow, raise ``file_cache_maxsize`` above
+      the number of files, within the operating system's limit on open files.
     - ``"file_handle"``: keep the netCDF4/h5netcdf file handle open and wrap
       each variable in a dask array "manually". xarray does not parse or
       decode anything in this case: the attributes are the raw ones from the
@@ -129,14 +134,14 @@ class NetCDF4FileHandler(BaseFileHandler):
     By default the file is opened when the file handler is created, so that
     an unreadable file fails right away. With ``defer_open=True`` the file
     is only opened when something is first read from it or opening would
-    help determine what what engine to use so errors are only raised then.
+    help determine what engine to use so errors are only raised then.
     This saves opening files that are never
     read, but is only useful for readers whose ``start_time``, ``end_time``
     and ``available_datasets`` don't read from the file, as those are needed
     when the ``Scene`` is created.
 
-    By default when the handler is deleted it uses the :meth:`release` method
-    to release direct references to the files it has opened. The files will be
+    When the handler is deleted, ``__del__`` releases the references to the
+    files it has opened. The files will be
     closed once all dask arrays that reference
     them are deleted. This does not apply to the "file_handle" ``open_strategy``
     in which case files are closed immediately. In this case the file handler
