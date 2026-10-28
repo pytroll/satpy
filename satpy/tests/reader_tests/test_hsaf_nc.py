@@ -20,6 +20,8 @@ FILE_TYPE_H60 = "hsaf_h60_nc"
 FILE_TYPE_H63 = "hsaf_h63_nc"
 FILE_TYPE_H90 = "hsaf_h90_nc"
 FILE_TYPE_H40B = "hsaf_h40b_nc"
+FILE_TYPE_H42B_01 = "hsaf_h42b_01_nc"
+FILE_TYPE_H42B_24 = "hsaf_h42b_24_nc"
 
 # parameters per file type
 FILE_PARAMS = {
@@ -40,6 +42,16 @@ FILE_PARAMS = {
     },
     FILE_TYPE_H40B: {
         "fake_file": "W_IT-HSAF-ROME,SATELLITE,h40B_C_LIIB_202511050000_PINFCI.nc",
+        "yaml_file": "hsaf_nc.yaml",
+        "platform": "MTG1",
+    },
+    FILE_TYPE_H42B_01: {
+        "fake_file": "W_IT-HSAF-ROME,SATELLITE,h42B_C_LIIB_202511050000_01_PACFCI.nc",
+        "yaml_file": "hsaf_nc.yaml",
+        "platform": "MTG1",
+    },
+    FILE_TYPE_H42B_24: {
+        "fake_file": "W_IT-HSAF-ROME,SATELLITE,h42B_C_LIIB_202511050000_24_PACFCI.nc",
         "yaml_file": "hsaf_nc.yaml",
         "platform": "MTG1",
     }
@@ -109,6 +121,8 @@ class TestHSAFNCReader:
             (FILE_PARAMS[FILE_TYPE_H63], 1),
             (FILE_PARAMS[FILE_TYPE_H90], 1),
             (FILE_PARAMS[FILE_TYPE_H40B], 1),
+            (FILE_PARAMS[FILE_TYPE_H42B_01], 1),
+            (FILE_PARAMS[FILE_TYPE_H42B_24], 1),
         ],
     )
     def test_reader_creation(self, file_type, expected_loadables):
@@ -134,7 +148,12 @@ class TestHSAFNCReader:
             LoadDatasetsParams(
                 FILE_PARAMS[FILE_TYPE_H40B], ["rr", "qind"], "mm/h", 2000, "mtg_fci_fdss_2km", "Meteosat-12", 10
             ),
-
+            LoadDatasetsParams(
+                FILE_PARAMS[FILE_TYPE_H42B_01], ["acc_rr", "qind"], "mm", 2000, "mtg_fci_fdss_2km", "Meteosat-12", 60
+            ),
+            LoadDatasetsParams(
+                FILE_PARAMS[FILE_TYPE_H42B_24], ["acc_rr", "qind"], "mm", 2000, "mtg_fci_fdss_2km", "Meteosat-12", 1440
+            ),
         ],
     )
     def test_load_datasets(self, params):

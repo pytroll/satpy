@@ -6,14 +6,16 @@ geostationary (GEO) infrared and low-Earth-orbit (LEO) microwave observations
 using the H SAF "Rapid Update" algorithm.
 
 Currently, this reader supports the following products:
+  * **H40B** – Precipitation rate at ground by blended FCI IR / LEO MW
+    precipitation over the Meteosat (0°) disk (MTG).
+  * **H42B** – Accumulated Precipitation rate at ground by blended FCI IR / LEO MW
+    precipitation over the Meteosat (0°) disk (MTG).
   * **H60/H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over
     the full Meteosat (0°) disk.
   * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
     Meteosat IODC (Indian Ocean) disk.
   * **H90** – Accumulated Precipitation at ground by blended MW and IR IODC
     over the Meteosat IODC (Indian Ocean) disk.
-  * **H40B** – Precipitation rate at ground by blended FCI IR / LEO MW
-    precipitation over the Meteosat (0°) disk (MTG).
 
 Notes:
   * Externally compressed files (.gz) and uncompressed files are handled
