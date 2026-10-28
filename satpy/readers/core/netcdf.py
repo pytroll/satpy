@@ -27,7 +27,10 @@ DEFAULT_OPEN_STRATEGY = "shared_store"
 
 
 class NetCDF4FileHandler(BaseFileHandler):
-    """Class for inspecting a NetCDF4 file and retrieving its metadata/header data.
+    """Class for inspecting a NetCDF4 file and retrieving its contents.
+
+    Access Content
+    ^^^^^^^^^^^^^^
 
     File information can be accessed using bracket notation. Variables are
     accessed by using:
@@ -43,7 +46,15 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["group/subgroup/var_name/attr/units"]
 
-    Or for global attributes:
+    This also works for dimensions using "dimension":
+
+        wrapper["group/subgroup/var_name/dimension/dim_name"]
+
+    Or the overall shape of a variable:
+
+        wrapper["group/subgroup/var_name/shape"]
+
+    For global attributes use:
 
         wrapper["/attr/platform_short_name"]
 
@@ -51,35 +62,38 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attrs"]
 
-    The size of a dimension of the file or of one of its groups is available
-    as ``wrapper["/dimension/dim_name"]`` or
-    ``wrapper["group/dimension/dim_name"]``. All of this information is read
-    from the file when it is requested, see :class:`NetCDF4FileContent` for
-    the ``file_content`` mapping that holds it.
+    All of this information is read from the file lazily when it is requested,
+    see :class:`NetCDF4FileContent` for the ``file_content`` mapping that
+    holds it.
 
-    Note that loading datasets requires reading them from the original file
-    (unless those datasets are cached, see below). To get just the shape of
-    the dataset append "/shape" to the item string:
-
-        wrapper["group/subgroup/var_name/shape"]
+    Small Variable Caching
+    ^^^^^^^^^^^^^^^^^^^^^^
 
     If your file has many small data variables that are frequently accessed,
-    you may choose to cache some of them. You can do this by passing a number,
-    any variable smaller than this number in bytes will be read into RAM the
-    first time it is accessed and kept there. Warning, this part of the API is
-    provisional and subject to change.
+    you may choose to cache some of them. You can do this by passing a size in
+    bytes using the ``cache_var_size`` keyword argument (see below). Any item
+    read that is smaller than this size will be cached on first access. Use the
+    :meth:`get_and_cache_npxr` method to explicitly cache a variable regardless
+    of size.
 
-    The ``xarray.DataArray`` and ``xarray.Dataset`` objects that variables and
-    groups are read into may share their data with later reads for the same
-    same key: their dask arrays, scalar variables, which are loaded
-    into memory, and the arrays in their attributes. Don't modify those in
-    place, e.g. with ``data[...] = ...``, with ``+=`` on a scalar or by
-    changing an array in ``attrs``, but create new ones instead
-    (``data = data * factor``). Adding, removing or replacing attributes,
-    coordinates or the ``data`` of a returned object doesn't change later
+    Data Consistency
+    ^^^^^^^^^^^^^^^^
+
+    When data are ready into ``xarray.DataArray`` or ``xarray.Dataset`` objects
+    the underlying data may be shared with later reads for that same item. It
+    is important not to modify these objects in place including: their dask
+    arrays, scalar variables, which are loaded
+    into memory, and the arrays in their attributes. Modifying in place would
+    be using patterns like ``data[...] = ...`` or assigning using ``+=`` on
+    a scalar or by changing an array in ``attrs``. Always create new ones instead
+    (``data = data * factor``). Adding, removing, or replacing attributes,
+    coordinates, or the ``data`` of a returned object doesn't change later
     reads, except for cached variables, which are the same object every time.
 
-    ``open_strategy`` selects how the file is opened and how variables are
+    Opening and Closing
+    ^^^^^^^^^^^^^^^^^^^
+
+    The ``open_strategy`` keyword argument selects how the file is opened and how variables are
     turned into ``xarray.DataArray`` objects. Every strategy holds what it
     opened for the lifetime of this file handler; call ``close`` to release it
     sooner.
@@ -105,20 +119,31 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     By default the file is opened when the file handler is created, so that
     an unreadable file fails right away. With ``defer_open=True`` the file
-    is only opened when something is first read from it, or when the
-    ``accessor`` is needed to choose between several engines, so opening
-    errors are raised then instead. This saves opening files that are never
+    is only opened when something is first read from it or opening would
+    help determine what what engine to use so errors are only raised then.
+    This saves opening files that are never
     read, but is only useful for readers whose ``start_time``, ``end_time``
     and ``available_datasets`` don't read from the file, as those are needed
     when the ``Scene`` is created.
+
+    By default when the handler is deleted it uses the :meth:`release` method
+    to release direct references to the files it has opened. The files will be
+    closed once all dask arrays that reference
+    them are deleted. This does not apply to the "file_handle" ``open_strategy``
+    in which case files are closed immediately. In this case the file handler
+    and therefore the reader that references it and the Scene that references
+    the reader must not be deleted until all computations are done. This could
+    result in an error or in the worst case could provide data from another
+    file that was opened.
 
     Args:
         filename (str): File to read.
         filename_info (dict): Dictionary with filename information.
         filetype_info (dict): Dictionary with filetype information.
         auto_maskandscale (bool): Apply mask and scale factors.
-        xarray_kwargs (dict): Additional arguments to `xarray.open_dataset`. Options of the xarray backend
-            store (e.g. ``lock`` or ``phony_dims``, or those in ``backend_kwargs``) are used when opening the file.
+        xarray_kwargs (dict): Additional arguments to `xarray.open_dataset` and xarray store object.
+            Options of the xarray backend store (e.g. ``lock`` or ``phony_dims``, or those in ``backend_kwargs``)
+            are used when opening the file.
         cache_var_size (int): Keep variables smaller than this size in bytes in memory once they are read.
         cache_handle (bool): Deprecated, use ``open_strategy="file_handle"`` instead of ``cache_handle=True``.
         engine (str or list of str): The engine to use for reading, either "netcdf4" or "h5netcdf". As a list, will try
@@ -165,22 +190,15 @@ class NetCDF4FileHandler(BaseFileHandler):
     def close(self):
         """Close every file object this file handler is holding open.
 
-        Call it to release the file before the file handler is deleted, for
-        example to write to it. Reading from the file handler after that opens
-        the file again. Don't close it while dask arrays read from it are
-        being computed.
-
+        See the class docstring for more details.
         """
         if self._opener is not None:
             self._opener.close()
 
     def __del__(self):
-        """Delete the file handler, leaving the file open for the dask arrays read from it.
+        """Delete the file handler leaving open files open until all dask arrays using it are deleted.
 
-        xarray closes the file once those are deleted too, like for a file
-        opened with ``xarray.open_dataset``. Closing it right away could close
-        it under such an array being computed in another thread. The file
-        handle of ``open_strategy="file_handle"`` is closed right away though.
+        See the class docstring for more details.
 
         """
         if self._opener is not None:
@@ -306,8 +324,9 @@ class _NetCDF4Opener:
     file handler and its ``file_content`` both use this object, which doesn't
     reference either of them.
 
-    The accessor of a single engine is known from the start. Of several
-    engines, the first one that opens the file is chosen and used from then on.
+    The accessor of a single engine is known from the start. If several
+    engines are provided the first one that opens the file successfully is
+    used.
 
     The options for ``xarray.open_dataset`` are in ``open_dataset_kwargs``.
     A file handler can change them until it first reads a variable or group
@@ -355,12 +374,7 @@ class _NetCDF4Opener:
         return self._get_dataset(key).copy()
 
     def _open_with_engine(self, open_func):
-        """Return ``open_func(accessor)`` with the accessor for the engine of the file.
-
-        If the engine isn't known yet, the engines are tried in turn and the
-        first one that works is chosen.
-
-        """
+        """Return ``open_func(accessor)`` with the accessor for the engine of the file."""
         if self._accessor is not None:
             try:
                 return open_func(self._accessor)
@@ -401,16 +415,10 @@ class _NetCDF4Opener:
     def _get_dataset(self, group):
         """Get the dataset for ``group``, opening and remembering it if needed.
 
-        The dataset is held open until ``close``. Opening and closing it once
-        per variable instead would give every returned lazy array its own
-        ``CachingFileManager``, and every manager its own entry in xarray's
-        global file cache. That cache is an LRU of ``file_cache_maxsize``
-        entries (128 by default), so reading more variables than that starts
-        evicting entries and closing netCDF4 handles that sibling arrays of the
-        same file are still reading through, which segfaults in libhdf5.
-
-        Child stores share the file manager (and file cache slot) of the root
-        store, so the file is only opened once however many groups are read.
+        The dataset is held open until ``close`` and reused to avoid filling
+        xarray's LRU file cache (128 files by default using ``file_cache_maxsize``).
+        Future updates to xarray's caching
+        (see https://github.com/pydata/xarray/issues/11581) may change the need for this.
 
         """
         if group not in self._datasets:
@@ -436,12 +444,7 @@ class _NetCDF4Opener:
         self._root_store = None
 
     def release(self):
-        """Stop holding what was opened from the file, leaving it to xarray to close the file.
-
-        xarray closes it once nothing uses it anymore, including the dask
-        arrays read from it, unlike ``close``.
-
-        """
+        """Stop holding what was opened from the file, leaving it to xarray to close the file."""
         self._datasets.clear()
         self._root_store = None
 
@@ -510,9 +513,10 @@ def _get_mtime(filename):
 class _SharedStoreOpener(_NetCDF4Opener):
     """Opener for the "shared_store" open strategy: one xarray backend store for metadata and data.
 
-    Variables are always read with xarray, never from the raw variable objects
-    of the metadata: xarray disables masking and scaling on them, and its file
-    cache may close and reopen the file handle they belong to.
+    Variables are always read with xarray including the decoding done for
+    attributes (e.g. masking, scaling, coordinates, times).
+    Xarray's file cache may close and reopen the file handle underneath and will
+    be reopened as needed (ex. dask array computation).
 
     """
 
@@ -563,11 +567,9 @@ class _FileHandleOpener(_NetCDF4Opener):
         self._close_file_handle()
 
     def release(self):
-        """Stop holding what was opened from the file like the base class, but close the file handle.
+        """Stop holding what was opened from the file and close the file handle.
 
-        Nothing but garbage collection would close the file handle once it is
-        released, and the arrays read from it can't be read after the file
-        handler is deleted anyway.
+        The arrays read from the file handle shouldn't be read after it is closed.
 
         """
         super().release()
@@ -622,8 +624,8 @@ class _FileHandleOpener(_NetCDF4Opener):
         return self._to_dataarray(var, _read_data(var))
 
     def _to_dataarray(self, var, data):
-        # Not getting coordinates as this is more work, therefore more
-        # overhead, and those are not used downstream.
+        # Don't get coordinates for historical reasons.
+        # They weren't used downstream and take more work to gather.
         return xr.DataArray(data, dims=var.dimensions, attrs=self.accessor.get_object_attrs(var), name=var.name)
 
 
@@ -780,7 +782,7 @@ class NetCDF4FileContent(Mapping):
         for group_name, subgroup in group.groups.items():
             full_name = prefix + group_name
             yield full_name, subgroup
-            # before the children, so that they come before those of children named "attr" or "dimension"
+            # walk attrs and dims before children in case some children are called "attr" or "dimension"
             yield from self._walk_attrs(full_name, subgroup)
             yield from self._walk_dimensions(full_name, subgroup)
             yield from self._walk_group(full_name, subgroup)
@@ -882,7 +884,6 @@ class NetCDF4Accessor:
     @staticmethod
     def get_attr(obj, key):
         """Get an attribute from obj."""
-        # Not getattr, which also gives the python attributes of the netCDF4 objects (e.g. "name" or "shape").
         return obj.getncattr(key)
 
     @staticmethod
