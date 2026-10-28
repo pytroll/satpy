@@ -74,13 +74,6 @@ class CLAAS2(NetCDF4FileHandler):
         """
         ds_info = {"name": var,
                    "file_type": self.filetype_info["file_type"]}
-        # attributes for this data variable
-        attrs = {k[len(f"{k:s}/attr")+1]: v
-                 for (k, v) in self.file_content.items()
-                 if k.startswith(f"{k:s}/attr")}
-        # we don't need "special" attributes in our metadata here
-        for unkey in {"_FillValue", "add_offset", "scale_factor"}:
-            attrs.pop(unkey, None)
         return ds_info
 
     def get_dataset(self, dataset_id, info):
