@@ -1,11 +1,15 @@
 """Helpers for reading netcdf-based files."""
 
+from __future__ import annotations
+
 import inspect
 import logging
+import math
 import os
 import warnings
 from collections.abc import Mapping
 from contextlib import suppress
+from typing import TYPE_CHECKING, Any
 
 import dask.array as da
 import numpy as np
@@ -15,9 +19,13 @@ from dask.base import tokenize
 from xarray.backends import AbstractDataStore
 
 from satpy.readers.core.file_handlers import BaseFileHandler
-from satpy.readers.core.remote import open_file_or_filename
+from satpy.readers.core.remote import FSFile, open_file_or_filename
 from satpy.readers.core.utils import np2str
 from satpy.utils import get_legacy_chunk_size
+
+if TYPE_CHECKING:
+    import h5netcdf
+    import netCDF4
 
 LOG = logging.getLogger(__name__)
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -154,31 +162,29 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     """
 
-    # for ``close`` when ``__init__`` fails before creating the opener
-    _opener = None
-
-    def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=None, engine="netcdf4",
-                 open_strategy=None, defer_open=False):
+    def __init__(self, filename: str | os.PathLike | FSFile, filename_info: dict[str, Any],
+                 filetype_info: dict[str, Any], auto_maskandscale: bool = False,
+                 xarray_kwargs: dict[str, Any] | None = None, cache_var_size: int = 0,
+                 cache_handle: bool | None = None, engine: str | list[str] = "netcdf4",
+                 open_strategy: str | None = None, defer_open: bool = False) -> None:
         """Initialize object."""
         super().__init__(filename, filename_info, filetype_info)
         self.engine = engine
         self._cache_var_size = cache_var_size
         # Variables read into memory, see ``cache_var_size`` and ``get_and_cache_npxr``.
-        self.cached_variables = {}
+        self.cached_variables: dict[str, xr.DataArray] = {}
         open_strategy = _resolve_open_strategy(open_strategy, cache_handle)
         opener_cls = _FileHandleOpener if open_strategy == "file_handle" else _SharedStoreOpener
         self._opener = opener_cls(filename, engine, xarray_kwargs, auto_maskandscale)
         # The file content references the opener, not this file handler, so
         # deleting the file handler releases the file right away (see ``__del__``).
-        self.file_content = NetCDF4FileContent(self._opener,
-                                               listed_keys=_get_required_variable_names(filetype_info))
+        self.file_content: Mapping[str, Any] = NetCDF4FileContent(
+            self._opener, listed_keys=_get_required_variable_names(filetype_info))
         if not defer_open:
             self._opener.open()
 
     @property
-    def accessor(self):
+    def accessor(self) -> NetCDF4Accessor | H5NetcdfAccessor:
         """Get the accessor for the engine of the file.
 
         With several engines to try, this opens the file (if it isn't yet) to
@@ -187,24 +193,28 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         return self._opener.accessor
 
-    def close(self):
+    def close(self) -> None:
         """Close every file object this file handler is holding open.
 
         See the class docstring for more details.
         """
-        if self._opener is not None:
-            self._opener.close()
+        # no opener if ``__init__`` failed before creating it
+        opener = getattr(self, "_opener", None)
+        if opener is not None:
+            opener.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Delete the file handler leaving open files open until all dask arrays using it are deleted.
 
         See the class docstring for more details.
 
         """
-        if self._opener is not None:
-            self._opener.release()
+        # no opener if ``__init__`` failed before creating it
+        opener = getattr(self, "_opener", None)
+        if opener is not None:
+            opener.release()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         """Get item for given key.
 
         Don't modify a returned variable or group in place, see the class docstring.
@@ -212,7 +222,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         return self._get_item(key, always_cache=False)
 
-    def _get_item(self, key, always_cache):
+    def _get_item(self, key: str, always_cache: bool) -> Any:
         """Get item for given key, reading a variable into memory and keeping it if it is small or ``always_cache``."""
         if key in self.cached_variables:
             return self.cached_variables[key]
@@ -225,30 +235,30 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self._opener.read_group(key)
         return val
 
-    def _is_small_variable(self, var):
+    def _is_small_variable(self, var: netCDF4.Variable | h5netcdf.Variable) -> bool:
         """Tell if variable object ``var`` is smaller than ``cache_var_size``."""
         return (self._cache_var_size > 0
                 and isinstance(var.dtype, np.dtype)  # vlen may be str
-                and np.prod(var.shape) * var.dtype.itemsize < self._cache_var_size)
+                and math.prod(var.shape) * var.dtype.itemsize < self._cache_var_size)
 
-    def _cache_variable(self, key):
+    def _cache_variable(self, key: str) -> xr.DataArray:
         """Read variable ``key`` into memory and keep it for the next reads."""
         val = self._opener.load_variable(key)
         self.cached_variables[key] = val
         return val
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         """Get item from file content."""
         return item in self.file_content
 
-    def get(self, item, default=None):
+    def get(self, item: str, default: Any = None) -> Any:
         """Get item."""
         if item in self:
             return self[item]
         else:
             return default
 
-    def get_and_cache_npxr(self, var_name):
+    def get_and_cache_npxr(self, var_name: str) -> Any:
         """Get and cache variable as DataArray[numpy]."""
         return self._get_item(var_name, always_cache=True)
 
@@ -938,6 +948,7 @@ class H5NetcdfAccessor:
 class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
     """NetCDF4FileHandler implementation that allows accessing files on remote filesystems by switching engines."""
 
-    def __init__(self, *args, engine=["netcdf4", "h5netcdf"], **kwargs):
-        """Set up the instance with h5netcdf if netcdf4 does not work."""
-        super().__init__(*args, engine=engine, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Set up the instance with h5netcdf if netcdf4 does not work, unless an ``engine`` is given."""
+        kwargs.setdefault("engine", ["netcdf4", "h5netcdf"])
+        super().__init__(*args, **kwargs)
