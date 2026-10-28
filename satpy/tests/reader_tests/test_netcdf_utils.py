@@ -58,6 +58,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 def netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file."""
     from netCDF4 import Dataset
+
     filename = tmp_path_factory.mktemp("data") / "test.nc"
     with Dataset(filename, "w") as nc:
         # Create dimensions
@@ -67,23 +68,18 @@ def netcdf_file(tmp_path_factory):
         # Create Group
         g1 = nc.createGroup("test_group")
         # Add datasets
-        ds1_f = g1.createVariable("ds1_f", np.float32,
-                                  dimensions=("rows", "cols"))
-        ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+        ds1_f = g1.createVariable("ds1_f", np.float32, dimensions=("rows", "cols"))
+        ds1_f[:] = np.arange(10.0 * 100).reshape((10, 100))
         ds1_f.set_auto_scale(True)
 
-        ds1_i = g1.createVariable("ds1_i", np.int32,
-                                  dimensions=("rows", "cols"))
+        ds1_i = g1.createVariable("ds1_i", np.int32, dimensions=("rows", "cols"))
         ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
 
-        ds2_f = nc.createVariable("ds2_f", np.float32,
-                                  dimensions=("rows", "cols"))
-        ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds2_i = nc.createVariable("ds2_i", np.int32,
-                                  dimensions=("rows", "cols"))
+        ds2_f = nc.createVariable("ds2_f", np.float32, dimensions=("rows", "cols"))
+        ds2_f[:] = np.arange(10.0 * 100).reshape((10, 100))
+        ds2_i = nc.createVariable("ds2_i", np.int32, dimensions=("rows", "cols"))
         ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
-        ds2_s = nc.createVariable("ds2_s", np.int8,
-                                  dimensions=("rows",))
+        ds2_s = nc.createVariable("ds2_s", np.int8, dimensions=("rows",))
         ds2_s[:] = np.arange(10)
         ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
         ds2_sc[:] = np.int8(42)
@@ -107,6 +103,7 @@ def netcdf_file(tmp_path_factory):
 def cf_netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file with CF encoded variables (scaling, fill value, coordinates, times)."""
     from netCDF4 import Dataset
+
     filename = tmp_path_factory.mktemp("data") / "test_cf.nc"
     with Dataset(filename, "w") as nc:
         nc.createDimension("x", 4)
@@ -115,7 +112,7 @@ def cf_netcdf_file(tmp_path_factory):
         x.units = "m"
         scaled = nc.createVariable("scaled", np.int16, ("x",), fill_value=-1)
         scaled.scale_factor = np.float32(0.5)
-        scaled.add_offset = np.float32(10.)
+        scaled.add_offset = np.float32(10.0)
         scaled.units = "K"
         scaled.coordinates = "x"
         scaled[:] = np.ma.masked_array([1, 2, 3, 4], mask=[0, 0, 1, 0])
@@ -182,8 +179,8 @@ class TestNetCDF4FileHandler:
             "test_attr_str": "test_string",
             "test_attr_str_arr": "test_string2",
             "test_attr_int": 0,
-            "test_attr_float": 1.2
-            }
+            "test_attr_float": 1.2,
+        }
         assert file_handler["/attrs"] == global_attrs
 
         assert isinstance(file_handler.get("ds2_f")[:], xr.DataArray)
@@ -202,19 +199,20 @@ class TestNetCDF4FileHandler:
 
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
         assert h["ds2_sc"] == 42
-        np.testing.assert_array_equal(h["test_group/ds1_i"],
-                                      np.arange(10 * 100).reshape((10, 100)))
-        np.testing.assert_array_equal(
-                h["ds2_f"],
-                np.arange(10. * 100).reshape((10, 100)))
+        np.testing.assert_array_equal(h["test_group/ds1_i"], np.arange(10 * 100).reshape((10, 100)))
+        np.testing.assert_array_equal(h["ds2_f"], np.arange(10.0 * 100).reshape((10, 100)))
         assert sorted(h.cached_variables.keys()) == ["ds2_s", "ds2_sc"]
         assert h["ds2_s"] is h.cached_variables["ds2_s"]
 
-    @pytest.mark.parametrize(("strategy", "auto_maskandscale", "engine"), [
-        params for params in itertools.product(OPEN_STRATEGIES, [False, True], ["netcdf4", "h5netcdf"])
-        # h5netcdf can't mask and scale with the file_handle open strategy
-        if params != ("file_handle", True, "h5netcdf")
-    ])
+    @pytest.mark.parametrize(
+        ("strategy", "auto_maskandscale", "engine"),
+        [
+            params
+            for params in itertools.product(OPEN_STRATEGIES, [False, True], ["netcdf4", "h5netcdf"])
+            # h5netcdf can't mask and scale with the file_handle open strategy
+            if params != ("file_handle", True, "h5netcdf")
+        ],
+    )
     def test_cached_variables_match_uncached(self, cf_netcdf_file, strategy, auto_maskandscale, engine):
         """Test that variables cached with cache_var_size are read the same way as variables that aren't."""
         import xarray as xr
@@ -253,11 +251,14 @@ class TestNetCDF4FileHandler:
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
-    @pytest.mark.parametrize(("var_name", "expected"), [
-        ("test_group/ds1_f", np.arange(10. * 100, dtype=np.float32).reshape((10, 100))),
-        ("ds2_s", np.arange(10, dtype=np.int8)),
-        ("ds2_sc", np.int8(42)),
-    ])
+    @pytest.mark.parametrize(
+        ("var_name", "expected"),
+        [
+            ("test_group/ds1_f", np.arange(10.0 * 100, dtype=np.float32).reshape((10, 100))),
+            ("ds2_s", np.arange(10, dtype=np.int8)),
+            ("ds2_sc", np.int8(42)),
+        ],
+    )
     def test_get_and_cache_npxr(self, netcdf_file, strategy, engine, var_name, expected):
         """Test that get_and_cache_npxr() reads variables into memory and keeps them."""
         import xarray as xr
@@ -296,8 +297,10 @@ class TestNetCDF4FileHandler:
         import xarray as xr
         from xarray.backends import NetCDF4DataStore
 
-        with mock.patch.object(NetCDF4DataStore, "open", wraps=NetCDF4DataStore.open) as store_open, \
-                mock.patch.object(xr, "open_dataset", wraps=xr.open_dataset) as open_dataset:
+        with (
+            mock.patch.object(NetCDF4DataStore, "open", wraps=NetCDF4DataStore.open) as store_open,
+            mock.patch.object(xr, "open_dataset", wraps=xr.open_dataset) as open_dataset,
+        ):
             file_handler = NetCDF4FileHandler(netcdf_file, {}, {})
             for var in ("test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "ds2_s"):
                 for _ in range(3):
@@ -316,8 +319,10 @@ class TestNetCDF4FileHandler:
         import shutil
 
         file_copy = shutil.copy(netcdf_file, tmp_path / "copy.nc")
-        file_handlers = [NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
-                         for filename in (netcdf_file, netcdf_file, file_copy)]
+        file_handlers = [
+            NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
+            for filename in (netcdf_file, netcdf_file, file_copy)
+        ]
         for key in ("ds2_f", "test_group/ds1_f"):
             names = [file_handler[key].data.name for file_handler in file_handlers]
             assert names[0] == names[1] != names[2]
@@ -325,9 +330,12 @@ class TestNetCDF4FileHandler:
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
     def test_dask_names_depend_on_options(self, netcdf_file, strategy):
         """Test that dask arrays read with and without masking and scaling have different names."""
-        names = [NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy,
-                                    auto_maskandscale=auto_maskandscale)["ds2_f"].data.name
-                 for auto_maskandscale in (False, True)]
+        names = [
+            NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, auto_maskandscale=auto_maskandscale)[
+                "ds2_f"
+            ].data.name
+            for auto_maskandscale in (False, True)
+        ]
         assert names[0] != names[1]
 
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
@@ -344,15 +352,18 @@ class TestNetCDF4FileHandler:
         assert "extra_attr" not in second.attrs
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
-    @pytest.mark.parametrize(("strategy", "exp_new_cache_entries"), [
-        ("shared_store", 1),
-        ("file_handle", 0),
-    ])
+    @pytest.mark.parametrize(
+        ("strategy", "exp_new_cache_entries"),
+        [
+            ("shared_store", 1),
+            ("file_handle", 0),
+        ],
+    )
     def test_open_strategies(self, netcdf_file, file_cache, engine, strategy, exp_new_cache_entries):
         """Test that every open strategy reads the same data and holds the expected number of files open."""
         num_cached_before = len(file_cache)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy=strategy)
-        expected = np.arange(10. * 100).reshape((10, 100))
+        expected = np.arange(10.0 * 100).reshape((10, 100))
         for var_name in ("test_group/ds1_f", "ds2_f"):
             data = file_handler[var_name]
             assert data.dims == ("rows", "cols")
@@ -403,7 +414,7 @@ class TestNetCDF4FileHandler:
         del file_handler
         # computed in another thread, the array could be reading from the file right now
         assert _is_open(file_handle)
-        np.testing.assert_array_equal(data, np.arange(10. * 100).reshape((10, 100)))
+        np.testing.assert_array_equal(data, np.arange(10.0 * 100).reshape((10, 100)))
         assert len(file_cache) == num_cached_before + 1
 
         del data
@@ -415,14 +426,17 @@ class TestNetCDF4FileHandler:
         with pytest.raises(ValueError, match="Unknown open_strategy"):
             NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy="magic")
 
-    @pytest.mark.parametrize(("cache_handle", "open_strategy", "exp_strategy"), [
-        (True, None, "file_handle"),
-        (True, "file_handle", "file_handle"),
-        (True, "shared_store", None),
-        (False, None, "shared_store"),
-        (False, "shared_store", "shared_store"),
-        (False, "file_handle", None),
-    ])
+    @pytest.mark.parametrize(
+        ("cache_handle", "open_strategy", "exp_strategy"),
+        [
+            (True, None, "file_handle"),
+            (True, "file_handle", "file_handle"),
+            (True, "shared_store", None),
+            (False, None, "shared_store"),
+            (False, "shared_store", "shared_store"),
+            (False, "file_handle", None),
+        ],
+    )
     def test_cache_handle_deprecated(self, netcdf_file, cache_handle, open_strategy, exp_strategy):
         """Test that cache_handle is deprecated and mapped to an open strategy, which open_strategy can't contradict.
 
@@ -434,16 +448,18 @@ class TestNetCDF4FileHandler:
         else:
             conflict = nullcontext()
         with pytest.warns(DeprecationWarning, match="cache_handle"), conflict:
-            file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, cache_handle=cache_handle,
-                                              open_strategy=open_strategy)
+            file_handler = NetCDF4FileHandler(
+                netcdf_file, {}, {}, cache_handle=cache_handle, open_strategy=open_strategy
+            )
         if exp_strategy is not None:
             assert isinstance(file_handler._opener, _FileHandleOpener) == (exp_strategy == "file_handle")
 
     def test_file_handle_h5netcdf_maskandscale_raises(self, netcdf_file):
         """Test that the file_handle strategy refuses auto_maskandscale=True with h5netcdf, which can't apply it."""
         with pytest.raises(ValueError, match="can't apply auto_maskandscale=True"):
-            NetCDF4FileHandler(netcdf_file, {}, {}, engine="h5netcdf", open_strategy="file_handle",
-                               auto_maskandscale=True)
+            NetCDF4FileHandler(
+                netcdf_file, {}, {}, engine="h5netcdf", open_strategy="file_handle", auto_maskandscale=True
+            )
 
 
 def test_tokenized_store_uses_wrapped_store():
@@ -467,8 +483,11 @@ def test_tokenized_store_pickle():
 
 def _variable_keys(name, attr_names=("test_attr_str", "test_attr_int", "test_attr_float")):
     """Get the keys of variable ``name`` in the file content: its own, its properties' and its attributes'."""
-    return [name, *[f"{name}/{prop}" for prop in ("dtype", "shape", "dimensions")],
-            *[f"{name}/attr/{attr_name}" for attr_name in attr_names]]
+    return [
+        name,
+        *[f"{name}/{prop}" for prop in ("dtype", "shape", "dimensions")],
+        *[f"{name}/attr/{attr_name}" for attr_name in attr_names],
+    ]
 
 
 EXPECTED_FILE_CONTENT_KEYS = [
@@ -496,6 +515,7 @@ EXPECTED_FILE_CONTENT_KEYS = [
 def nested_netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file with dimensions defined in (nested) groups."""
     from netCDF4 import Dataset
+
     filename = tmp_path_factory.mktemp("data") / "test_nested.nc"
     with Dataset(filename, "w") as nc:
         nc.createDimension("root_dim", 2)
@@ -513,6 +533,7 @@ def nested_netcdf_file(tmp_path_factory):
 def unlimited_netcdf_file(tmp_path_factory):
     """Create a test NetCDF4 file with unlimited dimensions in the root group and in a group."""
     from netCDF4 import Dataset
+
     filename = tmp_path_factory.mktemp("data") / "test_unlimited.nc"
     with Dataset(filename, "w") as nc:
         nc.createDimension("root_dim", None)
@@ -554,17 +575,23 @@ class TestNetCDF4FileContent:
         assert file_content["/attr/test_attr_str_arr"] == "test_string2"
         # alias of the global attribute as listed in required_netcdf_variables
         assert file_content["attr/test_attr_str"] == "test_string"
-        assert file_content["/attrs"] == {"test_attr_str": "test_string", "test_attr_int": 0,
-                                          "test_attr_float": 1.2, "test_attr_str_arr": "test_string2"}
+        assert file_content["/attrs"] == {
+            "test_attr_str": "test_string",
+            "test_attr_int": 0,
+            "test_attr_float": 1.2,
+            "test_attr_str_arr": "test_string2",
+        }
         assert file_content["/dimension/cols"] == 100
 
     def test_walked_attribute_values(self, netcdf_file, strategy, engine):
         """Test that walking through the file gives the attributes of the root, groups, and variables."""
         attrs = {"test_attr_str": "test_string", "test_attr_int": 0, "test_attr_float": 1.2}
         # "" is the root group
-        expected = {f"{name}/attr/{attr}": value
-                    for name in ("test_group", "test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "")
-                    for attr, value in attrs.items()}
+        expected = {
+            f"{name}/attr/{attr}": value
+            for name in ("test_group", "test_group/ds1_f", "test_group/ds1_i", "ds2_f", "ds2_i", "")
+            for attr, value in attrs.items()
+        }
         expected["/attr/test_attr_str_arr"] = "test_string2"
 
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
@@ -577,6 +604,7 @@ class TestNetCDF4FileContent:
     def test_attributes_named_like_python_attributes(self, tmp_path, strategy, engine):
         """Test that attributes named like python attributes of the netCDF4 objects are read from the file."""
         from netCDF4 import Dataset
+
         filename = tmp_path / "test_attr_names.nc"
         with Dataset(filename, "w") as nc:
             nc.createDimension("x", 3)
@@ -593,6 +621,7 @@ class TestNetCDF4FileContent:
     def test_root_variable_named_attr(self, tmp_path, strategy, engine):
         """Test that a root variable named "attr" is looked up as it is walked, without hiding the global attributes."""
         from netCDF4 import Dataset
+
         filename = tmp_path / "test_attr_variable.nc"
         with Dataset(filename, "w") as nc:
             nc.createDimension("x", 3)
@@ -609,6 +638,7 @@ class TestNetCDF4FileContent:
     def test_group_children_named_attr_and_dimension(self, tmp_path, strategy, engine):
         """Test that the attributes and dimensions of a group come before its children named "attr" and "dimension"."""
         from netCDF4 import Dataset
+
         filename = tmp_path / "test_attr_children.nc"
         with Dataset(filename, "w") as nc:
             group = nc.createGroup("group")
@@ -617,8 +647,14 @@ class TestNetCDF4FileContent:
             group.units = "group"
             group.createVariable("attr", np.float32, ("x",)).units = "K"
             group.createVariable("dimension", np.float32, ("x",))
-        expected = {"group/attr/units": "group", "group/attr/shape": (3,), "group/attr/attr/units": "K",
-                    "group/dimension/x": 3, "group/dimension/shape": 2, "group/dimension/dtype": np.float32}
+        expected = {
+            "group/attr/units": "group",
+            "group/attr/shape": (3,),
+            "group/attr/attr/units": "K",
+            "group/dimension/x": 3,
+            "group/dimension/shape": 2,
+            "group/dimension/dtype": np.float32,
+        }
 
         file_handler = NetCDF4FileHandler(filename, {}, {}, open_strategy=strategy, engine=engine)
         assert {key: file_handler[key] for key in expected} == expected
@@ -626,24 +662,27 @@ class TestNetCDF4FileContent:
         walked = dict(file_handler.file_content.items())
         assert {key: walked[key] for key in expected} == expected
 
-    @pytest.mark.parametrize("key", [
-        "fake_ds",
-        "",
-        "/test_group",
-        "test_group/fake_ds",
-        "ds2_f/fake_property",
-        "ds2_f/shape/extra",
-        "ds2_f/attr/fake_attr",
-        # attributes are not python attributes of the netCDF4 variable objects
-        "ds2_f/attr/shape",
-        "ds2_f/attr/name",
-        "test_group/attr/fake_attr",
-        "/attr/fake_attr",
-        "/dimension/fake_dim",
-        "test_group/dimension/rows",
-        "ds2_f/dimension/rows",
-        "test_group/shape",
-    ])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "fake_ds",
+            "",
+            "/test_group",
+            "test_group/fake_ds",
+            "ds2_f/fake_property",
+            "ds2_f/shape/extra",
+            "ds2_f/attr/fake_attr",
+            # attributes are not python attributes of the netCDF4 variable objects
+            "ds2_f/attr/shape",
+            "ds2_f/attr/name",
+            "test_group/attr/fake_attr",
+            "/attr/fake_attr",
+            "/dimension/fake_dim",
+            "test_group/dimension/rows",
+            "ds2_f/dimension/rows",
+            "test_group/shape",
+        ],
+    )
     def test_missing_keys(self, netcdf_file, strategy, engine, key):
         """Test that keys that are not in the file raise a KeyError."""
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
@@ -703,19 +742,33 @@ class TestNetCDF4FileContent:
         assert len(file_content) == len(EXPECTED_FILE_CONTENT_KEYS)
         assert file_content._file_keys is not None
 
-    @pytest.mark.parametrize(("required", "replacements", "expected_keys"), [
-        # attributes of the root group and of a group
-        (["test_group/attr/test_attr_str", "attr/test_attr_str"], None,
-         ["test_group/attr/test_attr_str", "attr/test_attr_str"]),
-        # variables of the root group and of a group with their properties and attributes, without missing ones
-        (["attr/test_attr_str", "ds2_i", "test_group/ds1_f", "fake_ds"], None,
-         ["attr/test_attr_str", *_variable_keys("ds2_i"), *_variable_keys("test_group/ds1_f")]),
-        # names composed with the replacements
-        (["test_group/{some_parameter}/attr/test_attr_str", "test_group/attr/test_attr_str"],
-         {"some_parameter": ["ds1_f", "ds1_i"], "another_parameter": ["not_used"]},
-         ["test_group/ds1_f/attr/test_attr_str", "test_group/ds1_i/attr/test_attr_str",
-          "test_group/attr/test_attr_str"]),
-    ])
+    @pytest.mark.parametrize(
+        ("required", "replacements", "expected_keys"),
+        [
+            # attributes of the root group and of a group
+            (
+                ["test_group/attr/test_attr_str", "attr/test_attr_str"],
+                None,
+                ["test_group/attr/test_attr_str", "attr/test_attr_str"],
+            ),
+            # variables of the root group and of a group with their properties and attributes, without missing ones
+            (
+                ["attr/test_attr_str", "ds2_i", "test_group/ds1_f", "fake_ds"],
+                None,
+                ["attr/test_attr_str", *_variable_keys("ds2_i"), *_variable_keys("test_group/ds1_f")],
+            ),
+            # names composed with the replacements
+            (
+                ["test_group/{some_parameter}/attr/test_attr_str", "test_group/attr/test_attr_str"],
+                {"some_parameter": ["ds1_f", "ds1_i"], "another_parameter": ["not_used"]},
+                [
+                    "test_group/ds1_f/attr/test_attr_str",
+                    "test_group/ds1_i/attr/test_attr_str",
+                    "test_group/attr/test_attr_str",
+                ],
+            ),
+        ],
+    )
     def test_listed_keys(self, netcdf_file, strategy, engine, required, replacements, expected_keys):
         """Test that iterating is limited to the listed keys, but every key can be looked up."""
         filetype_info = {"required_netcdf_variables": required, "variable_name_replacements": replacements}
@@ -772,8 +825,7 @@ class TestDeferOpen:
     def test_not_opened_until_read(self, netcdf_file, file_cache, strategy, engine):
         """Test that the file is opened on the first read."""
         num_cached_before = len(file_cache)
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
-                                          defer_open=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine, defer_open=True)
         assert not _has_open_file(file_handler._opener)
         assert len(file_cache) == num_cached_before
 
@@ -784,16 +836,16 @@ class TestDeferOpen:
 
     def test_accessor_opens_only_to_choose_engine(self, netcdf_file, strategy, engine):
         """Test that getting the accessor only opens the file to choose between several engines."""
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
-                                          defer_open=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine, defer_open=True)
 
         assert file_handler.accessor.engine == ("netcdf4" if isinstance(engine, list) else engine)
         assert _has_open_file(file_handler._opener) == isinstance(engine, list)
 
     def test_missing_file_fails_on_first_read(self, tmp_path, strategy, engine):
         """Test that a file that can't be opened only fails when it is first read."""
-        file_handler = NetCDF4FileHandler(tmp_path / "missing.nc", {}, {}, open_strategy=strategy,
-                                          engine=engine, defer_open=True)
+        file_handler = NetCDF4FileHandler(
+            tmp_path / "missing.nc", {}, {}, open_strategy=strategy, engine=engine, defer_open=True
+        )
         # engine lists raise a RuntimeError when none of them can open the file
         with pytest.raises((IOError, RuntimeError)):
             file_handler["/attr/test_attr_str"]
@@ -802,8 +854,7 @@ class TestDeferOpen:
 
     def test_close_before_open(self, netcdf_file, strategy, engine):
         """Test that closing a file handler that never opened its file doesn't open it."""
-        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine,
-                                          defer_open=True)
+        file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine, defer_open=True)
         file_handler.close()
         assert not _has_open_file(file_handler._opener)
 
@@ -823,10 +874,13 @@ class TestNetCDF4FsspecFileHandler:
         fh = NetCDF4FsspecFileHandler(fname, {}, {})
         assert fh.accessor.engine == "netcdf4"
 
-    @pytest.mark.parametrize(("open_strategy", "nc4_opener", "h5_opener"), [
-        ("shared_store", "xarray.backends.NetCDF4DataStore.open", "xarray.backends.H5NetCDFStore.open"),
-        ("file_handle", "netCDF4.Dataset", "h5netcdf.File"),
-    ])
+    @pytest.mark.parametrize(
+        ("open_strategy", "nc4_opener", "h5_opener"),
+        [
+            ("shared_store", "xarray.backends.NetCDF4DataStore.open", "xarray.backends.H5NetCDFStore.open"),
+            ("file_handle", "netCDF4.Dataset", "h5netcdf.File"),
+        ],
+    )
     def test_use_h5netcdf_for_file_not_accessible_locally(self, open_strategy, nc4_opener, h5_opener):
         """Test that h5netcdf is used for files that are not accesible locally."""
         fname = "s3://bucket/object.nc"
