@@ -10,7 +10,6 @@ import datetime as dt
 import functools
 import logging
 import os
-from contextlib import suppress
 
 import dask.array as da
 import numpy as np
@@ -204,13 +203,31 @@ class NcNWCSAF(BaseFileHandler):
         return lon, lat
 
     def get_orbital_parameters(self, variable):
-        """Get the orbital parameters from the file if possible (geo)."""
-        with suppress(KeyError):
-            gdal_params = dict(elt.strip("+").split("=") for elt in self.nc.attrs["gdal_projection"].split())
-            variable.attrs["orbital_parameters"] = dict(
-                satellite_nominal_altitude=float(gdal_params["h"]),
-                satellite_nominal_longitude=float(self.nc.attrs["sub-satellite_longitude"]),
-                satellite_nominal_latitude=0)
+        """Add satellite position metadata if available."""
+        try:
+            sat_lon = float(self.nc.attrs["sub-satellite_longitude"])
+        except KeyError:
+            return
+
+        sat_lat = float(self.nc.attrs.get("satellite_nominal_latitude", 0.0))
+        try:
+            sat_alt = float(self.nc.attrs["satellite_nominal_altitude"])
+        except KeyError:
+            # Existing NWCSAF/GEO route
+            try:
+                gdal_params = dict(
+                    elt.strip("+").split("=")
+                    for elt in self.nc.attrs["gdal_projection"].split()
+                )
+                sat_alt = float(gdal_params["h"])
+            except KeyError:
+                return
+
+        variable.attrs["orbital_parameters"] = {
+            "satellite_nominal_longitude": sat_lon,
+            "satellite_nominal_latitude": sat_lat,
+            "satellite_nominal_altitude": sat_alt,
+        }
 
     def _get_varname_in_file(self, info, info_type="file_key"):
         if isinstance(info[info_type], list):
