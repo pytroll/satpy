@@ -7,6 +7,7 @@ The following people have made contributions to this project:
 <!--- The list should be alphabetical by last name if possible, with github usernames at the bottom --->
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
+- [Alejandro Aguilar Sierra (asierra)](https://github.com/asierra) - LANOT-UNAM
 - [Youva Aoun (YouvaEUMex)](https://github.com/YouvaEUMex)
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
