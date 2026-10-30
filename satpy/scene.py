@@ -1386,6 +1386,7 @@ class Scene:
             - geotiff: .tif, .tiff
             - cf: .nc
             - mitiff: .mitiff
+            - zarr: .zarr
             - simple_image: .png, .jpeg, .jpg, ...
 
         Args:
@@ -1397,7 +1398,7 @@ class Scene:
 
         """
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
-                   ".mitiff": "mitiff"}
+                   ".mitiff": "mitiff", ".zarr": "zarr"}
         return mapping.get(extension.lower(), "simple_image")
 
     def _remove_failed_datasets(self, keepables):

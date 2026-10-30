@@ -20,7 +20,13 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 
 import satpy
-from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
+from satpy.utils import (
+    PerformanceWarning,
+    chunks_are_irregular,
+    get_satpos,
+    ignore_invalid_float_warnings,
+    regular_chunks_from_irregular_chunks,
+)
 
 PRGeometry: TypeAlias = SwathDefinition | AreaDefinition | StackedAreaDefinition
 
@@ -170,7 +176,7 @@ class ZarrCacheHelper:
     def _warn_if_irregular_input_chunks(args, modified_args):
         arg_chunks = _get_output_chunks_from_func_arguments(args)
         new_chunks = _get_output_chunks_from_func_arguments(modified_args)
-        if _chunks_are_irregular(arg_chunks):
+        if chunks_are_irregular(arg_chunks):
             warnings.warn(
                 "Calling cached function with irregular dask chunks. The data "
                 "has been rechunked for caching, but this is not optimal for "
@@ -264,8 +270,8 @@ def _sanitize_observer_look_args(*args):
             # serialize into JSON which is needed for hashing, thus the casting
             # to float here:
             new_args.append(float(round(arg, 1)))
-        elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
-            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+        elif _is_chunk_tuple(arg) and chunks_are_irregular(arg):
+            new_chunks = regular_chunks_from_irregular_chunks(arg)
             new_args.append(new_chunks)
         else:
             new_args.append(arg)
@@ -275,8 +281,8 @@ def _sanitize_observer_look_args(*args):
 def _sanitize_args_with_chunks(*args):
     new_args = []
     for arg in args:
-        if _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
-            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+        if _is_chunk_tuple(arg) and chunks_are_irregular(arg):
+            new_chunks = regular_chunks_from_irregular_chunks(arg)
             new_args.append(new_chunks)
         else:
             new_args.append(arg)
@@ -290,26 +296,6 @@ def _is_chunk_tuple(some_obj: Any) -> bool:
         return False
     sub_elements = [sub_obj_elem for sub_obj in some_obj for sub_obj_elem in sub_obj]
     return all(isinstance(sub_obj_elem, int) for sub_obj_elem in sub_elements)
-
-
-def _regular_chunks_from_irregular_chunks(
-        old_chunks: tuple[tuple[int, ...], ...]
-) -> tuple[tuple[int, ...], ...]:
-    shape = tuple(sum(dim_chunks) for dim_chunks in old_chunks)
-    new_dim_chunks = tuple(max(dim_chunks) for dim_chunks in old_chunks)
-    return da.core.normalize_chunks(new_dim_chunks, shape=shape)
-
-
-def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
-    """Determine if an array is irregularly chunked.
-
-    Zarr does not support saving data in irregular chunks. Regular chunking
-    is when all chunks are the same size (except for the last one).
-
-    """
-    if any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple):
-        return True
-    return any(chunks[-1] > chunks[0] for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
