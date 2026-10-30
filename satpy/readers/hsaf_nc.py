@@ -6,6 +6,10 @@ geostationary (GEO) infrared and low-Earth-orbit (LEO) microwave observations
 using the H SAF "Rapid Update" algorithm.
 
 Currently, this reader supports the following products:
+  * **H40B** – Precipitation rate at ground by blended FCI IR / LEO MW
+    precipitation over the Meteosat (0°) disk (MTG).
+  * **H42B** – Accumulated Precipitation rate at ground by blended FCI IR / LEO MW
+    precipitation over the Meteosat (0°) disk (MTG).
   * **H60/H60B** – Blended GEO/IR and LEO/MW instantaneous precipitation over
     the full Meteosat (0°) disk.
   * **H63** – Blended GEO/IR and LEO/MW instantaneous precipitation over the
@@ -39,6 +43,7 @@ platform_translate = {"MSG1": "Meteosat-8",
                       "MSG2": "Meteosat-9",
                       "MSG3": "Meteosat-10",
                       "MSG4": "Meteosat-11",
+                      "MTG1": "Meteosat-12",
                       }
 
 CHUNK_SIZE = get_legacy_chunk_size()
@@ -51,7 +56,7 @@ class HSAFNCFileHandler(BaseFileHandler):
     - qind: quality index in percent
 
     The data is on a geostationary projection grid.
-    This file handler is tested with H SAF h60/h60b, h63 & h90 data in NetCDF
+    This file handler is tested with H SAF h60/h60b, h63, h90 & h40b data in NetCDF
     format.
     """
 
