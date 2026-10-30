@@ -9,11 +9,17 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 import satpy.readers.gms.gms4_vissr_format as fmt
-import satpy.readers.gms.gms4_vissr_l1b as vissr
-import satpy.readers.gms.gms_vissr_navigation as nav
 import satpy.tests.reader_tests.gms.test_gms4_vissr_data as real_world
 from satpy import Scene
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import make_dataid, skip_numba_unstable_if_missing
+
+try:
+    import satpy.readers.gms.gms4_vissr_l1b as vissr
+    import satpy.readers.gms.gms_vissr_navigation as nav
+except ImportError as err:
+    if skip_numba_unstable_if_missing():
+        pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
+    raise
 
 IR_BLOCK_LEN = fmt.IR_BLOCK_LEN
 VIS_BLOCK_LEN = fmt.VIS_BLOCK_LEN
