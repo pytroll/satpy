@@ -6,6 +6,7 @@ Reference: `SSEC New Area Format`_.
     https://www.ssec.wisc.edu/mcidas/doc/misc_doc/area2.html
 """
 
+import functools
 import logging
 
 import numpy as np
@@ -19,32 +20,32 @@ DIR_BYTES = DIR_WORDS * 4
 
 # Area Directory word indices (1-based in the spec -> 0-based here)
 W = {
-    "valid_code":      0,   # W1
-    "area_format":     1,   # W2
-    "sensor_source":   2,   # W3
-    "nom_start_date":  3,   # W4  YYDDD
-    "nom_start_time":  4,   # W5  HHMMSS
-    "ul_line":         5,   # W6  image line of area (0,0)
-    "ul_element":      6,   # W7  image element of area (0,0)
-    "num_lines":       8,   # W9
-    "num_elements":    9,   # W10
-    "bytes_per_elem":  10,  # W11
-    "line_res":        11,  # W12
-    "elem_res":        12,  # W13
-    "num_bands":       13,  # W14
-    "prefix_len":      14,  # W15
-    "band_map":        18,  # W19
-    "data_offset":     33,  # W34
-    "nav_offset":      34,  # W35
-    "valid_code2":     35,  # W36
+    "valid_code": 0,  # W1
+    "area_format": 1,  # W2
+    "sensor_source": 2,  # W3
+    "nom_start_date": 3,  # W4  YYDDD
+    "nom_start_time": 4,  # W5  HHMMSS
+    "ul_line": 5,  # W6  image line of area (0,0)
+    "ul_element": 6,  # W7  image element of area (0,0)
+    "num_lines": 8,  # W9
+    "num_elements": 9,  # W10
+    "bytes_per_elem": 10,  # W11
+    "line_res": 11,  # W12
+    "elem_res": 12,  # W13
+    "num_bands": 13,  # W14
+    "prefix_len": 14,  # W15
+    "band_map": 18,  # W19
+    "data_offset": 33,  # W34
+    "nav_offset": 34,  # W35
+    "valid_code2": 35,  # W36
     "actual_start_date": 45,  # W46
     "actual_start_time": 46,  # W47
-    "doc_len":         48,  # W49
-    "cal_len":         49,  # W50
-    "level_len":       50,  # W51
-    "source_type":     51,  # W52  ASCII 4 chars, e.g. "VISR"
-    "cal_type":        52,  # W53  ASCII 4 chars, e.g. "RAW " / "BRIT"
-    "cal_offset":      62,  # W63
+    "doc_len": 48,  # W49
+    "cal_len": 49,  # W50
+    "level_len": 50,  # W51
+    "source_type": 51,  # W52  ASCII 4 chars, e.g. "VISR"
+    "cal_type": 52,  # W53  ASCII 4 chars, e.g. "RAW " / "BRIT"
+    "cal_offset": 62,  # W63
 }
 
 # Appendix A sensor source numbers relevant to the pre-GVAR VISSR era
@@ -71,6 +72,26 @@ def _yyddd_to_iso(val):
     yy, ddd = divmod(val, 1000)
     year = 1900 + yy if yy >= 70 else 2000 + yy
     return year, ddd
+
+
+def _directory_plausibility(words):
+    """Score how plausible a directory read in one byte order is (higher is better)."""
+    sensor = int(words[W["sensor_source"]])
+    nlines = int(words[W["num_lines"]])
+    nelem = int(words[W["num_elements"]])
+    score = 10 if sensor in SENSOR_SOURCE else 0
+    return score + int(0 < nlines < 200000) + int(0 < nelem < 200000)
+
+
+def _nav_word(nav_words, i):
+    """Return the 1-based word ``i`` of the nav block, or None if the block is too short."""
+    idx = i - 1
+    return int(nav_words[idx]) if idx < nav_words.size else None
+
+
+def _scaled(value, divisor):
+    """Divide a nav word by ``divisor``, passing a missing word (None) through."""
+    return None if value is None else value / divisor
 
 
 class AreaFile:
@@ -133,19 +154,7 @@ class AreaFile:
         raw = self._raw[:DIR_BYTES]
         candidates = {">": np.frombuffer(raw, dtype=">i4"),
                       "<": np.frombuffer(raw, dtype="<i4")}
-        scored = {}
-        for order, words in candidates.items():
-            sensor = int(words[W["sensor_source"]])
-            nlines = int(words[W["num_lines"]])
-            nelem = int(words[W["num_elements"]])
-            score = 0
-            if sensor in SENSOR_SOURCE:
-                score += 10
-            if 0 < nlines < 200000:
-                score += 1
-            if 0 < nelem < 200000:
-                score += 1
-            scored[order] = score
+        scored = {order: _directory_plausibility(words) for order, words in candidates.items()}
         best = max(scored, key=scored.get)
         if scored[best] < 10:
             logger.warning("%s: could not confidently detect byte order (scores: %s); defaulting to '>' "
@@ -225,10 +234,7 @@ class AreaFile:
                            "parameters below may be wrong for this file.",
                            self.path, self._raw[off:off + 4])
 
-        def w(i):
-            """1-based word index into the nav block."""
-            idx = i - 1
-            return int(nav_words[idx]) if idx < nav_words.size else None
+        w = functools.partial(_nav_word, nav_words)
 
         self._nav_words = nav_words  # raw signed-32 words, kept for GOESNav
 
@@ -238,12 +244,12 @@ class AreaFile:
             "nominal_start_time": w(3),     # HHMMSS
             "epoch_date": w(5),             # YYMMDD
             "epoch_time": w(6),             # HHMMSS
-            "semimajor_axis_km": w(7) / 100.0 if w(7) is not None else None,
-            "eccentricity": w(8) / 100000.0 if w(8) is not None else None,
-            "inclination_deg": w(9) / 1000.0 if w(9) is not None else None,
-            "mean_anomaly_deg": w(10) / 1000.0 if w(10) is not None else None,
-            "arg_perigee_deg": w(11) / 1000.0 if w(11) is not None else None,
-            "right_asc_asc_node_deg": w(12) / 1000.0 if w(12) is not None else None,
+            "semimajor_axis_km": _scaled(w(7), 100.0),
+            "eccentricity": _scaled(w(8), 100000.0),
+            "inclination_deg": _scaled(w(9), 1000.0),
+            "mean_anomaly_deg": _scaled(w(10), 1000.0),
+            "arg_perigee_deg": _scaled(w(11), 1000.0),
+            "right_asc_asc_node_deg": _scaled(w(12), 1000.0),
             "declination_ddmmss": w(13),
             "right_ascension_ddmmss": w(14),
             "picture_center_line": w(15),
@@ -277,15 +283,11 @@ class AreaFile:
         if words.size < 117:
             return  # too short to be a real AAA cal block
 
-        iab = {}   # channel (1-based) -> (AB1, AB2)
-        ifab = {}  # channel (1-based) -> IFAB scale-factor word
-        for chan in range(1, 39):
-            i = 3 + (chan - 1) * 2  # word4 == idx3
-            if i + 1 < words.size:
-                iab[chan] = (int(words[i]), int(words[i + 1]))
-            j = 79 + (chan - 1)  # word80 == idx79
-            if j < words.size:
-                ifab[chan] = int(words[j])
+        # The 117-word minimum above covers every index used below.
+        # channel (1-based) -> (AB1, AB2); word4 == idx3
+        iab = {chan: (int(words[3 + (chan - 1) * 2]), int(words[4 + (chan - 1) * 2])) for chan in range(1, 39)}
+        # channel (1-based) -> IFAB scale-factor word; word80 == idx79
+        ifab = {chan: int(words[79 + (chan - 1)]) for chan in range(1, 39)}
 
         self.cal = {"sensor_source": int(words[0]), "iab": iab, "ifab": ifab}
 
@@ -363,14 +365,8 @@ class AreaFile:
             "ysubz": entries[:, :, 3],
         }
 
-    def read_ir_temperature_mode_aa(self, band):
-        """Mode AA brightness temperature for IR band 1-12.
-
-        Band 13 is visible and not covered by this formula.
-
-        Returns float32 Kelvin, NaN for missing pixels (raw count 0,
-        or the offset-corrected count rounds down to 0).
-        """
+    def _check_mode_aa_request(self, band):
+        """Raise ValueError unless this is a Mode AA file with calibration data and ``band`` is IR 1-12."""
         if self.dir.get("source_type") != "VAS":
             raise ValueError(f"{self.path}: not a Mode AA ('VAS') file.")
         if not (1 <= band <= 12):
@@ -383,54 +379,71 @@ class AreaFile:
                 f"{self.path}: no Mode AA calibration data available. "
             )
 
-        F, FK1, FK2, TC1, TC2 = self._MODE_AA_COEFFS[band]
-        channel_arr = self.mode_aa_cal["channel"]
-        deltaf_code_arr = self.mode_aa_cal["deltaf_code"]
-        ysubz_arr = self.mode_aa_cal["ysubz"]
-        nlines = channel_arr.shape[0]
+    def _mode_aa_line_calibration(self, band):
+        """Return per-line ``(cal_present, delta_f, ysubz)`` for IR ``band``.
 
-        slot_bands = self._mode_aa_code_to_band(channel_arr)  # (nlines, 13)
-        match = (slot_bands == band)
+        ``cal_present`` marks the lines whose calibration entries include the
+        band; ``delta_f`` and ``ysubz`` are the entry's values on those lines.
+        """
+        cal = self.mode_aa_cal
+        match = self._mode_aa_code_to_band(cal["channel"]) == band  # (nlines, 13)
         cal_present = match.any(axis=1)
         slot = np.where(cal_present, match.argmax(axis=1), 0)
-        lines_idx = np.arange(nlines)
-        deltaf_code = deltaf_code_arr[lines_idx, slot]
-        ysubz = ysubz_arr[lines_idx, slot].astype(np.float64)
+        lines_idx = np.arange(match.shape[0])
+        deltaf_code = cal["deltaf_code"][lines_idx, slot]
+        ysubz = cal["ysubz"][lines_idx, slot].astype(np.float64)
 
         deltaf_table = np.array(self._MODE_AA_DELTA_F)
         valid_code = (deltaf_code >= 0) & (deltaf_code < len(deltaf_table))
         delta_f = np.where(valid_code, deltaf_table[np.clip(deltaf_code, 0, len(deltaf_table) - 1)], 0)
+        return cal_present, delta_f, ysubz
 
-        # Raw pixel data for this band, via the same channel-code
-        # aliasing (band_list also stores raw channel codes, not bands).
-        if self.band_list is not None:
-            bl_bands = self._mode_aa_code_to_band(self.band_list)
-            bl_match = (bl_bands == band)
-            bl_present = bl_match.any(axis=1)
-            bl_slot = np.where(bl_present, bl_match.argmax(axis=1), 0)
-            pixels = self._read_pixel_array()
-            n2, nelem, _ = pixels.shape
-            raw = np.take_along_axis(
-                pixels, np.broadcast_to(bl_slot[:, None, None], (n2, nelem, 1)), axis=2
-            )[:, :, 0].astype(np.float64)
-            raw_present = bl_present[:n2]
-        else:
+    def _mode_aa_raw_counts(self, band):
+        """Return ``(raw, raw_present)``: the raw counts of IR ``band`` and the lines that carry it.
+
+        The band list also stores raw channel codes, not bands, so the same
+        channel-code aliasing as the calibration entries applies.
+        """
+        if self.band_list is None:
             # Single-band file: this file's one band already is the
             # requested band (per the directory's band_filter_map);
             # the caller is responsible for having checked that.
             raw = self.read_data().astype(np.float64)
-            raw_present = np.ones(nlines, dtype=bool)
+            return raw, np.ones(raw.shape[0], dtype=bool)
+
+        match = self._mode_aa_code_to_band(self.band_list) == band
+        present = match.any(axis=1)
+        slot = np.where(present, match.argmax(axis=1), 0)
+        pixels = self._read_pixel_array()
+        nlines, nelem, _ = pixels.shape
+        raw = np.take_along_axis(
+            pixels, np.broadcast_to(slot[:, None, None], (nlines, nelem, 1)), axis=2
+        )[:, :, 0].astype(np.float64)
+        return raw, present[:nlines]
+
+    def read_ir_temperature_mode_aa(self, band):
+        """Mode AA brightness temperature for IR band 1-12.
+
+        Band 13 is visible and not covered by this formula.
+
+        Returns float32 Kelvin, NaN for missing pixels (raw count 0,
+        or the offset-corrected count rounds down to 0).
+        """
+        self._check_mode_aa_request(band)
+        f, fk1, fk2, tc1, tc2 = self._MODE_AA_COEFFS[band]
+        cal_present, delta_f, ysubz = self._mode_aa_line_calibration(band)
+        raw, raw_present = self._mode_aa_raw_counts(band)
 
         n_common = min(len(cal_present), len(raw_present), raw.shape[0])
         valid_line = cal_present[:n_common] & raw_present[:n_common]
 
         corrected = np.maximum(0.0, raw[:n_common] - ysubz[:n_common, None])
         corrected = 8.0 * np.floor(corrected / 8.0)
-        radiance = corrected * (2.0 ** (delta_f[:n_common, None] - F))
+        radiance = corrected * (2.0 ** (delta_f[:n_common, None] - f))
 
         with np.errstate(invalid="ignore", divide="ignore"):
-            expn = FK1 / radiance + 1.0
-            t = (FK2 / np.log(expn) - TC1) / TC2
+            expn = fk1 / radiance + 1.0
+            t = (fk2 / np.log(expn) - tc1) / tc2
 
         missing = (raw[:n_common] == 0) | (corrected == 0) | ~valid_line[:, None]
         t = np.where(missing, np.nan, t)
@@ -653,14 +666,21 @@ class AreaFile:
         t = np.where((r > -fk1) & (expn > 0), (t - tc1) / tc2, np.nan)
         return t.astype(np.float32)
 
+    def _goes_nav(self):
+        """Build the GOESNav for this file, raising if it has no GOES-type nav block."""
+        if self.nav is None or self.nav["nav_type"] != b"GOES":
+            raise ValueError(
+                f"{self.path}: no GOES-type nav block available for "
+                f"earth location (nav_type={self.nav and self.nav['nav_type']!r})"
+            )
+        return GOESNav(self._nav_words, self.dir, endian=self._endian)
+
     def get_nadir_sampling(self):
         """Return the sub-satellite point, altitude and nadir line/element spacing.
 
         See GOESNav.get_nadir_sampling() for the returned dict.
         """
-        if self.nav is None or self.nav["nav_type"] != b"GOES":
-            raise ValueError(f"{self.path}: no GOES-type nav block available")
-        return GOESNav(self._nav_words, self.dir, endian=self._endian).get_nadir_sampling()
+        return self._goes_nav().get_nadir_sampling()
 
     def get_lonlats(self, lines=None, elems=None):
         """Earth-locate this area's pixel grid with the pre-GVAR VISSR 'GOES' navigation.
@@ -674,12 +694,7 @@ class AreaFile:
         area, same convention as read_data()) to earth-locate a subset,
         e.g. for a coarser nav grid.
         """
-        if self.nav is None or self.nav["nav_type"] != b"GOES":
-            raise ValueError(
-                f"{self.path}: no GOES-type nav block available for "
-                f"earth location (nav_type={self.nav and self.nav['nav_type']!r})"
-            )
-        gnav = GOESNav(self._nav_words, self.dir, endian=self._endian)
+        gnav = self._goes_nav()
 
         d = self.dir
         if lines is None:

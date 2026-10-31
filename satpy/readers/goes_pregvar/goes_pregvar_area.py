@@ -210,19 +210,26 @@ class GOESPreGVARAreaFileHandler(BaseFileHandler):
             return True
         source_type = self.area_file.dir.get("source_type")
         if source_type == "AAA":
-            cal = self.area_file.cal
-            if cal is None:
-                return False
-            lookup_channel = 8 if channel == 13 else channel
-            return lookup_channel in cal.get("iab", {})
+            return self._aaa_channel_available(channel)
         if source_type == "VAS":
-            if channel == 13 or self.area_file.mode_aa_cal is None:
-                return False
-            bands_present = self.area_file._mode_aa_code_to_band(
-                self.area_file.mode_aa_cal["channel"]
-            )
-            return bool((bands_present == channel).any())
+            return self._mode_aa_channel_available(channel)
         return False
+
+    def _aaa_channel_available(self, channel):
+        """Check if the AAA calibration block has constants for ``channel`` (13 borrows channel 8's)."""
+        cal = self.area_file.cal
+        if cal is None:
+            return False
+        lookup_channel = 8 if channel == 13 else channel
+        return lookup_channel in cal.get("iab", {})
+
+    def _mode_aa_channel_available(self, channel):
+        """Check if any line's Mode AA calibration entries cover IR band ``channel``."""
+        mode_aa_cal = self.area_file.mode_aa_cal
+        if channel == 13 or mode_aa_cal is None:
+            return False
+        bands_present = self.area_file._mode_aa_code_to_band(mode_aa_cal["channel"])
+        return bool((bands_present == channel).any())
 
     def available_datasets(self, configured_datasets=None):
         """Report which datasets this file can actually produce.
@@ -233,24 +240,21 @@ class GOESPreGVARAreaFileHandler(BaseFileHandler):
         for multiband files and only fails with a traceback at scn.load() time, which is a
         confusing way to find out.
         """
-        source_type = self.area_file.dir.get("source_type")
-        is_vas_multiband = source_type in ("AAA", "VAS")
         for is_avail, ds_info in (configured_datasets or []):
-            if is_avail is not None:
-                yield is_avail, ds_info
-                continue
-            matches = self.file_type_matches(ds_info["file_type"])
-            if not matches:
-                yield is_avail, ds_info
-                continue
-            name = ds_info.get("name")
-            is_vas_channel_dataset = ds_info.get("vas_channel") is not None
-            if name == "IR" and is_vas_multiband:
-                yield False, ds_info
-            elif is_vas_channel_dataset:
-                yield (is_vas_multiband and self._vas_channel_available(ds_info)), ds_info
-            else:
-                yield True, ds_info
+            yield self._dataset_availability(is_avail, ds_info), ds_info
+
+    def _dataset_availability(self, is_avail, ds_info):
+        """Return the availability of one configured dataset (None if another file type owns it)."""
+        if is_avail is not None:
+            return is_avail
+        if not self.file_type_matches(ds_info["file_type"]):
+            return is_avail
+        is_vas_multiband = self.area_file.dir.get("source_type") in ("AAA", "VAS")
+        if ds_info.get("name") == "IR" and is_vas_multiband:
+            return False
+        if ds_info.get("vas_channel") is not None:
+            return is_vas_multiband and self._vas_channel_available(ds_info)
+        return True
 
     def _get_earth_mask(self):
         """Get a boolean array that is True where the pixel is a real earth-viewing measurement.

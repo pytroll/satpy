@@ -23,6 +23,7 @@ References:
 """
 
 import collections
+import datetime
 import math
 
 import numba
@@ -76,7 +77,6 @@ def _mc_daytime_to_secs(yrday, hms):
     day = yrday % 1000
     # days since a fixed reference (Jan 1 of `year`), matching Java's
     # Calendar-based day-of-year approach for the purpose of subtraction
-    import datetime
     dt = datetime.datetime(year, 1, 1) + datetime.timedelta(days=day - 1)
     seconds = _packed_to_double(hms) * 3600.0
     epoch = datetime.datetime(1970, 1, 1)
@@ -120,6 +120,170 @@ _KernelParams = collections.namedtuple(
 )
 
 
+def _double_to_packed(dvalue):
+    """Convert double degrees (or hours) to a packed decimal integer."""
+    dval = abs(dvalue)
+    j = int(3600.0 * dval + 0.5)
+    value = 10000 * (j // 3600) + 100 * ((j // 60) % 60) + j % 60
+    return -value if dvalue < 0.0 else value
+
+
+def _anomaly_hours(semima, oeccen, xmeana):
+    """Return the time in hours that the orbit takes to reach the mean anomaly ``xmeana`` (degrees)."""
+    re = 6378.388
+    gracon = 0.07436574
+    axmmc = gracon * (np.sqrt(re / semima)) ** 3
+    xmanom = (np.pi / 180.0) * xmeana
+    return (xmanom - oeccen * np.sin(xmanom)) / (60.0 * axmmc)
+
+
+def _day_rollover(time):
+    """Wrap a time in hours into [0, 24) and return it with the whole-day shift that was applied."""
+    if time > 48.0:
+        return time - 48.0, 2
+    if time > 24.0:
+        return time - 24.0, 1
+    if time < -24.0:
+        return time + 48.0, -2
+    if time < 0.0:
+        return time + 24.0, -1
+    return time, 0
+
+
+def _add_days(ietimy, iday):
+    """Shift a YYDDD epoch by ``iday`` days, following nvxgoes' year rollover."""
+    jyear = (ietimy // 1000) % 100 + 1000
+    jday = ietimy % 1000 + iday
+    if jday < 1:
+        jyear -= 1
+        jday += _leapyr(jyear)
+    elif jday > _leapyr(jyear):
+        jday += _leapyr(jyear)
+        jyear += 1
+    return 1000 * (jyear % 100) + jday
+
+
+def _epoch(ietimy, ietimh, anomaly_hours):
+    """Move the orbit epoch (YYDDD, HHMMSS) back to perigee, ``anomaly_hours`` earlier."""
+    time, iday = _day_rollover(_packed_to_double(ietimh) - anomaly_hours)
+    if iday != 0:
+        ietimy = _add_days(ietimy, iday)
+    return ietimy, _double_to_packed(time)
+
+
+def _validate_nav_words(iarr):
+    """Raise ValueError if the nav block lacks usable orbit, pointing or spin parameters."""
+    if (iarr[6:12] <= 0).all():
+        raise ValueError(
+            "Invalid orbital parameters (all <= 0) -- this file's nav "
+            "block has no real orbital elements."
+        )
+    if iarr[4] == 0:
+        raise ValueError("Invalid orbit type")
+    if not iarr[12:15].any():
+        raise ValueError("Invalid ascension/declination parameters")
+    if iarr[15] == 0:
+        raise ValueError("Invalid spin period")
+
+
+def _has_beta_scan_times(iss):
+    """Tell whether satellite source ``iss`` records the first/last scan line times in its nav block."""
+    return iss > 25 or iss == 12
+
+
+@numba.njit
+def _kepler_position(samtim, p):
+    """Return the satellite position (satx, saty, satz) at time ``samtim``.
+
+    Kepler's equation is solved by fixed-point iteration (see GOESNav._satvec()).
+    """
+    xmanom = p.xmmc * (p.tdife + samtim * 60.0)
+    ecanm1 = xmanom
+    ecanom = ecanm1
+    for _ in range(20):
+        ecanom = xmanom + p.oeccen * math.sin(ecanm1)
+        if abs(ecanom - ecanm1) < p.epsiln:
+            break
+        ecanm1 = ecanom
+    xomega = math.cos(ecanom) - p.oeccen
+    yomega = p.srome2 * math.sin(ecanom)
+    return (
+        xomega * p.px + yomega * p.qx,
+        xomega * p.py + yomega * p.qy,
+        xomega * p.pz + yomega * p.qz,
+    )
+
+
+@numba.njit
+def _scan_line_state(parlin, p):
+    """Return everything that depends only on the scan-line group ``parlin``.
+
+    That is the sample time, the satellite position, the attitude rotation
+    angle and the cos/sin of the earth-rotation angle.
+    """
+    samtim = p.tmpscl * parlin + p.pictim
+    sat = _kepler_position(samtim, p)
+    xcor = p.b11 * sat[0] + p.b12 * sat[1] + p.b13 * sat[2]
+    ycor = p.b21 * sat[0] + p.b22 * sat[1] + p.b23 * sat[2]
+    rot = math.atan2(ycor, xcor) + math.pi
+    angle = p.emega * samtim + p.xref
+    return samtim, sat, rot, math.cos(angle), math.sin(angle)
+
+
+@numba.njit
+def _line_of_sight(ylin, yele, p):
+    """Return the line-of-sight vector (elo, emo, eno) for the scan angles ``ylin`` / ``yele``."""
+    coslin, sinlin = math.cos(ylin), math.sin(ylin)
+    sinele, cosele = math.sin(yele), math.cos(yele)
+
+    eli = p.rotm11 * coslin - p.rotm13 * sinlin
+    emi = p.rotm21 * coslin - p.rotm23 * sinlin
+    eni = p.rotm31 * coslin - p.rotm33 * sinlin
+    temp = eli
+    eli = cosele * eli + sinele * emi
+    emi = -sinele * temp + cosele * emi
+
+    return (
+        p.b11 * eli + p.b21 * emi + p.b31 * eni,
+        p.b12 * eli + p.b22 * emi + p.b32 * eni,
+        p.b13 * eli + p.b23 * emi + p.b33 * eni,
+    )
+
+
+@numba.njit
+def _intersect_earth(sat, los, p):
+    """Intersect a line of sight with the earth ellipsoid.
+
+    Returns ``(hit, point)``; ``hit`` is False (and ``point`` meaningless)
+    where the line of sight misses the earth.
+    """
+    satx, saty, satz = sat
+    elo, emo, eno = los
+    onemsq = 1.0 - p.bsq_over_asq
+    aq = p.bsq_over_asq + onemsq * eno * eno
+    bq = 2.0 * ((elo * satx + emo * saty) * p.bsq_over_asq + eno * satz)
+    cq = (satx * satx + saty * saty) * p.bsq_over_asq + satz * satz - p.bsq
+    rad = bq * bq - 4.0 * aq * cq
+    if rad < 1.0:
+        return False, (0.0, 0.0, 0.0)
+    s = -(bq + math.sqrt(rad)) / (2.0 * aq)
+    return True, (satx + elo * s, saty + emo * s, satz + eno * s)
+
+
+@numba.njit
+def _geodetic_latlon(point, ct, st, p):
+    """Rotate an earth-surface point into the earth-fixed frame and return (lat, lon), East positive."""
+    x, y, z = point
+    x1 = ct * x + st * y
+    y1 = -st * x + ct * y
+    if x1 == 0.0 and y1 == 0.0:
+        return np.nan, np.nan
+    a = math.atan(z / math.sqrt(x1 * x1 + y1 * y1))
+    lat = math.atan2(p.asq * math.sin(a), p.bsq * math.cos(a)) / p.rdpdg
+    lon = math.atan2(y1, x1) / p.rdpdg
+    return lat, lon
+
+
 @numba.njit
 def _to_latlon_kernel(xlin, xele, p):
     """Convert flattened line/element image coordinates to (lat, lon) in degrees.
@@ -137,82 +301,27 @@ def _to_latlon_kernel(xlin, xele, p):
     n = xlin.shape[0]
     lat = np.empty(n, dtype=np.float64)
     lon = np.empty(n, dtype=np.float64)
-    onemsq = 1.0 - p.bsq_over_asq
 
     have_line = False
     last_parlin = 0.0
-    samtim = satx = saty = satz = rot = ct = st = 0.0
+    samtim = rot = ct = st = 0.0
+    sat = (0.0, 0.0, 0.0)
 
     for i in range(n):
         parlin = (np.rint(xlin[i]) - 1.0) // p.numsen + 1.0
         if (not have_line) or parlin != last_parlin:
             have_line = True
             last_parlin = parlin
-            samtim = p.tmpscl * parlin + p.pictim
-
-            # Kepler's equation, fixed-point iteration (see _satvec())
-            xmanom = p.xmmc * (p.tdife + samtim * 60.0)
-            ecanm1 = xmanom
-            ecanom = ecanm1
-            for _ in range(20):
-                ecanom = xmanom + p.oeccen * math.sin(ecanm1)
-                if abs(ecanom - ecanm1) < p.epsiln:
-                    break
-                ecanm1 = ecanom
-            xomega = math.cos(ecanom) - p.oeccen
-            yomega = p.srome2 * math.sin(ecanom)
-            satx = xomega * p.px + yomega * p.qx
-            saty = xomega * p.py + yomega * p.qy
-            satz = xomega * p.pz + yomega * p.qz
-
-            xcor = p.b11 * satx + p.b12 * saty + p.b13 * satz
-            ycor = p.b21 * satx + p.b22 * saty + p.b23 * satz
-            rot = math.atan2(ycor, xcor) + math.pi
-            ct = math.cos(p.emega * samtim + p.xref)
-            st = math.sin(p.emega * samtim + p.xref)
+            samtim, sat, rot, ct, st = _scan_line_state(parlin, p)
 
         ylin = (xlin[i] - p.piclin) * p.radlin
         yele = (xele[i] - p.picele + p.gamma + p.gamdot * samtim) * p.radele - rot
-
-        coslin, sinlin = math.cos(ylin), math.sin(ylin)
-        sinele, cosele = math.sin(yele), math.cos(yele)
-
-        eli = p.rotm11 * coslin - p.rotm13 * sinlin
-        emi = p.rotm21 * coslin - p.rotm23 * sinlin
-        eni = p.rotm31 * coslin - p.rotm33 * sinlin
-        temp = eli
-        eli = cosele * eli + sinele * emi
-        emi = -sinele * temp + cosele * emi
-
-        elo = p.b11 * eli + p.b21 * emi + p.b31 * eni
-        emo = p.b12 * eli + p.b22 * emi + p.b32 * eni
-        eno = p.b13 * eli + p.b23 * emi + p.b33 * eni
-
-        aq = p.bsq_over_asq + onemsq * eno * eno
-        bq = 2.0 * ((elo * satx + emo * saty) * p.bsq_over_asq + eno * satz)
-        cq = (satx * satx + saty * saty) * p.bsq_over_asq + satz * satz - p.bsq
-        rad = bq * bq - 4.0 * aq * cq
-
-        if rad < 1.0:  # line of sight misses the earth
+        hit, point = _intersect_earth(sat, _line_of_sight(ylin, yele, p), p)
+        if hit:
+            lat[i], lon[i] = _geodetic_latlon(point, ct, st, p)
+        else:
             lat[i] = np.nan
             lon[i] = np.nan
-            continue
-
-        s = -(bq + math.sqrt(rad)) / (2.0 * aq)
-        x = satx + elo * s
-        y = saty + emo * s
-        z = satz + eno * s
-
-        # rotate into the earth-fixed frame, then to geodetic lat/lon
-        x1 = ct * x + st * y
-        y1 = -st * x + ct * y
-        if x1 == 0.0 and y1 == 0.0:
-            lat[i] = np.nan
-            lon[i] = np.nan
-            continue
-        a = math.atan(z / math.sqrt(x1 * x1 + y1 * y1))
-        lat[i] = math.atan2(p.asq * math.sin(a), p.bsq * math.cos(a)) / p.rdpdg
-        lon[i] = math.atan2(y1, x1) / p.rdpdg  # East positive
     return lat, lon
 
 
@@ -248,94 +357,69 @@ class GOESNav:
         """
         iarr = np.asarray(iarr, dtype=np.int64)
         _check_magic(iarr, endian)
+        _validate_nav_words(iarr)
 
-        jday = int(iarr[1])
-        jtime = int(iarr[2])
-        self.navday = jday % 100000
-
-        if all(iarr[i] <= 0 for i in (6, 7, 8, 9, 10, 11)):
-            raise ValueError(
-                "Invalid orbital parameters (all <= 0) -- this file's nav "
-                "block has no real orbital elements."
-            )
-        if iarr[4] == 0:
-            raise ValueError("Invalid orbit type")
-
-        ietimy = _icon1(int(iarr[4]))
-        ietimh = 100 * (int(iarr[5]) // 100) + round(0.6 * (int(iarr[5]) % 100))
-        semima = iarr[6] / 100.0
-        oeccen = iarr[7] / 1000000.0
-        orbinc = iarr[8] / 1000.0
-        xmeana = iarr[9] / 1000.0
-        perhel = iarr[10] / 1000.0
-        asnode = iarr[11] / 1000.0
-
-        ietimy, ietimh = self._epoch(ietimy, ietimh, semima, oeccen, xmeana)
-        self.ietimy = ietimy
-        self.ietimh = ietimh
-        self.semima = semima
-        self.oeccen = oeccen
-        self.orbinc = orbinc
-        self.perhel = perhel
-        self.asnode = asnode
-
-        declin = _packed_to_double(int(iarr[12]))
-        rascen = _packed_to_double(int(iarr[13]))
-        piclin = float(iarr[14])
-        if iarr[14] >= 1000000:
-            piclin = piclin / 10000.0
-        if iarr[12] == 0 and iarr[13] == 0 and iarr[14] == 0:
-            raise ValueError("Invalid ascension/declination parameters")
-        self.piclin = piclin
-
-        if iarr[15] == 0:
-            raise ValueError("Invalid spin period")
-        spinra = iarr[15] / 1000.0
-        if iarr[15] != 0 and spinra < 300.0:
-            spinra = 60000.0 / spinra
-
-        self._finish_init(iarr, jday, jtime, declin, rascen, spinra)
+        self.navday = int(iarr[1]) % 100000
+        self._set_constants()
+        self._set_orbit(iarr)
+        self._set_scan_geometry(iarr)
+        self._set_attitude(iarr)
+        self._set_spin_axis(iarr)
+        self._set_timing(iarr)
         self._set_image_coords(area_dir)
         self._satvec_init()
 
-    def _finish_init(self, iarr, jday, jtime, declin, rascen, spinra):
-        """Finish construction: spin-scan geometry, rotation matrices, xref, gamma.
-
-        Uses self.piclin (already set by the caller). Reads the remaining
-        scan-geometry words (deglin/lintot/degele/ieltot, pitch/yaw/roll)
-        directly from this file's own nav block.
-        """
-        deglin = _packed_to_double(int(iarr[16]))
-        lintot = int(iarr[17])
-        degele = _packed_to_double(int(iarr[18]))
-        ieltot = int(iarr[19])
-        pitch = _packed_to_double(int(iarr[20]))
-        yaw = _packed_to_double(int(iarr[21]))
-        roll = _packed_to_double(int(iarr[22]))
-        skew = iarr[28] / 100000.0
-        if iarr[28] == _MCMISSING:
-            skew = 0.0
-
+    def _set_constants(self):
+        """Set the earth model and earth-rotation constants."""
         self.emega = 0.26251617
         self.ab = 40546851.22
         self.asq = 40683833.48
         self.bsq = 40410330.18
         self.r = 6371.221
         self.rdpdg = 1.745329252e-02
+        self.bsq_over_asq = self.bsq / self.asq
 
-        numsen = (lintot // 100000) % 100
-        if numsen < 1:
-            numsen = 1
-        self.numsen = numsen
-        totlin = numsen * (lintot % 100000)
+    def _set_orbit(self, iarr):
+        """Set the Kepler orbital elements and the orbit epoch from the nav block."""
+        ietimy = _icon1(int(iarr[4]))
+        ietimh = 100 * (int(iarr[5]) // 100) + round(0.6 * (int(iarr[5]) % 100))
+        self.semima = iarr[6] / 100.0
+        self.oeccen = iarr[7] / 1000000.0
+        self.orbinc = iarr[8] / 1000.0
+        xmeana = iarr[9] / 1000.0
+        self.perhel = iarr[10] / 1000.0
+        self.asnode = iarr[11] / 1000.0
+        self.ietimy, self.ietimh = _epoch(ietimy, ietimh, _anomaly_hours(self.semima, self.oeccen, xmeana))
+
+    def _set_scan_geometry(self, iarr):
+        """Set the spin-scan geometry: picture center, spin rate and angles per line/element."""
+        piclin = float(iarr[14])
+        if iarr[14] >= 1000000:
+            piclin = piclin / 10000.0
+        self.piclin = piclin
+
+        spinra = iarr[15] / 1000.0
+        if spinra < 300.0:
+            spinra = 60000.0 / spinra
+        self.tmpscl = spinra / 3600000.0
+
+        deglin = _packed_to_double(int(iarr[16]))
+        lintot = int(iarr[17])
+        degele = _packed_to_double(int(iarr[18]))
+        ieltot = int(iarr[19])
+        self.numsen = max((lintot // 100000) % 100, 1)
+        totlin = self.numsen * (lintot % 100000)
         self.radlin = self.rdpdg * deglin / (totlin - 1.0)
-        totele = ieltot
-        self.radele = self.rdpdg * degele / (totele - 1.0)
-        self.picele = (1.0 + totele) / 2.0
+        self.radele = self.rdpdg * degele / (ieltot - 1.0)
+        self.picele = (1.0 + ieltot) / 2.0
 
-        cpitch = self.rdpdg * pitch
-        cyaw = self.rdpdg * yaw
-        croll = self.rdpdg * roll
+    def _set_attitude(self, iarr):
+        """Set the attitude rotation matrix from pitch, yaw, roll and skew."""
+        cpitch = self.rdpdg * _packed_to_double(int(iarr[20]))
+        cyaw = self.rdpdg * _packed_to_double(int(iarr[21]))
+        croll = self.rdpdg * _packed_to_double(int(iarr[22]))
+        skew = 0.0 if iarr[28] == _MCMISSING else iarr[28] / 100000.0
+
         pskew = np.arctan2(skew, self.radlin / self.radele)
         stp, ctp = np.sin(cpitch), np.cos(cpitch)
         sty, cty = np.sin(cyaw - pskew), np.cos(cyaw - pskew)
@@ -346,11 +430,12 @@ class GOESNav:
         self.rotm23 = sty * ctr
         self.rotm31 = -ctr * stp
         self.rotm33 = cty * ctp - sty * str_ * stp
-        self.tmpscl = spinra / 3600000.0
 
-        dec = declin * self.rdpdg
+    def _set_spin_axis(self, iarr):
+        """Set the spin-axis rotation matrix from the declination and right ascension."""
+        dec = _packed_to_double(int(iarr[12])) * self.rdpdg
         sindec, cosdec = np.sin(dec), np.cos(dec)
-        ras = rascen * self.rdpdg
+        ras = _packed_to_double(int(iarr[13])) * self.rdpdg
         sinras, cosras = np.sin(ras), np.cos(ras)
         self.b11 = -sinras
         self.b12 = cosras
@@ -362,29 +447,27 @@ class GOESNav:
         self.b32 = cosdec * sinras
         self.b33 = sindec
 
+    def _set_timing(self, iarr):
+        """Set the earth-rotation reference, the picture time and the scan line times."""
         raha = _timdif(74001, 0, self.navday, 0) * 1.00273791 / 4.0 + 100.26467
-        rac = raha % 360.0
-        if rac < 0:
-            rac += 360.0
-        self.xref = rac * self.rdpdg
-
-        self.pictim = _packed_to_double(jtime)
+        self.xref = (raha % 360.0) * self.rdpdg
+        self.pictim = _packed_to_double(int(iarr[2]))
         self.gamma = float(iarr[38]) / 100.0
         self.gamdot = float(iarr[39]) / 100.0
+        self._set_scan_times(iarr)
 
-        iss = jday // 100000
-        if (iss > 25 or iss == 12) and iarr[30] > 0:
+    def _set_scan_times(self, iarr):
+        """Set the first/last scan line numbers and times."""
+        if iarr[30] > 0 and _has_beta_scan_times(int(iarr[1]) // 100000):
             self.scan1 = float(iarr[30])
             self.time1 = _packed_to_double(int(iarr[31]))
             self.scan2 = float(iarr[34])
             self.time2 = _packed_to_double(int(iarr[35]))
         else:
             self.scan1 = 1.0
-            self.time1 = _packed_to_double(jtime)
-            self.scan2 = float(lintot % 100000)
+            self.time1 = self.pictim
+            self.scan2 = float(int(iarr[17]) % 100000)
             self.time2 = self.time1 + self.scan2 * self.tmpscl
-
-        self.bsq_over_asq = self.bsq / self.asq
 
     def _set_image_coords(self, area_dir):
         """Set the image coordinates up like AREAnav does for AREA-file navigation.
@@ -399,53 +482,6 @@ class GOESNav:
         self.start_elem = 0
         self.mag_line = 1
         self.mag_elem = 1
-
-    def _epoch(self, ietimy, ietimh, semima, oeccen, xmeana):
-        RE = 6378.388
-        GRACON = 0.07436574
-        axmmc = GRACON * (np.sqrt(RE / semima)) ** 3
-        xmanom = (np.pi / 180.0) * xmeana
-        time = (xmanom - oeccen * np.sin(xmanom)) / (60.0 * axmmc)
-        time1 = _packed_to_double(ietimh)
-        time = time1 - time
-        iday = 0
-        if time > 48.0:
-            time -= 48.0
-            iday = 2
-        elif time > 24.0:
-            time -= 24.0
-            iday = 1
-        elif time < -24.0:
-            time += 48.0
-            iday = -2
-        elif time < 0.0:
-            time += 24.0
-            iday = -1
-        new_ietimh = self._double_to_packed(time)
-        new_ietimy = ietimy
-        if iday != 0:
-            jyear = (ietimy // 1000) % 100
-            jyear += 1000
-            jday = ietimy % 1000
-            jday += iday
-            if jday < 1:
-                jyear -= 1
-                jday = _leapyr(jyear) + jday
-            else:
-                jtot = _leapyr(jyear)
-                if jday > jtot:
-                    jyear += 1
-                    jday += jtot
-            jyear = jyear % 100
-            new_ietimy = 1000 * jyear + jday
-        return new_ietimy, new_ietimh
-
-    @staticmethod
-    def _double_to_packed(dvalue):
-        dval = abs(dvalue)
-        j = int(3600.0 * dval + 0.5)
-        value = 10000 * (j // 3600) + 100 * ((j // 60) % 60) + j % 60
-        return -value if dvalue < 0.0 else value
 
     def _satvec_init(self):
         """Precompute the orbital-plane basis vectors used by _satvec().
@@ -515,12 +551,12 @@ class GOESNav:
         z = xomega * self._pz + yomega * self._qz
         return x, y, z
 
-    @staticmethod
-    def _nxyzll(x, y, z, asq, bsq, rdpdg):
+    def _nxyzll(self, x, y, z):
+        """Convert earth-fixed x, y, z to geodetic (lat, lon) in degrees, with lon positive West."""
         with np.errstate(invalid="ignore", divide="ignore"):
             a = np.arctan(z / np.sqrt(x * x + y * y))
-            lat = np.arctan2(asq * np.sin(a), bsq * np.cos(a)) / rdpdg
-            lon = -np.arctan2(y, x) / rdpdg
+            lat = np.arctan2(self.asq * np.sin(a), self.bsq * np.cos(a)) / self.rdpdg
+            lon = -np.arctan2(y, x) / self.rdpdg
         bad = (x == 0.0) & (y == 0.0)
         lat = np.where(bad, np.nan, lat)
         lon = np.where(bad, np.nan, lon)
@@ -590,7 +626,7 @@ class GOESNav:
         st = np.sin(self.emega * samtim + self.xref)
         x1 = ct * satx + st * saty
         y1 = -st * satx + ct * saty
-        lat, lon = self._nxyzll(x1, y1, satz, self.asq, self.bsq, self.rdpdg)
+        lat, lon = self._nxyzll(x1, y1, satz)
         return float(lat), float(-lon)  # East positive
 
     def get_nadir_sampling(self):
