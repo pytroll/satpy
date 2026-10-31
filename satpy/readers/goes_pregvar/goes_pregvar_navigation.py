@@ -173,17 +173,16 @@ def _epoch(ietimy, ietimh, anomaly_hours):
 
 def _validate_nav_words(iarr):
     """Raise ValueError if the nav block lacks usable orbit, pointing or spin parameters."""
-    if (iarr[6:12] <= 0).all():
-        raise ValueError(
-            "Invalid orbital parameters (all <= 0) -- this file's nav "
-            "block has no real orbital elements."
-        )
-    if iarr[4] == 0:
-        raise ValueError("Invalid orbit type")
-    if not iarr[12:15].any():
-        raise ValueError("Invalid ascension/declination parameters")
-    if iarr[15] == 0:
-        raise ValueError("Invalid spin period")
+    problems = (
+        ((iarr[6:12] <= 0).all(),
+         "Invalid orbital parameters (all <= 0) -- this file's nav block has no real orbital elements."),
+        (iarr[4] == 0, "Invalid orbit type"),
+        (not iarr[12:15].any(), "Invalid ascension/declination parameters"),
+        (iarr[15] == 0, "Invalid spin period"),
+    )
+    for failed, message in problems:
+        if failed:
+            raise ValueError(message)
 
 
 def _has_beta_scan_times(iss):
