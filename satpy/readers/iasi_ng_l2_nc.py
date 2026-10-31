@@ -64,16 +64,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
         """List of sensors represented in this file."""
         return self.sensors
 
-    # Note: patching the collect_groups_info method below to
-    # also collect dimensions in sub groups.
-    def _collect_groups_info(self, base_name, obj):
-        for group_name, group_obj in obj.groups.items():
-            full_group_name = base_name + group_name
-            self.file_content[full_group_name] = group_obj
-            self._collect_attrs(full_group_name, group_obj)
-            self.collect_metadata(full_group_name, group_obj)
-            self.collect_dimensions(full_group_name, group_obj)
-
     def available_datasets(self, configured_datasets=None):
         """Determine automatically the datasets provided by this file.
 

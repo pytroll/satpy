@@ -113,8 +113,7 @@ def test_li_base_nc_warns(name):
 
 
 @pytest.mark.parametrize("name",
-                         ["get_data_as_xarray",
-                          "NetCDF4FileHandler",
+                         ["NetCDF4FileHandler",
                           "NetCDF4FsspecFileHandler",
                          ]
                          )
