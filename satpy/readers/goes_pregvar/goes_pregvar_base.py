@@ -299,15 +299,15 @@ class AreaFile:
     # deltaF prefix code (0-15) -> actual deltaF (-5..+5).
     _MODE_AA_DELTA_F = (0, -1, -2, -3, -4, -5, 0, 0, 0, 1, 2, 3, 4, 5, 0, 0)
     _MODE_AA_COEFFS = {
-        1:  (7, 3723, 976.5, -0.0003905001, 1.0),
-        2:  (7, 3910, 992.5, 0.002225, 1.0),
-        3:  (7, 4097, 1008, 0.00236, 1.0),
-        4:  (7, 4352, 1029, 0.004170999, 0.9999),
-        5:  (7, 5049, 1081, 0.004202001, 0.9999),
-        6:  (11, 128100, 3176, 0.06761003, 0.9998),
-        7:  (7, 5874, 1137, 0.004214, 0.9999),
-        8:  (7, 8512, 1286, 0.3212, 0.9974),
-        9:  (8, 30940, 1978, 0.06927001, 0.9997),
+        1: (7, 3723, 976.5, -0.0003905001, 1.0),
+        2: (7, 3910, 992.5, 0.002225, 1.0),
+        3: (7, 4097, 1008, 0.00236, 1.0),
+        4: (7, 4352, 1029, 0.004170999, 0.9999),
+        5: (7, 5049, 1081, 0.004202001, 0.9999),
+        6: (11, 128100, 3176, 0.06761003, 0.9998),
+        7: (7, 5874, 1137, 0.004214, 0.9999),
+        8: (7, 8512, 1286, 0.3212, 0.9974),
+        9: (8, 30940, 1978, 0.06927001, 0.9997),
         10: (8, 38880, 2134, 0.7513, 0.9973),
         11: (11, 136000, 3240, 0.05738, 0.9999),
         12: (13, 195900, 3659, 0.4237, 0.9991),
@@ -817,12 +817,7 @@ class AreaFile:
         return t
 
     def read_vis_counts(self, calibration="counts"):
-        """Read VIS data as raw counts or unnormalized reflectance.
-
-        calibration="counts" gives raw 0-255 counts;
-        calibration="unnormalized_reflectance" is a linear rescale to
-        percent (0-100).
-        """
+        """Read VIS data as raw counts or unnormalized reflectance."""
         if self.dir["band"] != "VIS":
             raise ValueError(f"{self.path}: band is {self.dir['band']!r}, not VIS.")
         raw = self.read_data().astype(np.float32)
