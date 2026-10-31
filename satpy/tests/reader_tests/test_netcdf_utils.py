@@ -271,6 +271,8 @@ class TestNetCDF4FileHandler:
         assert data.dtype == expected.dtype
         np.testing.assert_array_equal(data.values, expected)
         assert file_handler.get_and_cache_npxr(var_name) is data
+        assert list(file_handler.cached_variables) == [var_name]
+        assert file_handler[var_name] is data
 
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
     def test_get_and_cache_npxr_for_other_keys(self, netcdf_file, strategy):
