@@ -32,8 +32,15 @@ from pyproj import CRS
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
 from satpy import Scene
-from satpy.readers.goes_pregvar.goes_pregvar_area import GOESPreGVARAreaFileHandler
-from satpy.readers.goes_pregvar.goes_pregvar_base import AreaFile
+from satpy.tests.utils import skip_numba_unstable_if_missing
+
+try:
+    from satpy.readers.goes_pregvar.goes_pregvar_area import GOESPreGVARAreaFileHandler
+    from satpy.readers.goes_pregvar.goes_pregvar_base import AreaFile
+except ImportError as err:
+    if skip_numba_unstable_if_missing():
+        pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
+    raise
 
 # Area directory word indices (0-based)
 _W_SENSOR = 2
