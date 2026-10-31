@@ -1061,7 +1061,6 @@ class Scene:
         """Convert satpy Scene to geoviews.
 
         Args:
-            scn: Satpy Scene.
             gvtype:
                 One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
                 Default to :class:`geoviews.Image <geoviews.element.geo.Image>`.
@@ -1093,7 +1092,6 @@ class Scene:
         """Convert satpy Scene to Hvplot. The method could not be used with composites of swath data.
 
         Args:
-            scn (satpy.scene.Scene): Satpy Scene.
             datasets (list): Limit included products to these datasets.
             args: Arguments coming from hvplot
             kwargs: hvplot options dictionary.
