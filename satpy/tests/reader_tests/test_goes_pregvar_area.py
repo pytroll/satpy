@@ -1,6 +1,7 @@
 """Tests for the pre-GVAR VISSR/VAS AREA reader (``goes_pregvar_area``)."""
 
 import dataclasses
+import logging
 
 import numpy as np
 import pytest
@@ -9,15 +10,29 @@ from pyproj import CRS
 from pyresample.geometry import AreaDefinition, SwathDefinition
 
 from satpy import Scene
+from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
+    import satpy.readers.goes_pregvar.goes_pregvar_navigation as nav
     from satpy.readers.goes_pregvar.goes_pregvar_area import GOESPreGVARAreaFileHandler
     from satpy.readers.goes_pregvar.goes_pregvar_base import AreaFile
 except ImportError as err:
     if skip_numba_unstable_if_missing():
         pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
     raise
+
+
+@pytest.fixture(params=[False, True], autouse=True)
+def _disable_jit(request, monkeypatch):
+    """Run tests with jit enabled and disabled.
+
+    Reason: Coverage report is only accurate with jit disabled.
+    """
+    if request.param:
+        for name, method in get_jit_methods(nav).items():
+            monkeypatch.setattr(name, method.py_func)
+
 
 # Area directory word indices (0-based)
 _W_SENSOR = 2
@@ -591,6 +606,281 @@ class TestMissingNavigation:
         handler = make_handler(write_area_file(tmp_path / "goes03.1979.234.1515.AREA_IR", spec))
         with pytest.raises(ValueError, match="orbital"):
             get(handler, "longitude")
+
+
+def _patch_dir_word(path, index, value):
+    """Overwrite one (big-endian) directory word of a fake file."""
+    with open(path, "r+b") as f:
+        f.seek(index * 4)
+        f.write(int(value).to_bytes(4, "big", signed=True))
+
+
+def _nav_with(changes):
+    """Build a GOESNav from the default nav block with some words replaced."""
+    words = make_nav_words()
+    for index, value in changes.items():
+        words[index] = value
+    return nav.GOESNav(words, IR_WINDOW)
+
+
+class TestNavigationInternals:
+    """Epoch handling, scan geometry words and degenerate cases of the navigation."""
+
+    @pytest.mark.parametrize(("yymmdd", "expected"), [(920823, 92236), (840301, 84061), (841301, 84001)])
+    def test_year_day_conversion(self, yymmdd, expected):
+        """Convert YYMMDD to YYDDD, with leap days and an invalid month falling back to January."""
+        assert nav._icon1(yymmdd) == expected
+
+    @pytest.mark.parametrize(("year", "days"), [(84, 366), (85, 365), (1084, 366)])
+    def test_days_in_year(self, year, days):
+        """Count the days of leap and normal years."""
+        assert nav._leapyr(year) == days
+
+    @pytest.mark.parametrize(
+        ("hours", "expected"),
+        [(50.0, (2.0, 2)), (30.0, (6.0, 1)), (12.0, (12.0, 0)), (-5.0, (19.0, -1)), (-30.0, (18.0, -2))])
+    def test_day_rollover(self, hours, expected):
+        """Wrap hours into a day and report the whole days that were moved."""
+        assert nav._day_rollover(hours) == expected
+
+    def test_add_days(self):
+        """Move an epoch within a year and back over the start of a leap year."""
+        assert nav._add_days(84100, 2) == 84102
+        assert nav._add_days(85001, -1) == 84366
+
+    def test_epoch_moves_to_the_previous_day(self):
+        """An anomaly longer than the time of day puts the epoch on the day before."""
+        assert nav._epoch(92236, 10000, 3.0) == (92235, 220000)
+
+    def test_epoch_moves_to_the_next_day(self):
+        """A negative anomaly can carry the epoch over midnight."""
+        assert nav._epoch(92236, 230000, -3.0) == (92237, 20000)
+
+    def test_wrong_magic_is_rejected(self):
+        """Refuse a nav block that does not start with GOES."""
+        words = make_nav_words()
+        words[0] = 0
+        with pytest.raises(ValueError, match="Not a GOES nav block"):
+            nav.GOESNav(words, IR_WINDOW)
+
+    def test_picture_center_line_with_four_decimals(self):
+        """A picture center line of a million or more is stored times ten thousand."""
+        assert _nav_with({14: 7285 * 10000}).piclin == 7285.0
+
+    def test_spin_rate_in_rpm(self):
+        """A spin value below 300 is a rate in rpm, not a period in milliseconds."""
+        assert _nav_with({15: 100000}).tmpscl == pytest.approx(_nav_with({}).tmpscl)
+
+    def test_scan_times_default_to_the_picture_time(self):
+        """Without scan line times in the nav block, they follow from the picture time."""
+        sat_nav = _nav_with({})
+        assert sat_nav.scan1 == 1.0
+        assert sat_nav.scan2 == 1821.0
+        assert sat_nav.time1 == sat_nav.pictim
+        assert sat_nav.time2 == pytest.approx(sat_nav.time1 + 1821 * sat_nav.tmpscl)
+
+    def test_scan_times_from_the_nav_block(self):
+        """Newer satellites record the first and last scan line and their times."""
+        sat_nav = _nav_with({1: 26 * 100000 + 92236, 30: 5, 31: 130200, 34: 1800, 35: 131000})
+        assert sat_nav.scan1 == 5.0
+        assert sat_nav.scan2 == 1800.0
+        assert sat_nav.time1 == pytest.approx(13 + 2 / 60)
+        assert sat_nav.time2 == pytest.approx(13 + 10 / 60)
+
+    def test_eccentric_orbit(self):
+        """Solve Kepler's equation iteratively for an orbit that is not circular."""
+        sat_nav = _nav_with({7: 50000, 9: 120000})
+        lat, lon = sat_nav.to_latlon(np.array([NADIR_ROW + 1.0]), np.array([NADIR_COL + 1.0]))
+        assert np.isfinite(lat).all()
+        assert np.isfinite(lon).all()
+        assert all(np.isfinite(sat_nav.get_subpoint()))
+
+    def test_degenerate_surface_point_has_no_position(self):
+        """A point on the rotation axis has no longitude."""
+        params = _nav_with({})._kernel_params()
+        lat, lon = nav._geodetic_latlon((0.0, 0.0, 1.0), 1.0, 0.0, params)
+        assert np.isnan(lat)
+        assert np.isnan(lon)
+
+
+class TestMalformedFiles:
+    """Files with missing or broken blocks."""
+
+    def test_undetectable_byte_order_warns(self, tmp_path, caplog):
+        """Fall back to big endian, with a warning, when neither byte order looks right."""
+        spec = FakeArea(99, _mode_a_data([100]), **IR_WINDOW)
+        with caplog.at_level(logging.WARNING):
+            area = AreaFile(write_area_file(tmp_path / "unknown.AREA_IR", spec))
+        assert "could not confidently detect byte order" in caplog.text
+        assert area.dir["satellite"] is None
+
+    def test_truncated_directory(self, tmp_path):
+        """Refuse a file that ends inside the directory."""
+        path = tmp_path / "short.AREA_IR"
+        path.write_bytes(bytes(100))
+        with pytest.raises(ValueError, match="truncated area directory"):
+            AreaFile(str(path))
+
+    def test_no_nav_block(self, mode_a_ir_file):
+        """Without a nav block there is nothing to earth-locate with."""
+        _patch_dir_word(mode_a_ir_file, _W_NAV_OFFSET, 0)
+        area = AreaFile(mode_a_ir_file)
+        assert area.nav is None
+        with pytest.raises(ValueError, match="no GOES-type nav block"):
+            area.get_lonlats()
+        with pytest.raises(ValueError, match="no GOES-type nav block"):
+            area.get_nadir_sampling()
+
+    def test_nav_block_of_another_type(self, mode_a_ir_file, caplog):
+        """Warn about a nav block that is not of the GOES type and do not use it."""
+        with open(mode_a_ir_file, "r+b") as f:
+            f.seek(_DIR_WORDS * 4)
+            f.write(b"XXXX")
+        with caplog.at_level(logging.WARNING):
+            area = AreaFile(mode_a_ir_file)
+        assert "does not start with b'GOES'" in caplog.text
+        with pytest.raises(ValueError, match="no GOES-type nav block"):
+            area.get_lonlats()
+
+    def test_short_aaa_calibration_block(self, tmp_path):
+        """An AAA file with a calibration block that is too short has no radiance calibration."""
+        path = write_area_file(tmp_path / "goes07.1992.236.1301.AREA_IR", _aaa_spec(GOES7_IR))
+        data_offset = (_DIR_WORDS + _NAV_WORDS + _CAL_WORDS) * 4
+        _patch_dir_word(path, _W_CAL_OFFSET, data_offset - 40)
+        area = AreaFile(path)
+        assert area.cal is None
+        with pytest.raises(ValueError, match="calibration block"):
+            area.read_ir_radiance(8)
+        assert not make_handler(path)._vas_channel_available({"vas_channel": 8})
+
+    def test_short_mode_aa_calibration_region(self, tmp_path, caplog):
+        """A Mode AA file without room for the calibration entries cannot be calibrated."""
+        spec = _mode_aa_spec()
+        spec.cal_len = 50
+        path = write_area_file(tmp_path / "goes05.1983.229.2231-2.AREA_IR", spec)
+        with caplog.at_level(logging.WARNING):
+            area = AreaFile(path)
+        assert "Mode AA calibration region is only 50 bytes" in caplog.text
+        with pytest.raises(ValueError, match="no Mode AA calibration"):
+            area.read_ir_temperature_mode_aa(8)
+        assert not make_handler(path)._vas_channel_available({"vas_channel": 8})
+
+    def test_mode_aa_without_band_list(self, tmp_path, mode_aa_file, caplog):
+        """A single-band Mode AA file with a short prefix is read without the band list."""
+        spec = _mode_aa_spec()
+        spec.prefixes = spec.prefixes[:, :632]
+        path = write_area_file(tmp_path / "goes05.1983.229.2231-2.AREA_IR", spec)
+        with caplog.at_level(logging.WARNING):
+            area = AreaFile(path)
+        assert "too short for the documented AAA line-prefix layout" in caplog.text
+        assert area.band_list is None
+        expected = AreaFile(mode_aa_file).read_ir_temperature_mode_aa(8)
+        np.testing.assert_allclose(area.read_ir_temperature_mode_aa(8), expected)
+
+    def test_band_list_shorter_than_the_number_of_bands(self, tmp_path, caplog):
+        """Without a usable band list the channels of an AAA file cannot be told apart."""
+        spec = _aaa_spec(GOES7_IR)
+        spec.prefixes = spec.prefixes[:, :633]
+        path = write_area_file(tmp_path / "goes07.1992.236.1301.AREA_IR", spec)
+        with caplog.at_level(logging.WARNING):
+            area = AreaFile(path)
+        assert "band list region is only 1 bytes" in caplog.text
+        with pytest.raises(ValueError, match="band list"):
+            area.read_channel(8)
+        with pytest.raises(ValueError, match="band list"):
+            get(make_handler(path), "VAS_CH8", "brightness_temperature", band="IR", vas_channel=8)
+
+    def test_unsupported_element_size(self, tmp_path):
+        """Only one and two byte elements are supported."""
+        spec = FakeArea(GOES3_IR, _mode_a_data([100]), bytes_per_elem=4, **IR_WINDOW)
+        area = AreaFile(write_area_file(tmp_path / "goes03.1979.234.1515.AREA_IR", spec))
+        with pytest.raises(NotImplementedError, match="bytes/element"):
+            area.read_data()
+
+
+class TestAreaFileRequests:
+    """Requests that the file or the calibration cannot satisfy."""
+
+    def test_single_band_read_of_a_multiband_file(self, goes7_aaa_file):
+        """Multiband files are read per channel."""
+        with pytest.raises(ValueError, match="single-band"):
+            AreaFile(goes7_aaa_file).read_data()
+
+    def test_channel_without_calibration(self, goes7_aaa_file):
+        """Refuse channels that the calibration block does not describe."""
+        with pytest.raises(ValueError, match="not present"):
+            AreaFile(goes7_aaa_file).read_ir_radiance(39)
+
+    def test_channel_without_planck_constants(self, goes7_aaa_file):
+        """Refuse channels that have no verified Planck constants."""
+        with pytest.raises(NotImplementedError, match="No verified Planck"):
+            AreaFile(goes7_aaa_file).read_ir_temperature_aaa(14)
+
+    def test_mode_aa_request_for_another_format(self, mode_a_ir_file):
+        """Mode AA temperatures only exist for Mode AA files."""
+        with pytest.raises(ValueError, match="not a Mode AA"):
+            AreaFile(mode_a_ir_file).read_ir_temperature_mode_aa(8)
+
+    def test_mode_aa_band_out_of_range(self, mode_aa_file):
+        """The visible channel is not covered by the Mode AA formula."""
+        with pytest.raises(ValueError, match="1-12"):
+            AreaFile(mode_aa_file).read_ir_temperature_mode_aa(13)
+
+    def test_mode_a_temperature_of_a_visible_file(self, mode_a_vis_file):
+        """The IR formula does not apply to visible data."""
+        with pytest.raises(ValueError, match="not IR"):
+            AreaFile(mode_a_vis_file).read_ir_temperature()
+
+    def test_mode_a_temperature_of_a_multiband_file(self, goes7_aaa_file):
+        """The single-band formula does not apply to multiband files."""
+        with pytest.raises(NotImplementedError, match="multiband"):
+            AreaFile(goes7_aaa_file).read_ir_temperature()
+
+    def test_mode_a_temperature_of_wide_counts(self, tmp_path):
+        """The formula assumes 8-bit counts."""
+        data = np.full((SHAPE[0], SHAPE[1], 1), 300)
+        spec = FakeArea(GOES3_IR, data, bytes_per_elem=2, **IR_WINDOW)
+        area = AreaFile(write_area_file(tmp_path / "goes03.1979.234.1515.AREA_IR", spec))
+        with pytest.raises(ValueError, match="8 bits"):
+            area.read_ir_temperature()
+
+    def test_visible_counts_of_an_infrared_file(self, mode_a_ir_file):
+        """Visible counts only exist for visible files."""
+        with pytest.raises(ValueError, match="not VIS"):
+            AreaFile(mode_a_ir_file).read_vis_counts()
+
+    def test_unsupported_visible_calibration(self, mode_a_vis_file):
+        """Only counts and unnormalized reflectance are available."""
+        with pytest.raises(ValueError, match="Unsupported VIS calibration"):
+            AreaFile(mode_a_vis_file).read_vis_counts("bogus")
+
+
+class TestHandlerAvailability:
+    """Helpers behind available_datasets()."""
+
+    def test_dataset_without_channel_is_available(self, mode_a_ir_file):
+        """Datasets that name no sounder channel need no channel calibration."""
+        assert make_handler(mode_a_ir_file)._vas_channel_available({})
+
+    def test_sounder_channel_of_single_band_file(self, mode_a_ir_file):
+        """A single-band file has no sounder channels."""
+        assert not make_handler(mode_a_ir_file)._vas_channel_available({"vas_channel": 8})
+
+    def test_known_availability_is_kept(self, mode_a_ir_file):
+        """Availability decided earlier is passed on."""
+        assert make_handler(mode_a_ir_file)._dataset_availability(True, {"file_type": "area_ir"})
+
+    def test_other_file_types_are_left_alone(self, mode_a_ir_file):
+        """Datasets of another file type stay undecided."""
+        assert make_handler(mode_a_ir_file)._dataset_availability(None, {"file_type": "other"}) is None
+
+    def test_missing_lines_are_padded_with_nan(self, mode_a_ir_file):
+        """Pad a result that has fewer lines than the file."""
+        data = np.ones((SHAPE[0] - 2, SHAPE[1]), dtype=np.float32)
+        res = make_handler(mode_a_ir_file)._pad_missing_lines(data)
+        assert res.shape == SHAPE
+        assert np.isnan(res[-2:]).all()
+        assert (res[:-2] == 1).all()
 
 
 class TestScene:
