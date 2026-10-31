@@ -1,0 +1,329 @@
+reader:
+  name: goes_pregvar_area
+  short_name: GOES pre-GVAR AREA
+  long_name: SMS/GOES 1-7 VISSR/VAS McIDAS AREA files
+  description: >
+    Reader for pre-GVAR McIDAS AREA files from SMS and GOES 1-7.
+  status: Alpha
+  supports_fsspec: false
+  sensors: [goes_pregvar]
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+
+file_types:
+  area_ir:
+    file_reader: !!python/name:satpy.readers.goes_pregvar.goes_pregvar_area.GOESPreGVARAreaFileHandler
+    file_patterns:
+      - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}.AREA_IR'
+      - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}-{seq_num:1d}.AREA_IR'
+  area_vis:
+    file_reader: !!python/name:satpy.readers.goes_pregvar.goes_pregvar_area.GOESPreGVARAreaFileHandler
+    file_patterns:
+      - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}.AREA_VIS'
+      - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}-{seq_num:1d}.AREA_VIS'
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: [area_ir, area_vis]
+    standard_name: longitude
+    units: degrees_east
+
+  latitude:
+    name: latitude
+    file_type: [area_ir, area_vis]
+    standard_name: latitude
+    units: degrees_north
+
+  VIS:
+    name: VIS
+    band: VIS
+    sensor: goes_pregvar
+    wavelength: [0.55, 0.65, 0.75]
+    resolution: 900
+    file_type: [area_vis]
+    coordinates: [longitude, latitude]
+    calibration:
+      counts:
+        standard_name: counts
+        units: "1"
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
+
+  IR:
+    name: IR
+    band: IR
+    sensor: goes_pregvar
+    wavelength: [10.5, 11.5, 12.5]
+    resolution: 6900
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH1:
+    name: VAS_CH1
+    band: IR
+    vas_channel: 1
+    description: "CO2 temperature sounding, ~70mb"
+    wavelength: [14.2, 14.7, 15.2]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH2:
+    name: VAS_CH2
+    band: IR
+    vas_channel: 2
+    description: "CO2 temperature sounding, ~125mb"
+    wavelength: [14.0, 14.5, 15.0]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH3:
+    name: VAS_CH3
+    band: IR
+    vas_channel: 3
+    description: "CO2 temperature sounding, ~200mb"
+    wavelength: [13.8, 14.3, 14.8]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH4:
+    name: VAS_CH4
+    band: IR
+    vas_channel: 4
+    description: "CO2 temperature sounding / cloud heights, ~500mb"
+    wavelength: [13.5, 14.0, 14.5]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH5:
+    name: VAS_CH5
+    band: IR
+    vas_channel: 5
+    description: "CO2 temperature sounding / cloud heights, ~920mb"
+    wavelength: [12.8, 13.3, 13.8]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH6:
+    name: VAS_CH6
+    band: IR
+    vas_channel: 6
+    description: "CO2/N2O temperature sounding, ~850mb"
+    wavelength: [4.0, 4.5, 5.0]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH7:
+    name: VAS_CH7
+    band: IR
+    vas_channel: 7
+    description: "H2O water vapor detection, ~1000mb"
+    wavelength: [12.2, 12.7, 13.2]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH8:
+    name: VAS_CH8
+    band: IR
+    vas_channel: 8
+    description: "IR window -- nighttime cloud / surface temperature"
+    wavelength: [10.7, 11.2, 11.7]
+    resolution: 6900
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH9:
+    name: VAS_CH9
+    band: IR
+    vas_channel: 9
+    description: "H2O water vapor detection, ~600mb"
+    wavelength: [6.8, 7.3, 7.8]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH10:
+    name: VAS_CH10
+    band: IR
+    vas_channel: 10
+    description: "H2O water vapor detection, ~400mb"
+    wavelength: [6.2, 6.7, 7.2]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH11:
+    name: VAS_CH11
+    band: IR
+    vas_channel: 11
+    description: "CO2/N2O temperature sounding, ~300mb"
+    wavelength: [3.9, 4.4, 4.9]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  VAS_CH12:
+    name: VAS_CH12
+    band: IR
+    vas_channel: 12
+    description: "IR window -- surface skin temp / cloud detection"
+    wavelength: [3.4, 3.9, 4.4]
+    resolution: 13800
+    sensor: goes_pregvar
+    file_type: [area_ir]
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: "1"
+
+  # NOTE: no separate VAS_CH13 dataset -- per the McIDAS-X User's
+  # Guide VAS channel table, channel 13 is documented as "the same as
+  # band 8 but at lower resolution," not an independent physical
+  # channel, so it isn't exposed as its own named dataset here. If a
+  # Dwell Sounding (or other) file's band list ever reports channel 13
+  # in a band slot, read_channel(13)/read_ir_temperature_aaa(13)
+  # still work (they transparently borrow channel 8's calibration --
+  # see goes_pregvar_format.py) -- there's just no YAML entry wired up
+  # to request it by name yet.
