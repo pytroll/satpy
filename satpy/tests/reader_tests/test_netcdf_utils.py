@@ -601,7 +601,7 @@ class TestNetCDF4FileContent:
         assert file_content["test_group/ds1_i/attr/test_attr_float"] == 1.2
         assert file_content["test_group/attr/test_attr_int"] == 0
         assert file_content["/attr/test_attr_str_arr"] == "test_string2"
-        # alias of the global attribute as listed in required_netcdf_variables
+        # alias of a global attribute (no slash) sometimes used in reader configs
         assert file_content["attr/test_attr_str"] == "test_string"
         assert file_content["/attrs"] == {
             "test_attr_str": "test_string",
@@ -821,17 +821,28 @@ class TestNetCDF4FileContent:
         assert len(file_cache) == num_cached_before
         assert not _is_open(file_handle)
 
-    def test_readable_after_close(self, netcdf_file, strategy, engine):
-        """Test that the file content can still be read after closing the file handler, reopening the file."""
+    def test_no_wrong_file_reads_after_close(self, netcdf_file, tmp_path, strategy, engine):
+        """Test that a closed file handler never reads from another file.
+
+        Using a file handler after close() isn't expected, but netCDF-C gives
+        the id of a closed file to the next file it opens, so lookups through
+        the closed file handle could read from that file without any error.
+
+        """
+        import shutil
+
+        from netCDF4 import Dataset
+
+        other_file = shutil.copy(netcdf_file, tmp_path / "other.nc")
+        with Dataset(other_file, "a") as nc:
+            nc["test_group"]["ds1_i"].test_attr_int = 1
+            nc["ds2_s"][:] = np.arange(10) + 1
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, open_strategy=strategy, engine=engine)
-        assert file_handler["ds2_f/attr/test_attr_str"] == "test_string"
         file_handler.close()
 
-        # remembered
-        assert file_handler["ds2_f/attr/test_attr_str"] == "test_string"
-        assert file_handler["test_group/ds1_i/attr/test_attr_int"] == 0
-        assert file_handler.accessor.is_group(file_handler.file_content["test_group"])
-        np.testing.assert_array_equal(file_handler["ds2_s"], np.arange(10))
+        with Dataset(other_file):
+            assert file_handler["test_group/ds1_i/attr/test_attr_int"] == 0
+            np.testing.assert_array_equal(file_handler["ds2_s"], np.arange(10))
 
 
 def _is_open(file_handle):
