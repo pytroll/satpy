@@ -317,7 +317,7 @@ class TestNetCDF4FileHandler:
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     @pytest.mark.parametrize("strategy", OPEN_STRATEGIES)
     def test_dask_names(self, netcdf_file, tmp_path, strategy, engine):
-        """Test that dask arrays read from the same file have the same names, and from another file not."""
+        """Test that dask arrays read from the same file have the same names, but differ for another file."""
         import shutil
 
         file_copy = shutil.copy(netcdf_file, tmp_path / "copy.nc")
@@ -398,13 +398,15 @@ class TestNetCDF4FileHandler:
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     def test_scalar_read_after_close_does_not_reopen_file(self, netcdf_file, file_cache, engine):
         """Test that scalar variables are in memory, so reading them after close() doesn't reopen the file."""
+        num_cached_before = len(file_cache)
         file_handler = NetCDF4FileHandler(netcdf_file, {}, {}, engine=engine, open_strategy="shared_store")
         scalar = file_handler["ds2_sc"]
+        assert len(file_cache) == num_cached_before + 1
         file_handler.close()
-        num_cached_after_close = len(file_cache)
+        assert len(file_cache) == num_cached_before
 
         assert scalar.values == 42
-        assert len(file_cache) == num_cached_after_close
+        assert len(file_cache) == num_cached_before
 
     @pytest.mark.parametrize("engine", ["netcdf4", "h5netcdf"])
     def test_file_open_for_arrays_of_deleted_handler(self, netcdf_file, file_cache, engine):
