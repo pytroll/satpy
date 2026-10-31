@@ -1,27 +1,4 @@
-#!/usr/bin/env python
-# Copyright (c) 2026 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the pre-GVAR VISSR/VAS AREA reader (``goes_pregvar_area``).
-
-The tests write small fake AREA files with the real byte layout (area
-directory, GOES navigation block, optional calibration block, line prefixes
-and data) and read them back through the file handler. The fake navigation
-block describes a circular, equatorial orbit centered on -112.1 degrees east
-with a spin axis along the pole, so the pixel nearest nadir is known.
-"""
+"""Tests for the pre-GVAR VISSR/VAS AREA reader (``goes_pregvar_area``)."""
 
 import dataclasses
 
