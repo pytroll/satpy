@@ -13,6 +13,8 @@ edu.wisc.ssec.mcidas.GOESnav, which is LGPL-2+ licensed by SSEC
 This port keeps the same terms.
 
 References:
+===========
+
 - `McIDAS Programmer's Manual`_, "GOES-7 AAA navigation block"
 - SSEC VisAD `GOESnav.java`_
 
