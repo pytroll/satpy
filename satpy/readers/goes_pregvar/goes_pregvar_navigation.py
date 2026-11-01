@@ -13,8 +13,6 @@ edu.wisc.ssec.mcidas.GOESnav, which is LGPL-2+ licensed by SSEC
 This port keeps the same terms.
 
 References:
-===========
-
 - `McIDAS Programmer's Manual`_, "GOES-7 AAA navigation block"
 - SSEC VisAD `GOESnav.java`_
 
@@ -333,11 +331,11 @@ class GOESNav:
     Construct with the raw nav-block words (as signed 32-bit ints, 0-based
     array matching the Java `iarr` -- iarr[0] is nav word 1 == b"GOES").
 
-    Also needs image-coordinate setup, equivalent to AREAnav's:
-        setImageStart(dir_ul_line, dir_ul_element)
-        setRes(dir_line_res, dir_elem_res)
-        setStart(0, 0); setMag(1, 1)
-    which is handled automatically from the AreaFile.dir dict passed in.
+    The image-coordinate setup, equivalent to AREAnav's
+    ``setImageStart(dir_ul_line, dir_ul_element)``,
+    ``setRes(dir_line_res, dir_elem_res)``, ``setStart(0, 0)``
+    and ``setMag(1, 1)``, is handled automatically from
+    the ``AreaFile.dir`` dict passed in.
     """
 
     def __init__(self, iarr, area_dir, endian=">"):
