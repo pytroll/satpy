@@ -219,6 +219,11 @@ datasets:
     scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
+  ctth_alti_err:
+    name: ctth_alti_err
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
   ctth_quality:
     name: ctth_quality
     file_type: nc_nwcsaf_ctth
@@ -375,6 +380,11 @@ datasets:
     name: cbh_alti_pal
     scale_offset_dataset: cbh_alti
     file_type: nc_nwcsaf_cbh
+
+  cbh_alti_err:
+    name: cbh_alti_err
+    file_type: nc_nwcsaf_cbh
+    coordinates: [lon, lat]
 
   cbh_quality:
     name: cbh_quality

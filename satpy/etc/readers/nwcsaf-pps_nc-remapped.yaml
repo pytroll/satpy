@@ -178,8 +178,8 @@ datasets:
     scale_offset_dataset: ctth_alti
     file_type: nc_nwcsaf_ctth
 
-  bowtie_mask:
-    name: bowtie_mask
+  ctth_alti_err:
+    name: ctth_alti_err
     file_type: nc_nwcsaf_ctth
 
   ctth_quality:
@@ -319,6 +319,10 @@ datasets:
   cbh_alti_pal:
     name: cbh_alti_pal
     scale_offset_dataset: cbh_alti
+    file_type: nc_nwcsaf_cbh
+
+  cbh_alti_err:
+    name: cbh_alti_err
     file_type: nc_nwcsaf_cbh
 
   cbh_quality:
