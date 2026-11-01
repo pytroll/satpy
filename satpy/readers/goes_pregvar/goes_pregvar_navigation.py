@@ -16,6 +16,7 @@ References:
 - `McIDAS Programmer's Manual`_, "GOES-7 AAA navigation block"
 - SSEC VisAD `GOESnav.java`_
 
+
 .. _McIDAS Programmer's Manual:
     https://www.ssec.wisc.edu/mcidas/doc/prog_man/2015/prog_man.pdf
 .. _GOESnav.java:

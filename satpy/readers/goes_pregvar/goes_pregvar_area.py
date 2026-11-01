@@ -85,7 +85,7 @@ References:
 
 
 .. _[VISSR]: https://www.ncei.noaa.gov/nerms/api/document/2042B0E3E70F4E69B51EBC340A35E5D2/download
-.. -[VAS]: https://ntrs.nasa.gov/api/citations/19860004398/downloads/19860004398.pdf
+.. _[VAS]: https://ntrs.nasa.gov/api/citations/19860004398/downloads/19860004398.pdf
 .. _[MODE]: https://www.ncei.noaa.gov/access/search/publications/satellite-documentation-publication/?title=mode+vissr
 .. _[AREA]: https://www.ssec.wisc.edu/mcidas/doc/misc_doc/area2.html
 .. _[MCIDAS]: https://www.ssec.wisc.edu/mcidas/doc/prog_man/2015/prog_man.pdf
