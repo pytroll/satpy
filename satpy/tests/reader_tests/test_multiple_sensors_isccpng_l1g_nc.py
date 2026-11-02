@@ -102,8 +102,8 @@ class TestISCCPNGL1gReader:
 
     def test_read_eum_l1g(self, nc_filename_eum, monkeypatch):
         """Test reading reflectances and BT."""
-        from satpy.scene import Scene
         from satpy.readers import multiple_sensors_isccpng_l1g_nc
+        from satpy.scene import Scene
         monkeypatch.setattr(multiple_sensors_isccpng_l1g_nc, "NLON", 72)
         monkeypatch.setattr(multiple_sensors_isccpng_l1g_nc, "NLAT", 36)
 
@@ -121,8 +121,8 @@ class TestISCCPNGL1gReader:
 
     def test_read_isccpng_l1g(self, nc_filename, monkeypatch):
         """Test reading reflectances and BT."""
-        from satpy.scene import Scene
         from satpy.readers import multiple_sensors_isccpng_l1g_nc
+        from satpy.scene import Scene
         monkeypatch.setattr(multiple_sensors_isccpng_l1g_nc, "NLON", 72)
         monkeypatch.setattr(multiple_sensors_isccpng_l1g_nc, "NLAT", 36)
 
