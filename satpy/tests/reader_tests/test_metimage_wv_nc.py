@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The vii_l2_nc reader tests package for VII/METimage water vapour products."""
 
@@ -28,13 +11,13 @@ import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 
-from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
+from satpy.readers.metimage_l2_nc import METimageL2NCFileHandler
 
 TEST_FILE = "test_file_vii_wv_nc.nc"
 
 
-class TestViiL2NCFileHandler(unittest.TestCase):
-    """Test the ViiL2NCFileHandler reader."""
+class TestMETimageL2NCFileHandler(unittest.TestCase):
+    """Test the METimageL2NCFileHandler reader."""
 
     def setUp(self):
         """Set up the test."""
@@ -57,7 +40,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
             delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_points_alt", "num_points_act"))
             delta_lat[:] = 0.1
 
-        self.reader = ViiL2NCFileHandler(
+        self.reader = METimageL2NCFileHandler(
             filename=self.test_file_name,
             filename_info={
                 "creation_time": datetime.datetime(year=2017, month=9, day=22,

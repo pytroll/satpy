@@ -1,18 +1,3 @@
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the goes imager nc reader (EUMETSAT variant)."""
 
 import unittest
@@ -112,8 +97,8 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                 assert sector == sector_ref, "Incorrect sector identification"
 
 
-class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
-    """Testing the reflectances."""
+class GOESNCEUMFileHandlerVISTest(unittest.TestCase):
+    """Testing the unnormalized_reflectance."""
 
     longMessage = True
 
@@ -132,13 +117,13 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
 
         # Mock file access to return a fake dataset.
         nrows = ncols = 300
-        self.reflectance = 50 * np.ones((1, nrows, ncols))  # Vis channel
+        self.vis_data = 50 * np.ones((1, nrows, ncols))  # Vis channel
         self.lon = np.zeros((nrows, ncols))  # Dummy
         self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
             nrows, ncols)  # Includes invalid values to be masked
 
         xr_.open_dataset.return_value = xr.Dataset(
-            {"data": xr.DataArray(data=self.reflectance, dims=("time", "yc", "xc")),
+            {"data": xr.DataArray(data=self.vis_data, dims=("time", "yc", "xc")),
              "time": xr.DataArray(data=np.array([0], dtype="datetime64[ns]"),
                                   dims=("time",)),
              "bands": xr.DataArray(data=np.array([1]))},
@@ -153,12 +138,21 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
         self.reader = GOESEUMNCFileHandler(filename="dummy", filename_info={},
                                            filetype_info={}, geo_data=geo_data)
 
-    def test_get_dataset_reflectance(self):
-        """Test getting the reflectance."""
+    def test_get_dataset_vis(self):
+        """Test getting the visible data."""
         for ch in self.channels:
             if is_vis_channel(ch):
-                refl = self.reader.get_dataset(
-                    key=make_dataid(name=ch, calibration="reflectance"), info={})
+                data = self.reader.get_dataset(
+                    key=make_dataid(name=ch, calibration="unnormalized_reflectance"), info={})
                 # ... this only compares the valid (unmasked) elements
-                assert np.all(self.reflectance == refl.to_masked_array()), \
-                    f"get_dataset() returns invalid reflectance for channel {ch}"
+                assert np.all(self.vis_data == data.to_masked_array()), \
+                    f"get_dataset() returns invalid unnormalized_reflectance for channel {ch}"
+
+    # 8< v1.0
+    def test_reflectance_warns(self):
+        """Test that requesting reflectance calibration issues a warning."""
+        import pytest
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = self.reader.get_dataset(
+                key=make_dataid(name="00_7", calibration="reflectance"), info={})
+    # >8 v1.0

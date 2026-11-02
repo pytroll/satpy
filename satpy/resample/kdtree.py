@@ -7,7 +7,6 @@ from logging import getLogger
 import dask.array as da
 import numpy as np
 import xarray as xr
-import zarr
 from pyresample.resampler import BaseResampler as PRBaseResampler
 
 from satpy.resample.base import _update_resampled_coords
@@ -27,6 +26,7 @@ BIL_COORDINATES = {"bilinear_s": ("x1", ),
                    "mask_slices": ("x1", "n"),
                    "out_coords_x": ("x2", ),
                    "out_coords_y": ("y2", )}
+
 
 class KDTreeResampler(PRBaseResampler):
     """Resample using a KDTree-based nearest neighbor algorithm.
@@ -140,6 +140,9 @@ class KDTreeResampler(PRBaseResampler):
         self._index_caches[mask_name] = cached
 
     def _load_neighbour_info_from_cache(self, cache_dir, idx_name, mask_name, **kwargs):
+        # imported here so a broken zarr installation only affects on-disk caching
+        import zarr
+
         try:
             filename = self._create_cache_filename(
                 cache_dir, prefix="nn_lut-",

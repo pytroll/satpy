@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit msg reader tests package."""
 
 import datetime
@@ -151,7 +134,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
     @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset")
     def test_get_dataset(self, base_get_dataset):
         """Test get_dataset."""
-        key = make_dataid(name="CH1", calibration="reflectance")
+        key = make_dataid(name="CH1", calibration="unnormalized_reflectance")
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
         expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
@@ -167,6 +150,17 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                                                    "projection_latitude": 0.0,
                                                    "projection_altitude": ALTITUDE}
 
+    # 8< v1.0
+    @mock.patch("satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset")
+    def test_reflectance_warns(self, base_get_dataset):
+        """Test get_dataset."""
+        import pytest
+        key = make_dataid(name="CH1", calibration="reflectance")
+        base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = self.reader.get_dataset(key, {})
+    # >8 v1.0
+
     def test_get_area_def(self):
         """Test getting the area definition."""
         from pyproj import CRS
@@ -179,7 +173,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
             "number_of_lines": 464,
             "number_of_columns": 2816
         })
-        dsid = make_dataid(name="CH1", calibration="reflectance",
+        dsid = make_dataid(name="CH1", calibration="unnormalized_reflectance",
                            resolution=3000)
         area = self.reader.get_area_def(dsid)
 

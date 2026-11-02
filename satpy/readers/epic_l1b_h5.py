@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """File handler for DSCOVR EPIC L1B data in hdf5 format.
 
@@ -34,7 +17,7 @@ while ancillary data can be loaded by its name:
 ``scn.load(['solar_zenith_angle'])``
 
 Note that ancillary dataset names use common standards and not the dataset names in the file.
-By default, channel data is loaded as calibrated reflectances, but counts data is also available.
+By default, channel data is loaded as calibrated unnormalized_reflectance, but counts data is also available.
 
 """
 
@@ -48,7 +31,7 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 
-# Level 1b is given as counts. These factors convert to reflectance.
+# Level 1b is given as counts. These factors convert to unnormalized_reflectance.
 # Retrieved from: https://asdc.larc.nasa.gov/documents/dscovr/DSCOVR_EPIC_Calibration_Factors_V03.pdf
 CALIB_COEFS = {"B317": 1.216e-4,
                "B325": 1.111e-4,
@@ -92,12 +75,28 @@ class DscovrEpicL1BH5FileHandler(HDF5FileHandler):
     @staticmethod
     def calibrate(data, ds_name, calibration=None):
         """Convert counts input reflectance."""
-        if calibration == "reflectance":
+        if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             return data * CALIB_COEFS[ds_name] * 100.
         return data
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in dataset_id and dataset_id["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for EPIC L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
+
         ds_name = dataset_id["name"]
 
         logger.debug("Reading in get_dataset %s.", ds_name)

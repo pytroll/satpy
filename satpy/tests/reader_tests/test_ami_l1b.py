@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ami_l1b reader tests package."""
 import contextlib
 from typing import Iterator
@@ -276,13 +259,13 @@ class TestAMIL1bNetCDF:
     def test_get_dataset_vis(self, fake_vis_reader):
         """Test get visible calibrated data."""
         from satpy.tests.utils import make_dataid
-        key = make_dataid(name="VI006", calibration="reflectance")
+        key = make_dataid(name="VI006", calibration="unnormalized_reflectance")
         res = fake_vis_reader.get_dataset(key, {
             "file_key": "image_pixel_values",
-            "standard_name": "toa_bidirectional_reflectance",
+            "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
             "units": "%",
         })
-        exp = {"calibration": "reflectance",
+        exp = {"calibration": "unnormalized_reflectance",
                "modifiers": (),
                "platform_name": "GEO-KOMPSAT-2A",
                "sensor": "ami",
@@ -308,6 +291,19 @@ class TestAMIL1bNetCDF:
         for key, val in exp.items():
             assert val == res.attrs[key]
         self._check_orbital_parameters(res.attrs["orbital_parameters"])
+
+    # 8< v1.0
+    def test_get_dataset_reflectance_warns(self, fake_vis_reader):
+        """Test get visible calibrated data."""
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name="VI006", calibration="reflectance")
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = fake_vis_reader.get_dataset(key, {
+                "file_key": "image_pixel_values",
+                "standard_name": "toa_bidirectional_reflectance",
+                "units": "%",
+            })
+    # >8 v1.0
 
 
 class TestAMIL1bNetCDFIRCal:

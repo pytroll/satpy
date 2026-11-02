@@ -1,18 +1,3 @@
-# Copyright (c) 2015-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Core functionality of composites."""
 
@@ -36,6 +21,11 @@ NEGLIGIBLE_COORDS = ["time"]
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
+
+
+def _is_coord_var(data_arr: xr.DataArray, coord_name: str) -> bool:
+    """Return whether a coordinate is the variable for its same-named dimension."""
+    return data_arr.coords[coord_name].dims == (coord_name,)
 
 
 class IncompatibleAreas(Exception):
@@ -204,11 +194,11 @@ class CompositeBase:
 
     @staticmethod
     def drop_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
-        """Drop negligible non-dimensional coordinates.
+        """Drop negligible coordinates that are not dimension coordinates.
 
-        Drops negligible coordinates if they do not correspond to any
-        dimension.  Negligible coordinates are defined in the
-        :attr:`NEGLIGIBLE_COORDS` module attribute.
+        Negligible coordinates are retained only when they are the coordinate
+        variable for their same-named dimension. Negligible coordinates are
+        defined in the :attr:`NEGLIGIBLE_COORDS` module attribute.
 
         Args:
             data_arrays: Arrays to be checked
@@ -216,8 +206,8 @@ class CompositeBase:
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and
-                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
+                    if not _is_coord_var(ds, coord) and
+                    any(negligible in coord for negligible in NEGLIGIBLE_COORDS)]
             if drop:
                 new_arrays.append(ds.drop_vars(drop))
             else:

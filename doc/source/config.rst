@@ -246,6 +246,45 @@ will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
 
+.. _scene_iter_keys_setting:
+
+Scene Iteration Keys
+^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SCENE_ITER_KEYS``
+* **YAML/Config Key**: ``scene_iter_keys``
+* **Default**: ``None``
+
+Whether iterating over a :class:`~satpy.scene.Scene` (ex. ``for x in scn``) should
+produce the :class:`~satpy.dataset.dataid.DataID` keys of the datasets it contains.
+Historically a ``Scene`` produced the ``xarray.DataArray`` objects it contained, which
+is inconsistent with the dictionary-like behavior of the rest of the ``Scene``
+interface (``scn["my_data"]``, ``"my_data" in scn``, ``scn.keys()``, ``scn.values()``).
+Starting in Satpy 1.0 iteration will produce ``DataID`` keys instead.
+
+The accepted values are:
+
+* ``None`` (default): Produce ``DataArray`` objects (the historical behavior) and issue
+  a warning that this is going to change.
+* ``True``: Produce ``DataID`` keys. This is the behavior that becomes the default in
+  Satpy 1.0.
+* ``False``: Produce ``DataArray`` objects (the historical behavior) without any
+  warning.
+
+Use :meth:`Scene.values() <satpy.scene.Scene.values>` if you want the ``DataArray``
+objects regardless of this setting; it is unaffected by this option and is the
+recommended replacement for the historical iteration behavior.
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+.. warning::
+
+    This option exists only to ease the transition. The default becomes ``True`` in
+    Satpy 1.0 and the option will be removed in a later release. After that ``False``
+    will no longer be honored and iterating over a ``Scene`` will always produce
+    ``DataID`` keys.
+
 Sensor Angles Position Preference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

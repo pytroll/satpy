@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# Copyright (c) 2015-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader configuration."""
 from __future__ import annotations
 
@@ -30,7 +14,12 @@ from satpy.readers.core.yaml_reader import load_yaml_configs as load_yaml_reader
 LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
-PENDING_OLD_READER_NAMES = {"fci_l1c_fdhsi": "fci_l1c_nc", "viirs_l2_cloud_mask_nc": "viirs_edr"}
+PENDING_OLD_READER_NAMES = {
+    "fci_l1c_fdhsi": "fci_l1c_nc",
+    "viirs_l2_cloud_mask_nc": "viirs_edr",
+    "vii_l1b_nc": "metimage_l1b_nc",
+    "vii_l2_nc": "metimage_l2_nc",
+}
 OLD_READER_NAMES: dict[str, str] = {
     "slstr_l2": "ghrsst_l2",
 }
