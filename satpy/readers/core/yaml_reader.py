@@ -1396,8 +1396,6 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         """Initialise the GEOVariableSegmentYAMLReader object."""
         super().__init__(config_dict, filter_parameters, filter_filenames, **kwargs)
         self.segment_infos = dict()
-        # Not a functools cache of the bound method: stored on the reader, it would make a reference cycle
-        # that keeps the reader, its file handlers, and their open files alive until garbage collection.
         self._segment_heights_cache = dict()
 
     def _extract_segment_location_dicts(self, filetype):

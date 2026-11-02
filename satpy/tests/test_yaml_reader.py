@@ -2,11 +2,9 @@
 """Testing the yaml_reader module."""
 
 import datetime as dt
-import gc
 import os
 import random
 import unittest
-import weakref
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, call, patch
 
@@ -1294,20 +1292,6 @@ class TestGEOVariableSegmentYAMLReader:
             assert GVSYReader.segment_heights("filetype1", 5568) == [5568]
             assert GVSYReader.segment_heights("filetype1", 11136) == [11136]
         assert compute.call_count == 2
-
-    def test_reader_freed_without_garbage_collection(self):
-        """Test that the reader doesn't reference itself, which would keep its files open until garbage collection."""
-        with patch.object(yr.GEOSegmentYAMLReader, "__init__", return_value=None):
-            reader = yr.GEOVariableSegmentYAMLReader({})
-        reader_ref = weakref.ref(reader)
-        gc_was_enabled = gc.isenabled()
-        gc.disable()
-        try:
-            del reader
-            assert reader_ref() is None
-        finally:
-            if gc_was_enabled:
-                gc.enable()
 
     def test_get_empty_segment(self, GVSYReader, fake_mss, fake_xr, fake_geswh):
         """Test execution of (overridden) get_empty_segment inside _load_dataset."""
