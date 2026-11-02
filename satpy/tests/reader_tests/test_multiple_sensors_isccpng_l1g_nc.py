@@ -31,8 +31,8 @@ def nc_filename(tmp_path):
     array = np.empty((1, 3, nscn, npix))
     array_time = np.empty((1, 3, nscn, npix))
     array[0, 0, 0, 0] = 27000
-    array_time[0, 0, 0, 0] = np.datetime64('2019-08-26 12:20:00.000')
-    array_time[0, 0, 0, 1] = np.datetime64('2019-08-26 12:30:00.000')
+    array_time[0, 0, 0, 0] = np.datetime64("2019-08-26 12:20:00.000")
+    array_time[0, 0, 0, 1] = np.datetime64("2019-08-26 12:30:00.000")
     ds = xr.Dataset({"temp_11_00um": (("time", "layer", "latitude", "longitude"), array),
                      },
                     coords={"start_time": ("time", [stime]),
@@ -69,8 +69,8 @@ def nc_filename_eum(tmp_path, is_eum=False):
     array_time = np.empty((1, 3, nscn, npix))
     array_time[:, :, :, :] = np.datetime64("NaT")
     array[0, 0, 0, 0] = 27000
-    array_time[0, 0, 0, 0] = np.datetime64('2019-08-26 12:20:00.000')
-    array_time[0, 0, 0, 1] = np.datetime64('2019-08-26 12:30:00.000')
+    array_time[0, 0, 0, 0] = np.datetime64("2019-08-26 12:20:00.000")
+    array_time[0, 0, 0, 1] = np.datetime64("2019-08-26 12:30:00.000")
     ds = xr.Dataset(
         {"temp_11_00um": (("time", "layer", "latitude", "longitude"), array)})
     ds_time = xr.Dataset(
@@ -114,8 +114,8 @@ class TestISCCPNGL1gReader:
         scn_.load(["pixel_time", "temp_11_00um", "lon", "lat"])
         assert (scn_["lat"].shape == (36, 72))
         assert (scn_["lon"].shape == (36, 72))
-        assert (scn_.end_time == np.datetime64('2019-08-26 12:30:00.000'))
-        assert (scn_.start_time == np.datetime64('2019-08-26 12:20:00.000'))
+        assert (scn_.end_time == np.datetime64("2019-08-26 12:30:00.000"))
+        assert (scn_.start_time == np.datetime64("2019-08-26 12:20:00.000"))
         assert (scn_["temp_11_00um"].shape == (36, 72))
         assert (scn_["temp_11_00um"].values[0, 0] == 270)
 
