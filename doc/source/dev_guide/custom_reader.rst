@@ -177,10 +177,10 @@ Each file type needs to provide:
 
     file_types:
         nc_seviri_l1b:
-            file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIFileHandler
+            file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
             file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
         nc_seviri_l1b_hrv:
-            file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIHRVFileHandler
+            file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIHRVFileHandler
             file_patterns: ['W_XX-EUMETSAT-Darmstadt,HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
 
 .. _custom_reader_datasets_section:

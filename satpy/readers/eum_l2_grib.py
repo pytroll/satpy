@@ -1,17 +1,3 @@
-# Copyright (c) 2019-2023 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for both SEVIRI and FCI L2 products in GRIB2 format.
 
@@ -37,9 +23,9 @@ from satpy.readers.core.seviri import PLATFORM_DICT as SEVIRI_PLATFORM_DICT
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION as SEVIRI_REPEAT_CYCLE_DURATION
 from satpy.readers.core.seviri import REPEAT_CYCLE_DURATION_RSS as SEVIRI_REPEAT_CYCLE_DURATION_RSS
 from satpy.readers.core.seviri import calculate_area_extent as seviri_calculate_area_extent
-from satpy.utils import get_legacy_chunk_size
+from satpy.utils import get_chunk_size_limit
 
-CHUNK_SIZE = get_legacy_chunk_size()
+CHUNK_SIZE = get_chunk_size_limit()
 
 try:
     import eccodes as ec

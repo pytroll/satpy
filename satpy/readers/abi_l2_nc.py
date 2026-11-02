@@ -1,17 +1,3 @@
-# Copyright (c) 2019-2023 Satpy developers
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Advance Baseline Imager NOAA Level 2+ products reader.
 
 The files read by this reader are described in the official PUG document:
@@ -41,6 +27,13 @@ from satpy.readers.core.abi import NC_ABI_BASE
 
 LOG = logging.getLogger(__name__)
 
+REFLECTIVE_CALIBRATIONS = (
+    # 8< v1.0
+    "reflectance",
+    # >8 v1.0
+    "unnormalized_reflectance",
+)
+
 
 class NC_ABI_L2(NC_ABI_BASE):
     """Reader class for NOAA ABI l2+ products in netCDF format."""
@@ -53,6 +46,17 @@ class NC_ABI_L2(NC_ABI_BASE):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
+        # 8< v1.0
+        import warnings
+        if key.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for ABI L2 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         var = info["file_key"]
         if self.filetype_info["file_type"] == "abi_l2_mcmip":
             var += "_" + key["name"]
@@ -62,13 +66,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         self._update_data_arr_with_filename_attrs(variable)
         self._remove_problem_attrs(variable)
         variable = self._filter_dqf(variable)
-
-        # convert to satpy standard units
-        if variable.attrs["units"] == "1" and key.get("calibration") == "reflectance":
-            variable *= 100.0
-            variable.attrs["units"] = "%"
-
-        return variable
+        return _to_percent_if_reflective(variable, key)
 
     def _update_data_arr_with_filename_attrs(self, variable):
         _units = variable.attrs["units"] if "units" in variable.attrs else None
@@ -153,3 +151,11 @@ class NC_ABI_L2(NC_ABI_BASE):
                 # we don't know what to do with this
                 # see if another future file handler does
                 yield is_avail, ds_info
+
+
+def _to_percent_if_reflective(variable, key):
+    """Convert unitless reflective data to Satpy's standard percent units."""
+    if variable.attrs["units"] == "1" and key.get("calibration") in REFLECTIVE_CALIBRATIONS:
+        variable *= 100.0
+        variable.attrs["units"] = "%"
+    return variable

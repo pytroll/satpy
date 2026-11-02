@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """SLSTR L1b reader."""
 
@@ -138,6 +121,7 @@ class NCSLSTR1B(BaseFileHandler):
                                   chunks={"columns": CHUNK_SIZE,
                                           "rows": CHUNK_SIZE})
         self.nc = self.nc.rename({"columns": "x", "rows": "y"})
+        self.baseline = filename_info["baseline"]
         self.channel = filename_info["dataset_name"]
         self.stripe = filename_info["stripe"]
         views = {"n": "nadir", "o": "oblique"}
@@ -197,13 +181,20 @@ class NCSLSTR1B(BaseFileHandler):
                 self.view != key["view"].name):
             return
         logger.debug("Reading %s.", key["name"])
-        if key["calibration"] == "brightness_temperature":
-            variable = self.nc["{}_BT_{}{}".format(self.channel, self.stripe, self.view[0])]
+        chan_type = "BT" if key["calibration"] == "brightness_temperature" else "radiance"
+        variable = self.nc[f"{self.channel}_{chan_type}_{self.stripe}{self.view[0]}"]
+        # Processing baseline version 005 and above already include the radiance adjustment factor
+        # Therefore, unless user supplies their own, do not apply here.
+        if self.baseline < 5 or self.usercalib is not None:
+            radiances = self._apply_radiance_adjustment(variable)
         else:
-            variable = self.nc["{}_radiance_{}{}".format(self.channel, self.stripe, self.view[0])]
-        radiances = self._apply_radiance_adjustment(variable)
+            radiances = variable
         units = variable.attrs["units"]
-        if key["calibration"] == "reflectance":
+        if key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub("_[^_]*$", "", key["name"]) + "_solar_irradiances"]
             d_index = self.indices["detector_{}{}".format(self.stripe, self.view[0])]
@@ -212,6 +203,16 @@ class NCSLSTR1B(BaseFileHandler):
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
             radiances *= np.pi * 100
             units = "%"
+        # 8< v1.0
+        if key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for SLSTR L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
 
         info = info.copy()
         info.update(radiances.attrs)

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'msu_gsa_l1b' reader."""
 import os
 from unittest import mock
@@ -169,13 +152,19 @@ class TestMSUGSABReader:
             self.reader.load(ds_ids)
 
     def test_vis_cal(self):
-        """Test that we can retrieve VIS data as both radiance and reflectance."""
+        """Test that we can retrieve VIS data as both radiance and unnormalized_reflectance."""
         ds_ids = [make_dataid(name="C01", calibration="radiance")]
         res = self.reader.load(ds_ids)
         rad = res["C01"].data
-        ds_ids = [make_dataid(name="C01", calibration="reflectance")]
+        ds_ids = [make_dataid(name="C01", calibration="unnormalized_reflectance")]
         res = self.reader.load(ds_ids)
         refl = res["C01"].data
 
         # Check the RAD->REFL conversion
         np.testing.assert_allclose(100 * np.pi * rad / float(SOLCONST), refl)
+
+    def test_reflectance_warns(self):
+        """Test that a warning is issued if reflectance is requested."""
+        ds_ids = [make_dataid(name="C01", calibration="reflectance")]
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = self.reader.load(ds_ids)

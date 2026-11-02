@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2019 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The fci_cld_l2_nc reader tests package."""
 
@@ -623,7 +606,7 @@ class TestFciL2NCAMVFileHandler:
         assert amv_filehandler.sensor_name == "test_data_source"
         assert amv_filehandler.ssp_lon == 0.0
 
-        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
+        global_attributes = amv_filehandler._get_global_attributes()
         expected_global_attributes = {
             "filename": amv_file,
             "spacecraft_name": "TEST_PLATFORM",
@@ -637,8 +620,8 @@ class TestFciL2NCAMVFileHandler:
 
         # Drop wind_time dataset and check that wind_time attribute becomes None
         amv_filehandler.nc = amv_filehandler.nc.drop_vars("wind_time")
-        expected_global_attributes["time_parameters"] = {"wind_time":None}
-        global_attributes = amv_filehandler._get_global_attributes(product_type="amv")
+        expected_global_attributes["time_parameters"] = {"wind_time": None}
+        global_attributes = amv_filehandler._get_global_attributes()
         assert global_attributes == expected_global_attributes
 
     def test_dataset(self, amv_filehandler):

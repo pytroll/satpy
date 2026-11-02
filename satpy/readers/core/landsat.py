@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2024 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Landsat reader.
 
 Details of the data format can be found here:
@@ -35,6 +18,7 @@ The geometry differs between bands, so if you need precise geometry you should c
 """
 
 import logging
+import warnings
 from datetime import datetime, timezone
 
 import dask.array as da
@@ -252,9 +236,23 @@ class BaseLandsatL1Reader(BaseLandsatReader):
                 data.data = data.data.astype(np.float32)
                 return data
 
-        if calibration == "reflectance":
+        if calibration in [
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance"]:
             data.data = data.data * self.calinfo[self.channel][2] + self.calinfo[self.channel][3]
             data.data = data.data.astype(np.float32) * 100
+            # 8< v1.0
+            if calibration == "reflectance":
+                warnings.warn(
+                    "The 'reflectance' calibration for OLI is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
             return data
 
         if calibration == "brightness_temperature":
@@ -271,9 +269,18 @@ class BaseLandsatL2Reader(BaseLandsatReader):
         if calibration == "counts":
             return data
 
-        if calibration in ["reflectance", "brightness_temperature"]:
+        if calibration in [
+            # 8< v1.0
+            "reflectance",
+            # >8 v1.0
+            "unnormalized_reflectance",
+            "brightness_temperature"]:
             data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
-            if calibration == "reflectance":
+            if calibration in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
                 data.data = data.data * 100
             data.data = data.data.astype(np.float32)
             return data
@@ -454,7 +461,7 @@ class MSSCHReader(BaseLandsatL1Reader):
     def _get_matched_dataset_info(self, ds_info):
         if ds_info.get("name") == "B4":
             return self._get_modified_wavelength_info(ds_info)
-        return True, ds_info
+        return ds_info
 
     def _get_modified_wavelength_info(self, ds_info):
         # Modify the dataset's wavelength dynamically

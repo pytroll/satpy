@@ -93,6 +93,16 @@ nitpick_ignore_regex = [
 ]
 autoclass_content = "both"  # append class __init__ docstring to the class docstring
 
+# sphinx-autodoc-typehints executes the body of every ``if TYPE_CHECKING:`` block it finds so the names
+# inside become resolvable, then warns about any statement that will not run. A guard exists precisely so
+# its contents need not be runtime-valid, so third-party guards we do not control routinely trip this:
+# upath imports pydantic, trollsift imports _typeshed, xarray writes TypeVar(bound="DataArray" | Dataset).
+# None are actionable here. Read the Docs builds with ``fail_on_warning: true``, so the warnings would
+# break the build; suppress them there and leave them visible locally, where they cost nothing.
+# See https://github.com/tox-dev/sphinx-autodoc-typehints/issues/741 -- drop this once a release fixes it.
+if os.environ.get("READTHEDOCS") == "True":
+    suppress_warnings = ["sphinx_autodoc_typehints.guarded_import"]
+
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())

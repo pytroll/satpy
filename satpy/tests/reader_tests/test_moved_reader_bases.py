@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# Copyright (c) 2016-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for reader base and utility modules that were moved to core sub-package raise warnings."""
 
@@ -176,18 +160,6 @@ def test_seviri_base_warns(name):
 
 
 @pytest.mark.parametrize("name",
-                         ["ViiNCBaseFileHandler",
-                         ]
-                         )
-def test_vii_base_nc_warns(name):
-    """Test that there's a warning when importing from VII NetCDF4 base from the old location."""
-    from satpy.readers import vii_base_nc
-
-    with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_base_nc, name)
-
-
-@pytest.mark.parametrize("name",
                          ["JPSS_SDR_FileHandler",
                           "DATASET_KEYS",
                           "ATMS_DATASET_KEYS",
@@ -200,22 +172,6 @@ def test_viirs_atms_sdr_warns(name):
 
     with pytest.warns(UserWarning, match=".*has been moved.*"):
         getattr(viirs_atms_sdr_base, name)
-
-
-@pytest.mark.parametrize("name",
-                         ["C1",
-                          "C2",
-                          "TIE_POINTS_FACTOR",
-                          "SCAN_ALT_TIE_POINTS",
-                          "MEAN_EARTH_RADIUS",
-                         ]
-                         )
-def test_vii_utils_warns(name):
-    """Test that there's a warning when importing from VII utils from the old location."""
-    from satpy.readers import vii_utils
-
-    with pytest.warns(UserWarning, match=".*has been moved.*"):
-        getattr(vii_utils, name)
 
 
 @pytest.mark.parametrize("name",

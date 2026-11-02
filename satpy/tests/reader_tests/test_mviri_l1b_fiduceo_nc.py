@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the FIDUCEO MVIRI FCDR Reader."""
 
 from __future__ import annotations
@@ -339,10 +322,10 @@ def fixture_fake_dataset(time_fake_dataset):
     return ds
 
 
-@pytest.fixture(name="projection_longitude", params=["57.0"])
-def fixture_projection_longitude(request):
+@pytest.fixture(name="projection_longitude")
+def fixture_projection_longitude():
     """Get projection longitude as string."""
-    return request.param
+    return "57.0"
 
 
 @pytest.fixture(name="fake_file")
@@ -385,16 +368,23 @@ def fixture_reader():
     return reader
 
 
-class TestFiduceoMviriFileHandlers:
-    """Unit tests for FIDUCEO MVIRI file handlers."""
+class TestFileHandlerInitialization:
+    """File handler initialization tests."""
 
-    @pytest.mark.parametrize("projection_longitude", ["57.0", "5700"], indirect=True)
+    @pytest.fixture(name="projection_longitude", params=["57.0", "5700"])
+    def fixture_projection_longitude(self, request):
+        """Get projection longitude as string."""
+        return request.param
+
     def test_init(self, file_handler, projection_longitude):
         """Test file handler initialization."""
         fh = file_handler()
         assert fh.projection_longitude == 57.0
         assert fh.mask_bad_quality is True
 
+
+class TestFiduceoMviriFileHandlers:
+    """Unit tests for FIDUCEO MVIRI file handlers."""
     @pytest.mark.parametrize(
         ("name", "calibration", "resolution", "expected"),
         [

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
 import datetime as dt
@@ -218,10 +201,16 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             # VIS channel, internal coefficients
             ("VIS006", "counts", False),
             ("VIS006", "radiance", False),
+            # 8< v1.0
             ("VIS006", "reflectance", False),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", False),
             # VIS channel, external coefficients
             ("VIS006", "radiance", True),
+            # 8< v1.0
             ("VIS006", "reflectance", True),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", False),
             ("IR_108", "radiance", False),
@@ -287,8 +276,12 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
     @pytest.mark.parametrize(
         ("channel", "calibration", "mask_bad_quality_scan_lines"),
         [
+            # 8< v1.0
             ("VIS006", "reflectance", True),
             ("VIS006", "reflectance", False),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", True),
+            ("VIS006", "unnormalized_reflectance", False),
             ("IR_108", "brightness_temperature", True)
          ]
     )
