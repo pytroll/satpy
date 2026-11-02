@@ -63,8 +63,6 @@ def nc_filename_eum(tmp_path, is_eum=False):
     # Create test data
     nscn = 36
     npix = 72
-    lats = np.linspace(-90, 90, nscn)
-    lons = np.linspace(-180, 180, npix)
     array = np.empty((1, 3, nscn, npix))
     array_time = np.empty((1, 3, nscn, npix))
     array_time[:, :, :, :] = np.datetime64("NaT")

@@ -521,4 +521,3 @@ datasets:
     file_type: isccp_ng_l1g_nc_sensor_flag
     coordinates: [lon, lat]
     nc_key: "sensor_flag"
-
