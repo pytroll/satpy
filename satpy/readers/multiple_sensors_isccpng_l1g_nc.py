@@ -30,8 +30,8 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def tile_geolocation(self, data, key):
         """Get geolocation on full swath."""
         if key in "latitude":
-            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, NLON)), dims=[
-                                "y", "x"], attrs=data.attrs)
+            return xr.DataArray(np.tile(data.values[:, np.newaxis], (1, NLON)),
+                                dims=["y", "x"], attrs=data.attrs)
         if key in "longitude":
             return xr.DataArray(
                 np.tile(
@@ -65,16 +65,14 @@ class IsccpngL1gFileHandler(BaseFileHandler):
     def modify_dims_and_coords(self, data):
         """Remove coords and rename dims to x and y."""
         if len(data.dims) > 2:
-            for var in [
-                "latitude",
-                "longitude",
-                "start_time",
-                "end_time",
-                    "time"]:
-                try:
-                    data = data.drop_vars(var)
-                except ValueError:
-                    pass
+            data = data.drop_vars(
+                [
+                    "latitude",
+                    "longitude",
+                    "start_time",
+                    "end_time",
+                    "time"
+                ], errors="ignore")
             data = data.rename({"longitude": "x", "latitude": "y"})
         return data
 
@@ -86,7 +84,7 @@ class IsccpngL1gFileHandler(BaseFileHandler):
             data.attrs["end_time"] = data["end_time"].values[0]
             self._end_time = data.attrs["end_time"]
             self._start_time = data.attrs["start_time"]
-        if data.name == "pixel_time":
+        elif data.name == "pixel_time":
             # EUMETSAT L1g
             if not np.issubdtype(data.dtype, np.floating):
                 logger.debug("Finding max/min time")
