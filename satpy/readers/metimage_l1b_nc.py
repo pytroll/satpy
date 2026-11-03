@@ -16,6 +16,8 @@ The name VII is currently still used in the filenames as well as in official sys
 
         scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
 
+    Note that L1b files generated locally from direct broadcast do not contain the terrain correction data and
+    hence the correction will not be applied.
 
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
@@ -106,7 +108,11 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
             divisor = MEAN_EARTH_RADIUS
             if orthorect_data_name == "data/measurement_data/delta_lon_E_dem":
                 divisor *= np.cos(np.radians(self.latitude))
-            variable += np.degrees(orthorect_data / divisor)
+            correction = np.degrees(orthorect_data / divisor)
+
+            # Leave coordinates with invalid correction uncorrected.
+            # This covers files from direct broadcast that do not contain correction data.
+            variable += correction.fillna(0)
 
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
