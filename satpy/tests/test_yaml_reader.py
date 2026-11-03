@@ -14,7 +14,6 @@ import pytest
 import xarray as xr
 
 import satpy.readers.core.yaml_reader as yr
-from satpy._compat import cache
 from satpy.dataset import DataQuery
 from satpy.dataset.dataid import ModifierTuple
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -1251,7 +1250,7 @@ def GVSYReader():
     from satpy.readers.core.yaml_reader import GEOVariableSegmentYAMLReader
     reader = GEOVariableSegmentYAMLReader()
     reader.segment_infos = dict()
-    reader.segment_heights = cache(reader._segment_heights)
+    reader._segment_heights_cache = dict()
     return reader
 
 
@@ -1285,6 +1284,14 @@ def fake_adef():
 
 class TestGEOVariableSegmentYAMLReader:
     """Test GEOVariableSegmentYAMLReader."""
+
+    def test_segment_heights_computed_once(self, GVSYReader):
+        """Test that the segment heights are computed once per file type and grid width."""
+        with patch.object(GVSYReader, "_segment_heights", side_effect=lambda filetype, width: [width]) as compute:
+            assert GVSYReader.segment_heights("filetype1", 5568) == [5568]
+            assert GVSYReader.segment_heights("filetype1", 5568) == [5568]
+            assert GVSYReader.segment_heights("filetype1", 11136) == [11136]
+        assert compute.call_count == 2
 
     def test_get_empty_segment(self, GVSYReader, fake_mss, fake_xr, fake_geswh):
         """Test execution of (overridden) get_empty_segment inside _load_dataset."""

@@ -24,7 +24,6 @@ except ImportError:
     from yaml import Loader  # type: ignore
 
 from satpy import DatasetDict
-from satpy._compat import cache
 from satpy.area import get_area_def
 from satpy.aux_download import DataDownloadMixin
 from satpy.coords import add_crs_xy_coords
@@ -1396,8 +1395,8 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
                  **kwargs):
         """Initialise the GEOVariableSegmentYAMLReader object."""
         super().__init__(config_dict, filter_parameters, filter_filenames, **kwargs)
-        self.segment_heights = cache(self._segment_heights)
         self.segment_infos = dict()
+        self._segment_heights_cache = dict()
 
     def _extract_segment_location_dicts(self, filetype):
         self._initialise_segment_infos(filetype)
@@ -1424,6 +1423,13 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         grid_width = self.empty_segment.shape[1]
         segment_height = self.segment_heights(filetype, grid_width)[idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
+
+    def segment_heights(self, filetype, grid_width):
+        """Get the optimal padded segment heights (in number of pixels), computing them once per file type and width."""
+        key = (filetype, grid_width)
+        if key not in self._segment_heights_cache:
+            self._segment_heights_cache[key] = self._segment_heights(filetype, grid_width)
+        return self._segment_heights_cache[key]
 
     def _segment_heights(self, filetype, grid_width):
         """Compute optimal padded segment heights (in number of pixels) based on the location of available segments."""
