@@ -1,19 +1,3 @@
-# Copyright (c) 2009-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module defining various utilities."""
 
 from __future__ import annotations
@@ -36,9 +20,8 @@ import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
+from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
-
-from satpy._compat import ArrayLike, DTypeLike
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -418,7 +401,7 @@ def _get_satpos_from_platform_name(cth_dataset):
 
     Needs pyorbital, skyfield, and astropy to be installed.
     """
-    from pyorbital.orbital import tlefile
+    from pyorbital import tlefile
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 
@@ -527,6 +510,13 @@ def show_versions(packages=None):
             "pyhdf",
             "h5netcdf",
             "fsspec",
+            "pyresample",
+            "trollimage",
+            "trollsift",
+            "pykdtree",
+            "pycoast",
+            "pydecorate",
+            "python-geotiepoints",
         )
         if packages is None
         else packages

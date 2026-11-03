@@ -9,7 +9,7 @@ reader:
   sensors: [viirs]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   # by default, don't use start_time group files (only orbit and platform)
-  group_keys: ['orbit', 'platform_shortname']
+  group_keys: ["orbit", "platform_shortname"]
 
 datasets:
   i_lon:
@@ -69,7 +69,9 @@ datasets:
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
+    # 8< v1.0
     modifiers: [sunz_corrected_iband]
+    # >8 v1.0
     dataset_groups: [SVI01]
     file_type: generic_file
     resolution: 371
@@ -79,13 +81,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
+    # 8< v1.0
     modifiers: [sunz_corrected_iband]
+    # >8 v1.0
     dataset_groups: [SVI02]
     file_type: generic_file
     resolution: 371
@@ -95,13 +100,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
+    # 8< v1.0
     modifiers: [sunz_corrected_iband]
+    # >8 v1.0
     dataset_groups: [SVI03]
     file_type: generic_file
     resolution: 371
@@ -111,6 +119,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
@@ -145,7 +154,9 @@ datasets:
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM01]
     file_type: generic_file
     resolution: 742
@@ -155,13 +166,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M02:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM02]
     file_type: generic_file
     resolution: 742
@@ -171,13 +185,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M03:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM03]
     file_type: generic_file
     resolution: 742
@@ -187,13 +204,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M04:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM04]
     file_type: generic_file
     resolution: 742
@@ -203,13 +223,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M05:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM05]
     file_type: generic_file
     resolution: 742
@@ -219,13 +242,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M06:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM06]
     file_type: generic_file
     resolution: 742
@@ -235,13 +261,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M07:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM07]
     file_type: generic_file
     resolution: 742
@@ -251,13 +280,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M08:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM08]
     file_type: generic_file
     resolution: 742
@@ -267,13 +299,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M09:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM09]
     file_type: generic_file
     resolution: 742
@@ -283,13 +318,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M10:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM10]
     file_type: generic_file
     resolution: 742
@@ -299,13 +337,16 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
   M11:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
+    # 8< v1.0
     modifiers: [sunz_corrected]
+    # >8 v1.0
     dataset_groups: [SVM11]
     file_type: generic_file
     resolution: 742
@@ -315,6 +356,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         file_units: "1"
         units: "%"
+        sunz_corrected: true
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         file_units: W m-2 um-1 sr-1
@@ -397,7 +439,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
-    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarZenithAngle"
   I_SOLA:
     name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
@@ -406,7 +448,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
-    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarAzimuthAngle"
   I_SENZ:
     name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
@@ -415,7 +457,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteZenithAngle"
   I_SENA:
     name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
@@ -424,7 +466,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteAzimuthAngle"
   M_SOLZ:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle
@@ -433,7 +475,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
-    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarZenithAngle"
   M_SOLA:
     name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
@@ -442,7 +484,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
-    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarAzimuthAngle"
   M_SENZ:
     name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
@@ -451,7 +493,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteZenithAngle"
   M_SENA:
     name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
@@ -460,7 +502,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteAzimuthAngle"
   DNB:
     name: DNB
     wavelength: [0.500, 0.700, 0.900]
@@ -481,7 +523,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarZenithAngle"
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
@@ -490,7 +532,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/LunarZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/LunarZenithAngle"
   DNB_SENZ:
     name: dnb_satellite_zenith_angle
     standard_name: sensor_zenith_angle
@@ -499,7 +541,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteZenithAngle"
   DNB_SAA:
     name: dnb_solar_azimuth_angle
     standard_name: solar_azimuth_angle
@@ -508,7 +550,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SolarAzimuthAngle"
   DNB_LAA:
     name: dnb_lunar_azimuth_angle
     standard_name: lunar_azimuth_angle
@@ -517,7 +559,7 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/LunarAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/LunarAzimuthAngle"
   DNB_SENA:
     name: dnb_satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
@@ -526,18 +568,21 @@ datasets:
     file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
+    file_key: "All_Data/{dataset_group}_All/SatelliteAzimuthAngle"
   dnb_moon_illumination_fraction:
     name: dnb_moon_illumination_fraction
     file_type: generic_file
     dataset_groups: [GDNBO]
-    file_key: 'All_Data/{dataset_group}_All/MoonIllumFraction'
-    file_units: '1'
+    file_key: "All_Data/{dataset_group}_All/MoonIllumFraction"
+    file_units: "1"
 
 file_types:
   generic_file:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['{datasets}_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_patterns:
+      [
+        "{datasets}_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5",
+      ]
     # Example filenames
     # GMODO-SVM01-SVM02-SVM03-SVM04-SVM05-SVM06-SVM07-SVM08-SVM09-SVM10-SVM11-SVM12-SVM13-SVM14-SVM15-SVM16_j01_d20190304_t1103049_e1108449_b06684_c20190304213641984108_nobc_ops.h5
     # GMTCO_j01_d20190304_t1103049_e1108449_b06684_c20190304150845549693_nobc_ops.h5

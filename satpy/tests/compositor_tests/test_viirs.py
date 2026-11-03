@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018, 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for VIIRS compositors."""
 
@@ -51,7 +34,7 @@ class TestVIIRSComposites:
         dnb = np.zeros(area.shape) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
-        dnb = da.from_array(dnb, chunks=25)
+        dnb = da.from_array(dnb, chunks=2)
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area,
@@ -65,7 +48,7 @@ class TestVIIRSComposites:
         sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
-        sza = da.from_array(sza, chunks=25)
+        sza = da.from_array(sza, chunks=2)
         c02 = xr.DataArray(sza,
                            dims=("y", "x"),
                            attrs={"name": "solar_zenith_angle", "area": area,
@@ -78,7 +61,7 @@ class TestVIIRSComposites:
         lza = np.zeros(area.shape) + 70.0
         lza[:, 3] += 20.0
         lza[:, 4:] += 45.0
-        lza = da.from_array(lza, chunks=25)
+        lza = da.from_array(lza, chunks=2)
         c03 = xr.DataArray(lza,
                            dims=("y", "x"),
                            attrs={"name": "lunar_zenith_angle", "area": area,
@@ -185,7 +168,7 @@ class TestVIIRSComposites:
         dnb[4:, :] += 0.5
         if dnb_units == "W cm-2 sr-1":
             dnb /= 10000.0
-        dnb = da.from_array(dnb, chunks=25)
+        dnb = da.from_array(dnb, chunks=2)
         c01 = xr.DataArray(dnb,
                            dims=("y", "x"),
                            attrs={"name": "DNB", "area": area, "units": dnb_units})

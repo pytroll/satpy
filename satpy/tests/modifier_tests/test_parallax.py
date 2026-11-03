@@ -1,15 +1,3 @@
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 """Tests related to parallax correction."""
 
@@ -32,7 +20,6 @@ from pyresample import create_area_def
 
 import satpy.resample
 from satpy.enhancements.enhancer import get_enhanced_image
-from satpy.tests.utils import xfail_skyfield_unstable_numpy2
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -439,7 +426,6 @@ class TestParallaxCorrectionClass:
         corrector = ParallaxCorrection(area)
         corrector(sc["CTH_constant"])
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_correct_area_no_orbital_parameters(self, caplog, fake_tle):
         """Test ParallaxCorrection when CTH has no orbital parameters.
 
@@ -659,7 +645,7 @@ class TestParallaxCorrectionModifier:
         cloud_location = {
                 "foroyar": {
                     7500: (197, 202, 152, 172),
-                    15000: (238, 243, 164, 184)},
+                    15000: (239, 244, 165, 185)},
                 "ouagadougou": {
                     7500: (159, 164, 140, 160),
                     15000: (163, 168, 141, 161)}}
@@ -766,7 +752,6 @@ class TestParallaxCorrectionSceneLoad:
                 "area": area})
         return sc
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_double_load(self, fake_scene, conf_file, fake_tle):
         """Test that loading corrected and uncorrected works correctly.
 
@@ -786,16 +771,17 @@ class TestParallaxCorrectionSceneLoad:
             assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
-    def test_no_compute(self, fake_scene, conf_file):
+    def test_no_compute(self, fake_scene, conf_file, fake_tle):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler
         with unittest.mock.patch(
                 "satpy.composites.config_loader.config_search_paths") as sccc, \
-             dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+             dask.config.set(scheduler=CustomScheduler(max_computes=0)), \
+             unittest.mock.patch("pyorbital.tlefile.read") as plr:
             sccc.return_value = [os.fspath(conf_file)]
+            plr.return_value = fake_tle
             fake_scene.load(["parallax_corrected_VIS006"])
 
-    @pytest.mark.xfail(xfail_skyfield_unstable_numpy2(), reason="Skyfield doesn't support numpy 2 yet")
     def test_enhanced_image(self, fake_scene, conf_file, fake_tle):
         """Test that image enhancement is the same."""
         with unittest.mock.patch(

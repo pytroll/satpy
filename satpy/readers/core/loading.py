@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# Copyright (c) 2015-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader loading."""
 import logging
 
@@ -62,6 +46,11 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
 
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
+            # WARN: This is very confusing, but it seems to work: The reader_kwargs, when passed without a reader key,
+            # are put into a dictionary where keys are individual letters of the reader name, and the value is the
+            # reader kwargs; however, notice the `reader[idx]` part in the call here, as idx is 0 and thus the first
+            # letter of the reader is used to index `reader_kwargs_without_filter`, thus retrieving the correct
+            # reader_kwargs.
             reader_instance.create_storage_items(
                     loadables,
                     fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])

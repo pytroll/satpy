@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the hrpt reader."""
 
 from datetime import datetime, timedelta
@@ -34,6 +17,7 @@ SWATH_WIDTH = 2048
 COUNTS = (np.arange(5 * NUMBER_OF_SCANS * SWATH_WIDTH) % 500 + 450).reshape((NUMBER_OF_SCANS, SWATH_WIDTH, 5))
 LONS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH))
 LATS = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH)) * 2
+START_TIME = datetime(2009, 6, 9, 9, 45)
 
 
 @pytest.fixture
@@ -41,10 +25,9 @@ def hrpt_file(tmp_path):
         """Set up the test case."""
         test_data = np.ones(NUMBER_OF_SCANS, dtype=scanline_dtype)
         time_code = []
-        dt = datetime(2009, 6, 9, 9, 45)
         offset = timedelta(seconds=1/6)
         for line in range(NUMBER_OF_SCANS):
-            time_code.append(to_timecode(dt + offset * line)[0])
+            time_code.append(to_timecode(START_TIME + offset * line)[0])
         test_data["timecode"] = time_code
         test_data["image_data"] = COUNTS
         test_data["telemetry"]["PRT"] = 250
@@ -63,17 +46,23 @@ def hrpt_file(tmp_path):
 
 
 @pytest.fixture
-def hrpt_fh(hrpt_file):
+def hrpt_filename_info():
+    """Create expected filename info without actually parsing the filename."""
+    return {"start_time": START_TIME}
+
+
+@pytest.fixture
+def hrpt_fh(hrpt_file, hrpt_filename_info):
     """Open the file handler."""
-    return HRPTFile(hrpt_file, {}, {})
+    return HRPTFile(hrpt_file, hrpt_filename_info, {})
 
 
 class TestHRPTReading:
     """Test case for reading hrpt data."""
 
-    def test_reading(self, hrpt_file):
+    def test_reading(self, hrpt_file, hrpt_filename_info):
         """Test that data is read."""
-        fh = HRPTFile(hrpt_file, {}, {})
+        fh = HRPTFile(hrpt_file, hrpt_filename_info, {})
         assert fh._data is not None
 
 
@@ -96,13 +85,19 @@ class TestHRPTGetUncalibratedData:
         assert (result.values == COUNTS[:, :, 0]).all()
 
 
-class TestHRPTGetCalibratedReflectances:
-    """Test case for reading calibrated reflectances from hrpt data."""
+class TestHRPTGetCalibratedVIS:
+    """Test case for reading calibrated vis data from hrpt data."""
 
-    def test_calibrated_reflectances_values(self, hrpt_fh):
+    def test_calibrated_vis_values(self, hrpt_fh):
         """Test the calibrated reflectance values."""
-        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
-        np.testing.assert_allclose(result.values.mean(), 62.262344)
+        result = hrpt_fh.get_dataset(make_dataid(name="1", calibration="unnormalized_reflectance"), {})
+        np.testing.assert_allclose(result.values.mean(), 57.772733)
+
+    def test_reflectance_warns(self, hrpt_fh):
+        """Test that asking for reflectance issues a warning."""
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = hrpt_fh.get_dataset(make_dataid(name="1", calibration="reflectance"), {})
+
 
 
 class TestHRPTGetCalibratedBT:
@@ -125,7 +120,7 @@ class TestHRPTChannel3:
 
     def test_channel_3a_masking(self, hrpt_fh):
         """Test that channel 3a is split correctly."""
-        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+        result = hrpt_fh.get_dataset(make_dataid(name="3a", calibration="unnormalized_reflectance"), {})
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
 
@@ -183,7 +178,6 @@ def to_timecode(dt_time):
 
 def test_time_seconds():
     """Test conversion of timecode to datetime64."""
-    current = datetime.now()
-    current = current.replace(microsecond=round(current.microsecond, -3))
-    timecode, year = to_timecode(current)
-    assert time_seconds(np.array([timecode], "u2"), year) == np.datetime64(current)
+    dtime = datetime(2026, 5, 20, 14, 2, 28, 999000)
+    timecode, year = to_timecode(dtime)
+    assert time_seconds(np.array([timecode], "u2"), year) == np.datetime64(dtime)

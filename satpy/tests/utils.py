@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
 import datetime as dt
@@ -438,37 +422,6 @@ def _compare_nonarray(val1: Any, val2: Any) -> None:
     if isinstance(val1, (np.floating, np.integer, np.bool_)):
         assert isinstance(val2, np.generic)
         assert val1.dtype == val2.dtype
-
-
-def xfail_skyfield_unstable_numpy2():
-    """Determine if skyfield-based tests should be xfail in the unstable numpy 2.x environment."""
-    try:
-        import skyfield
-
-        # known numpy incompatibility:
-        from skyfield import timelib  # noqa
-    except ImportError:
-        skyfield = None
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return skyfield is None and is_np2 and is_unstable_ci
-
-
-def xfail_h5py_unstable_numpy2():
-    """Determine if h5py-based tests should be xfail in the unstable numpy 2.x environment."""
-    from packaging import version
-    try:
-        import h5py
-        is_broken_h5py = version.parse(h5py.__version__) <= version.parse("3.10.0")
-    except ImportError:
-        is_broken_h5py = True
-
-    import os
-    is_unstable_ci = os.environ.get("UNSTABLE", "0") in ("1", "true")
-    is_np2 = np.__version__.startswith("2.")
-    return is_broken_h5py and is_np2 and is_unstable_ci
 
 
 def skip_numba_unstable_if_missing():

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
 from __future__ import annotations
@@ -844,10 +827,16 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             ("VIS006", "counts", "NOMINAL", False),
             ("VIS006", "radiance", "NOMINAL", False),
             ("VIS006", "radiance", "GSICS", False),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", False),
             # VIS channel, external coefficients (mode should have no effect)
             ("VIS006", "radiance", "GSICS", True),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", "NOMINAL", False),
             ("IR_108", "radiance", "NOMINAL", False),
@@ -857,14 +846,20 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # IR channel, external coefficients (mode should have no effect)
             ("IR_108", "radiance", "NOMINAL", True),
             ("IR_108", "brightness_temperature", "GSICS", True),
-            # HRV channel, internal coefficiens
+            # HRV channel, internal coefficients
             ("HRV", "counts", "NOMINAL", False),
             ("HRV", "radiance", "NOMINAL", False),
             ("HRV", "radiance", "GSICS", False),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("HRV", "unnormalized_reflectance", "NOMINAL", False),
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("HRV", "unnormalized_reflectance", "NOMINAL", True),
         ]
     )
     def test_calibrate(
@@ -1271,7 +1266,7 @@ def test_read_header():
     assert actual == expected
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tmp_seviri_nat_filename(session_tmp_path):
     """Create a fully-qualified filename for a seviri native format file."""
     full_file_path = session_tmp_path / "MSG4-SEVI-MSG15-0100-NA-20210528075743.722000000Z-N.nat"
@@ -1279,7 +1274,7 @@ def tmp_seviri_nat_filename(session_tmp_path):
     return full_file_path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_native_file(tmp_seviri_nat_filename, session_tmp_path):
     """Return the fsspec path to the given seviri native file inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_native.zip"
@@ -1302,7 +1297,8 @@ def test_read_physical_seviri_nat_file(full_path):
     scene = scene_from_physical_seviri_nat_file(full_path)
 
     assert scene.sensor_names == {"seviri"}
-    assert len(scene.available_dataset_ids()) == 36
+    # WARN: v1.0 expect 36
+    assert len(scene.available_dataset_ids()) == 40
     assert set(scene.available_dataset_names()) == set(CHANNEL_INDEX_LIST)
 
     with warnings.catch_warnings():

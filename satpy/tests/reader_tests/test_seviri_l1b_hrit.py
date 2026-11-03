@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The HRIT msg reader tests package."""
 
@@ -79,7 +62,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the hrv dataset."""
-        key = make_dataid(name="HRV", calibration="reflectance")
+        key = make_dataid(name="HRV", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
 
         parent_get_dataset.return_value = mock.MagicMock()
@@ -101,7 +84,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     @mock.patch("satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate")
     def test_get_dataset_non_fill(self, calibrate, parent_get_dataset):
         """Test getting a non-filled hrv dataset."""
-        key = make_dataid(name="HRV", calibration="reflectance")
+        key = make_dataid(name="HRV", calibration="unnormalized_reflectance")
         key.name = "HRV"
         info = setup.get_fake_dataset_info()
         self.reader.fill_hrv = False
@@ -200,7 +183,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
-        key = make_dataid(name="VIS006", calibration="reflectance")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         res = self.reader.get_dataset(key, info)
 
@@ -240,7 +223,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
-        key = make_dataid(name="VIS006", calibration="reflectance")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         self.reader.mask_bad_quality_scan_lines = False
         res = self.reader.get_dataset(key, info)
@@ -262,7 +245,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_get_dataset_with_raw_metadata(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
         calibrate.return_value = self._get_fake_data()
-        key = make_dataid(name="VIS006", calibration="reflectance")
+        key = make_dataid(name="VIS006", calibration="unnormalized_reflectance")
         info = setup.get_fake_dataset_info()
         self.reader.include_raw_metadata = True
         res = self.reader.get_dataset(key, info)
@@ -445,10 +428,16 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             ("VIS006", "counts", "NOMINAL", False),
             ("VIS006", "radiance", "NOMINAL", False),
             ("VIS006", "radiance", "GSICS", False),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", False),
             # VIS channel, external coefficients (mode should have no effect)
             ("VIS006", "radiance", "GSICS", True),
+            # 8< v1.0
             ("VIS006", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("VIS006", "unnormalized_reflectance", "NOMINAL", True),
             # IR channel, internal coefficients
             ("IR_108", "counts", "NOMINAL", False),
             ("IR_108", "radiance", "NOMINAL", False),
@@ -458,14 +447,20 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
             # IR channel, external coefficients (mode should have no effect)
             ("IR_108", "radiance", "NOMINAL", True),
             ("IR_108", "brightness_temperature", "GSICS", True),
-            # HRV channel, internal coefficiens
+            # HRV channel, internal coefficients
             ("HRV", "counts", "NOMINAL", False),
             ("HRV", "radiance", "NOMINAL", False),
             ("HRV", "radiance", "GSICS", False),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", False),
+            # >8 v1.0
+            ("HRV", "unnormalized_reflectance", "NOMINAL", False),
             # HRV channel, external coefficients (mode should have no effect)
             ("HRV", "radiance", "GSICS", True),
+            # 8< v1.0
             ("HRV", "reflectance", "NOMINAL", True),
+            # >8 v1.0
+            ("HRV", "unnormalized_reflectance", "NOMINAL", True),
         ]
     )
     def test_calibrate(
@@ -508,17 +503,16 @@ class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_equal(res, expected)
 
 
-@pytest.fixture(scope="session")
-def prologue_file(session_tmp_path, prologue_header_contents):
+@pytest.fixture(scope="module")
+def prologue_file(session_tmp_path):
     """Create a dummy prologue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_prologue
-    header = prologue_header_contents
+    header = prologue_header_contents()
     contents = np.void(1, dtype=hrit_prologue)
     contents["SatelliteStatus"]["SatelliteDefinition"]["SatelliteId"] = 324
     return create_file(session_tmp_path / "prologue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def prologue_header_contents():
     """Get the contents of the header."""
     return [
@@ -536,16 +530,15 @@ def prologue_header_contents():
     ]
 
 
-@pytest.fixture(scope="session")
-def epilogue_file(session_tmp_path, epilogue_header_contents):
+@pytest.fixture(scope="module")
+def epilogue_file(session_tmp_path):
     """Create a dummy epilogue file."""
     from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue
-    header = epilogue_header_contents
+    header = epilogue_header_contents()
     contents = np.void(1, dtype=hrit_epilogue)
     return create_file(session_tmp_path / "epilogue", header + [contents])
 
 
-@pytest.fixture(scope="session")
 def epilogue_header_contents():
     """Get the contents of the header."""
     return [
@@ -568,7 +561,7 @@ def create_file(filename, file_contents):
     return filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def segment_file(session_tmp_path):
     """Create a segment_file."""
     cols = 3712
@@ -621,7 +614,7 @@ def test_read_real_segment(prologue_file, epilogue_file, segment_file):
     res.compute()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def compressed_seviri_hrit_files(session_tmp_path, prologue_file, epilogue_file, segment_file):
     """Return the fsspec paths to the given seviri hrit files inside a zip file."""
     zip_full_path = session_tmp_path / "test_seviri_hrit.zip"

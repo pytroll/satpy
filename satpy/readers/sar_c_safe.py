@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SAFE SAR-C reader.
 
 This module implements a reader for Sentinel 1 SAR-C GRD (level1) SAFE format as
@@ -41,7 +24,6 @@ import warnings
 from collections import defaultdict
 from datetime import timezone as tz
 from functools import cached_property
-from pathlib import Path
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -52,6 +34,7 @@ import xarray as xr
 from dask import array as da
 from geotiepoints.geointerpolator import lonlat2xyz, xyz2lonlat
 from geotiepoints.interpolator import MultipleSplineInterpolator
+from upath import UPath
 from xarray import DataArray
 
 from satpy.dataset.data_dict import DatasetDict
@@ -112,7 +95,7 @@ class SAFEXML(BaseFileHandler):
         self._end_time = filename_info["end_time"].replace(tzinfo=tz.utc)
         self._polarization = filename_info["polarization"]
         if isinstance(self.filename, str):
-            self.filename = Path(self.filename)
+            self.filename = UPath(self.filename)
         with self.filename.open() as fd:
             self.root = ET.parse(fd)
         self._image_shape = image_shape

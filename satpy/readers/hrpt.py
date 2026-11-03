@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reading and calibrating hrpt avhrr data.
 
@@ -127,7 +110,7 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get("start_time", dt.datetime.now(dt.timezone.utc)).year
+        self.year = filename_info["start_time"].year
 
     @cached_property
     def times(self):
@@ -159,6 +142,17 @@ class HRPTFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for AVHRR L0 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         attrs = info.copy()
         attrs["platform_name"] = self.platform_name
 
@@ -205,7 +199,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_thermal_channel(self, data, key):
         """Calibrate a thermal channel."""
-        from pygac.calibration import calibrate_thermal
+        from pygac.calibration.noaa import calibrate_thermal
         line_numbers = (
             np.round((self.times - self.times[-1]) /
                      np.timedelta64(166666667, "ns"))).astype(int)
@@ -219,7 +213,7 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_solar_channel(self, data, key):
         """Calibrate a solar channel."""
-        from pygac.calibration import calibrate_solar
+        from pygac.calibration.noaa import calibrate_solar
         julian_days = ((np.datetime64(self.start_time)
                         - np.datetime64(str(self.year) + "-01-01T00:00:00"))
                        / np.timedelta64(1, "D"))
@@ -230,7 +224,7 @@ class HRPTFile(BaseFileHandler):
     @cached_property
     def calibrator(self):
         """Create a calibrator for the data."""
-        from pygac.calibration import Calibrator
+        from pygac.calibration.noaa import Calibrator
         pg_spacecraft = "".join(self.platform_name.split()).lower()
         return Calibrator(pg_spacecraft)
 

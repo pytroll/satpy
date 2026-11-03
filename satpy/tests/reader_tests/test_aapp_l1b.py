@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test module for the avhrr aapp l1b reader."""
 
 import datetime
@@ -254,7 +237,7 @@ class TestAAPPL1BAllChannelsPresent:
         mins = []
         maxs = []
         for name in ["1", "2", "3a"]:
-            key = make_dataid(name=name, calibration="reflectance")
+            key = make_dataid(name=name, calibration="unnormalized_reflectance")
             res = all_channels_fh.get_dataset(key, info)
             assert res.dtype == np.float32
             assert res.min() == 0
@@ -265,7 +248,7 @@ class TestAAPPL1BAllChannelsPresent:
                 assert np.all(np.isnan(res[:2, :]))
 
         for name in ["3b", "4", "5"]:
-            key = make_dataid(name=name, calibration="reflectance")
+            key = make_dataid(name=name, calibration="unnormalized_reflectance")
             res = all_channels_fh.get_dataset(key, info)
             assert res.dtype == np.float32
             mins.append(res.min().values)
@@ -274,6 +257,13 @@ class TestAAPPL1BAllChannelsPresent:
                 assert np.all(np.isnan(res[2:, :]))
         np.testing.assert_allclose(mins, [0., 0., 0., 204.1018, 103.24155, 106.426704])
         np.testing.assert_allclose(maxs, [108.40393, 107.68546, 106.80061, 337.71414, 355.15897, 350.87186])
+
+    def test_reflectance_warns(self, all_channels_fh):
+        """Test the reading."""
+        info = {}
+        key = make_dataid(name="1", calibration="reflectance")
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = all_channels_fh.get_dataset(key, info)
 
     def test_angles(self, all_channels_fh):
         """Test reading the angles."""
@@ -368,7 +358,7 @@ class TestAAPPL1BChannel3AMissing:
     def test_loading_missing_channels_returns_none(self, missing3a_fh):
         """Test that loading a missing channel raises a keyerror."""
         info = {}
-        key = make_dataid(name="3a", calibration="reflectance")
+        key = make_dataid(name="3a", calibration="unnormalized_reflectance")
         assert missing3a_fh.get_dataset(key, info) is None
 
     def test_available_datasets_miss_3a(self, missing3a_fh):
@@ -566,8 +556,8 @@ def _neg_cal_data():
     return data
 
 
-def test_bright_channel2_has_reflectance_greater_than_100(neg_cal_path):
+def test_bright_channel2_has_unnormalized_reflectance_greater_than_100(neg_cal_path):
     """Test that a bright channel 2 has reflectances greater that 100."""
     file_handler = AVHRRAAPPL1BFile(neg_cal_path, dict(), None)
-    data = file_handler.get_dataset(make_dataid(name="2", calibration="reflectance"), dict())
+    data = file_handler.get_dataset(make_dataid(name="2", calibration="unnormalized_reflectance"), dict())
     np.testing.assert_array_less(100, data.values)

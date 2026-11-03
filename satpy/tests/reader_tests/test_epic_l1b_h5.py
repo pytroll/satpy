@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The epic_l1b_h5 reader tests package."""
 
 import os
@@ -106,14 +89,24 @@ class TestEPICL1bReader:
         np.testing.assert_allclose(ds["B317"].data, b317_data)
 
     def test_refl_calibration(self, setup_hdf5_file):
-        """Test that data is correctly calibrated into reflectances."""
+        """Test that data is correctly calibrated into unnormalized_reflectance."""
         from satpy.tests.utils import make_dsq
 
         test_reader = self._setup_h5(setup_hdf5_file)
 
-        # Test conversion to reflectance
-        ds = test_reader.load([make_dsq(name="B317", calibration="reflectance")])
+        # Test conversion to unnormalized_reflectance
+        ds = test_reader.load([make_dsq(name="B317", calibration="unnormalized_reflectance")])
         np.testing.assert_allclose(ds["B317"].data, b317_data * CALIB_COEFS["B317"] * 100., rtol=1e-5)
+
+    # 8< v1.0
+    def test_reflectance_warns(self, setup_hdf5_file):
+        """Test that ascing for reflectance as calibration issues a warning."""
+        from satpy.tests.utils import make_dsq
+
+        test_reader = self._setup_h5(setup_hdf5_file)
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = test_reader.load([make_dsq(name="B317", calibration="reflectance")])
+    # >8 v1.0
 
     def test_bad_calibration(self, setup_hdf5_file):
         """Test that error is raised if a bad calibration is used."""

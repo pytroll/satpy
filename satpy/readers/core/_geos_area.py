@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Geostationary Projection / Area computations.
 
 This module computes properties and area definitions for geostationary
@@ -160,7 +143,7 @@ def sampling_to_lfac_cfac(sampling):
     Appendix E.2.
 
     .. _MSG Ground Segment LRIT HRIT Mission Specific Implementation:
-       https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_05057_spe_msg_lrit_hri.pdf
+       https://user.eumetsat.int/s3/eup-strapi-media/pdf_ten_05057_spe_msg_lrit_hri_bcaff5f0ba.pdf
 
     Args:
         sampling: float

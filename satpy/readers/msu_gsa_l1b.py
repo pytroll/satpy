@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for the Arctica-M1 MSU-GS/A data.
 
@@ -82,6 +65,17 @@ class MSUGSAFileHandler(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
+        # 8< v1.0
+        import warnings
+        if dataset_id.get("calibration") == "reflectance":
+            warnings.warn(
+                    "The 'reflectance' calibration for MSU-GS/A is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+        # >8 v1.0
         file_key = ds_info.get("file_key", dataset_id["name"])
         data = self[file_key]
         attrs = data.attrs.copy()  # avoid contaminating other band loading
@@ -94,11 +88,15 @@ class MSUGSAFileHandler(HDF5FileHandler):
         # Data has a scale and offset that we must apply
         data = self._apply_scale_offset(data)
 
-        # Data is given as radiance values, we must convert if we want reflectance
-        if dataset_id.get("calibration") == "reflectance":
+        # Data is given as radiance values, we must convert if we want unnormalized_reflectance
+        if dataset_id.get("calibration") in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             solconst = float(attrs.pop("F_solar_constant"))
             data = np.pi * data / solconst
-            # Satpy expects reflectance values in 0-100 range
+            # Satpy expects unnormalized_reflectance values in 0-100 range
             data = data * 100.
 
         data.attrs = attrs

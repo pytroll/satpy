@@ -56,7 +56,7 @@ def _setup_science_data(N_BANDS, N_SCANS, N_COLS):
     return data
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def msi_ec_l1c_dummy_file(tmp_path_factory):
     """Create a fake insat MSI 1C file."""
     filename = tmp_path_factory.mktemp("data") / "ECA_EXAA_MSI_RGR_1C_20250625T005649Z_20250625T024013Z_42043E.h5"
@@ -74,18 +74,23 @@ def test_get_pixvalues(msi_ec_l1c_dummy_file):
         res = Scene(reader="msi_l1c_earthcare", filenames=[msi_ec_l1c_dummy_file])
 
         available_datasets = list(res.available_dataset_ids())
-        assert len(available_datasets) == 27
+        #  8< v1.0
+        assert len(available_datasets) == 31
+        # >8 v1.0
+        # assert len(available_datasets) == 27
 
-        res.load(["VIS", "VNIR", "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
+        vis_id = make_dataid(name="VIS", calibration="unnormalized_reflectance")
+        vnir_id = make_dataid(name="VNIR", calibration="unnormalized_reflectance")
+        res.load([vis_id, vnir_id, "TIR1", "TIR3", "solar_azimuth_angle", "land_water_mask"])
         #assert len(res) == 6
         with pytest.raises(KeyError):
             res["TIR2"]
         with pytest.raises(KeyError):
             res["SWIR1"]
 
-        assert res["VIS"].shape == (20, N_COLS)
-        assert res["VIS"].attrs["calibration"] == "reflectance"
-        assert res["VIS"].attrs["units"] == "%"
+        assert res[vis_id].shape == (20, N_COLS)
+        assert res[vis_id].attrs["calibration"] == "unnormalized_reflectance"
+        assert res[vis_id].attrs["units"] == "%"
 
         assert res["TIR1"].shape == (20, N_COLS)
         assert res["TIR1"].attrs["calibration"] == "brightness_temperature"
@@ -117,7 +122,17 @@ def test_calibration(msi_ec_l1c_dummy_file):
     assert res["VIS"].attrs["units"] == "W m-2 sr-1"
     assert np.all(np.array(res["VIS"].data) == 1)
 
-    res.load([make_dataid(name="VNIR", calibration="reflectance")])
-    assert res["VNIR"].attrs["calibration"] == "reflectance"
+    res.load([make_dataid(name="VNIR", calibration="unnormalized_reflectance")])
+    assert res["VNIR"].attrs["calibration"] == "unnormalized_reflectance"
     assert res["VNIR"].attrs["units"] == "%"
     assert np.all(np.array(res["VNIR"].data) == 1 * np.pi * 100 / SOL_IRRAD[1])
+
+
+# 8< v1.0
+def test_reflectance_warns(msi_ec_l1c_dummy_file):
+    """Test that asking for reflectances issue a warning."""
+    res = Scene(reader="msi_l1c_earthcare", filenames=[msi_ec_l1c_dummy_file])
+
+    with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+        res.load([make_dataid(name="VIS", calibration="reflectance")])
+# >8 v1.0

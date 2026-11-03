@@ -1,19 +1,3 @@
-#!/usr/bin/python
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittests for Landsat image readers."""
 
 import os
@@ -439,6 +423,14 @@ def mss_l1_landsat1_b4_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_la
 
 
 @pytest.fixture(scope="module")
+def mss_l1_landsat1_b5_file(mss_l1_landsat1_files_path, spectral_data, mss_l1_landsat1_area):
+    """Create the file for the Landsat-1 MSS L1 B4 channel."""
+    filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_B5.TIF"
+    create_tif_file(spectral_data, "B5", mss_l1_landsat1_area, filename, mss_l1_landsat1_date)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="module")
 def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
     """Create the Landsat-1 MSS L1 metadata xml file."""
     filename = mss_l1_landsat1_files_path / "LM01_L1TP_032030_19720729_20200909_02_T2_MTL.xml"
@@ -447,9 +439,9 @@ def mss_l1_landsat1_mda_file(mss_l1_landsat1_files_path):
 
 
 @pytest.fixture(scope="module")
-def mss_l1_landsat1_all_files(mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file):
+def mss_l1_landsat1_all_files(mss_l1_landsat1_b4_file, mss_l1_landsat1_b5_file, mss_l1_landsat1_mda_file):
     """Return all the files."""
-    return mss_l1_landsat1_b4_file, mss_l1_landsat1_mda_file
+    return mss_l1_landsat1_b4_file, mss_l1_landsat1_b5_file, mss_l1_landsat1_mda_file
 
 
 @pytest.fixture(scope="module")
@@ -457,6 +449,14 @@ def mss_l1_landsat4_b4_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_la
     """Create the file for the Landsat-4 MSS L1 B4 channel."""
     filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_B4.TIF"
     create_tif_file(spectral_data, "B4", mss_l1_landsat4_area, filename, mss_l1_landsat4_date)
+    return os.fspath(filename)
+
+
+@pytest.fixture(scope="module")
+def mss_l1_landsat4_b3_file(mss_l1_landsat4_files_path, spectral_data, mss_l1_landsat4_area):
+    """Create the file for the Landsat-4 MSS L1 B4 channel."""
+    filename = mss_l1_landsat4_files_path / "LM04_L1TP_029030_19840415_20200903_02_T2_B3.TIF"
+    create_tif_file(spectral_data, "B3", mss_l1_landsat4_area, filename, mss_l1_landsat4_date)
     return os.fspath(filename)
 
 
@@ -469,9 +469,9 @@ def mss_l1_landsat4_mda_file(mss_l1_landsat4_files_path):
 
 
 @pytest.fixture(scope="module")
-def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file):
+def mss_l1_landsat4_all_files(mss_l1_landsat4_b4_file, mss_l1_landsat4_b3_file, mss_l1_landsat4_mda_file):
     """Return all the files."""
-    return mss_l1_landsat4_b4_file, mss_l1_landsat4_mda_file
+    return mss_l1_landsat4_b4_file, mss_l1_landsat4_b3_file, mss_l1_landsat4_mda_file
 
 
 @pytest.fixture(scope="module")
@@ -511,11 +511,11 @@ class TestLandsat:
             pytest.param("tm_l1_tif", "B4", "B6", lf("tm_l1_all_files"), lf("tm_l1_area"), id="tm_l1"),
             pytest.param("tm_l2_tif", "B4", "B6", lf("tm_l2_all_files"), lf("tm_l2_area"), id="tm_l2"),
             pytest.param(
-                "mss_l1_tif", "B4", None, lf("mss_l1_landsat1_all_files"), lf("mss_l1_landsat1_area"),
+                "mss_l1_tif", "B4", "B5", lf("mss_l1_landsat1_all_files"), lf("mss_l1_landsat1_area"),
                 id="mss_l1_landsat1",
             ),
             pytest.param(
-                "mss_l1_tif", "B4", None, lf("mss_l1_landsat4_all_files"), lf("mss_l1_landsat4_area"),
+                "mss_l1_tif", "B4", "B3", lf("mss_l1_landsat4_all_files"), lf("mss_l1_landsat4_area"),
                 id="mss_l1_landsat4",
             ),
         ],

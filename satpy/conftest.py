@@ -1,21 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Pytest configuration and setup functions."""
+from pathlib import Path
+
 import pytest
 
 
@@ -32,6 +17,12 @@ def pytest_unconfigure(config):
 
 
 @pytest.fixture(scope="session")
-def session_tmp_path(tmp_path_factory):
+def session_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Generate a single temp path to use for the entire session."""
+    return tmp_path_factory.mktemp("data")
+
+
+@pytest.fixture(scope="module")
+def module_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Generate a single temp path to use for the entire session."""
     return tmp_path_factory.mktemp("data")

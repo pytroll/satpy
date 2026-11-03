@@ -1,18 +1,3 @@
-# Copyright (c) 2015-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Core functionality of composites."""
 
@@ -36,6 +21,11 @@ NEGLIGIBLE_COORDS = ["time"]
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 TIME_COMPATIBILITY_TOLERANCE = np.timedelta64(1, "s")
+
+
+def _is_coord_var(data_arr: xr.DataArray, coord_name: str) -> bool:
+    """Return whether a coordinate is the variable for its same-named dimension."""
+    return data_arr.coords[coord_name].dims == (coord_name,)
 
 
 class IncompatibleAreas(Exception):
@@ -204,11 +194,11 @@ class CompositeBase:
 
     @staticmethod
     def drop_coordinates(data_arrays: Sequence[xr.DataArray]) -> list[xr.DataArray]:
-        """Drop negligible non-dimensional coordinates.
+        """Drop negligible coordinates that are not dimension coordinates.
 
-        Drops negligible coordinates if they do not correspond to any
-        dimension.  Negligible coordinates are defined in the
-        :attr:`NEGLIGIBLE_COORDS` module attribute.
+        Negligible coordinates are retained only when they are the coordinate
+        variable for their same-named dimension. Negligible coordinates are
+        defined in the :attr:`NEGLIGIBLE_COORDS` module attribute.
 
         Args:
             data_arrays: Arrays to be checked
@@ -216,8 +206,8 @@ class CompositeBase:
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and
-                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
+                    if not _is_coord_var(ds, coord) and
+                    any(negligible in coord for negligible in NEGLIGIBLE_COORDS)]
             if drop:
                 new_arrays.append(ds.drop_vars(drop))
             else:
@@ -280,25 +270,54 @@ def _apply_palette_to_image(img):
     return img
 
 
-def add_bands(data, bands):
-    """Add bands so that they match *bands*."""
+def add_bands(data: xr.DataArray, bands: Sequence | xr.DataArray) -> xr.DataArray:
+    """Add image bands so that input data is compatible with the provided ``bands``.
+
+    This function will add additional copies of input data arrays to allow the
+    number of elements in the "bands" dimension to be more compatible with
+    the desired number of bands from the ``bands`` argument. This does not
+    always mean producing the exact number of bands. For example, if the
+    input data is an "L" image with an alpha channel (``["L", "A"]``) and the
+    desired bands are ``["R", "G", "B"]`` then the result will be
+    ``["R", "G", "B", "A"]`` where the R, G, and B data are copies of the original
+    L band data and the A channel is copied from the input.
+
+    If an alpha channel needs to be added to match the desired set of bands then
+    a fully opaque alpha channel is created.
+
+
+    Args:
+        data: Input xarray DataArray with a "bands" dimension and coordinate.
+            The DataArray should also have a "mode" attribute in ``.attrs``
+            with the image mode of the data. So if the "bands" coordinate
+            variable is ``["R", "G", "B"]`` then ``.attrs["mode"]`` will
+            be ``"RGB"``.
+        bands: The bands that the result should be compatible with. If taken
+            from another data DataArray via ``.coords["bands"]`` then this
+            will be a ``DataArray``. Otherwise an sequence supporting
+            ``__contains__`` should be provided. Elements of this argument
+            should be individual string characters, one for each band.
+
+    """
+    desired_bands = bands.values.tolist() if isinstance(bands, xr.DataArray) else bands
     # Add R, G and B bands, remove L band
-    bands = bands.compute()
-    data = _check_mode_p(data, bands)
-    data = _check_mode_l(data, bands)
+    data = _check_mode_p(data, desired_bands)
+    data = _check_mode_l(data, desired_bands)
     # Add alpha band
-    data = _check_alpha_band(data, bands)
+    data = _check_alpha_band(data, desired_bands)
     return data
 
 
-def _check_mode_p(data, bands):
-    if "P" in data["bands"].data or "P" in bands.data:
+def _check_mode_p(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    if "P" in data["bands"].data or "P" in bands:
         raise NotImplementedError("Cannot mix datasets of mode P with other datasets at the moment.")
     return data
 
 
-def _check_mode_l(data, bands):
-    if "L" in data["bands"].data and "R" in bands.data:
+def _check_mode_l(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    new_data: tuple[xr.DataArray, ...]
+
+    if "L" in data["bands"].data and "R" in bands:
         lum = data.sel(bands="L")
         # Keep 'A' if it was present
         if "A" in data["bands"]:
@@ -316,21 +335,25 @@ def _check_mode_l(data, bands):
     return data
 
 
-def _check_alpha_band(data, bands):
-    if "A" not in data["bands"].data and "A" in bands.data:
+def _check_alpha_band(data: xr.DataArray, bands: Sequence) -> xr.DataArray:
+    if "A" not in data["bands"].data and "A" in bands:
         new_data = [data.sel(bands=band) for band in data["bands"].data]
         # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
-        alpha.data = da.ones((data.sizes["y"],
-                              data.sizes["x"]),
-                             dtype=new_data[0].dtype,
-                             chunks=new_data[0].chunks)
+        # WARN: This will be all 1s as floats, but this is not accurate for
+        # integer data. Integer data needing an alpha channel is not currently
+        # supported.
+        alpha.data = da.ones(
+            (data.sizes["y"], data.sizes["x"]),
+            dtype=new_data[0].dtype,
+            chunks=new_data[0].chunks,
+        )
         # Rename band to indicate it's alpha
         alpha["bands"] = "A"
         new_data.append(alpha)
-        new_data = xr.concat(new_data, dim="bands")
-        new_data.attrs["mode"] = data.attrs["mode"] + "A"
-        data = new_data
+        new_data_arr = xr.concat(new_data, dim="bands")
+        new_data_arr.attrs["mode"] = data.attrs["mode"] + "A"
+        data = new_data_arr
     return data
 
 

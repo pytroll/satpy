@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 # type: ignore
 
 """An OSISAF SST reader for the netCDF GHRSST format."""
@@ -54,7 +37,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         else:
             shape = self[var_path + "/shape"]
             if shape[0] == 1:
-                # Remove the time dimenstion from dataset
+                # Remove the time dimension from dataset
                 shape = shape[1], shape[2]
 
         file_units = ds_info.get("file_units")

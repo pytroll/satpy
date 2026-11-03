@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """IASI-NG L2 reader implementation.
 
@@ -28,7 +13,7 @@ level:
 
 For more information in the product files content, please refer to the
 EPS-SG IASI-NG Level 2 Format specification document provided by EUMETSAT at:
-https://www-cdn.eumetsat.int/files/2022-04/EPS-SG%20IASI-NG%20L2%20Product%20Format%20Specification_web_0.pdf
+https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_IASI_NG_L2_Product_Format_Specification_v4_B_cffb0a9273.pdf
 """
 
 import re

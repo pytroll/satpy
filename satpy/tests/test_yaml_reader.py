@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Testing the yaml_reader module."""
 
@@ -31,7 +14,6 @@ import pytest
 import xarray as xr
 
 import satpy.readers.core.yaml_reader as yr
-from satpy._compat import cache
 from satpy.dataset import DataQuery
 from satpy.dataset.dataid import ModifierTuple
 from satpy.readers.core.file_handlers import BaseFileHandler
@@ -1268,7 +1250,7 @@ def GVSYReader():
     from satpy.readers.core.yaml_reader import GEOVariableSegmentYAMLReader
     reader = GEOVariableSegmentYAMLReader()
     reader.segment_infos = dict()
-    reader.segment_heights = cache(reader._segment_heights)
+    reader._segment_heights_cache = dict()
     return reader
 
 
@@ -1302,6 +1284,14 @@ def fake_adef():
 
 class TestGEOVariableSegmentYAMLReader:
     """Test GEOVariableSegmentYAMLReader."""
+
+    def test_segment_heights_computed_once(self, GVSYReader):
+        """Test that the segment heights are computed once per file type and grid width."""
+        with patch.object(GVSYReader, "_segment_heights", side_effect=lambda filetype, width: [width]) as compute:
+            assert GVSYReader.segment_heights("filetype1", 5568) == [5568]
+            assert GVSYReader.segment_heights("filetype1", 5568) == [5568]
+            assert GVSYReader.segment_heights("filetype1", 11136) == [11136]
+        assert compute.call_count == 2
 
     def test_get_empty_segment(self, GVSYReader, fake_mss, fake_xr, fake_geswh):
         """Test execution of (overridden) get_empty_segment inside _load_dataset."""

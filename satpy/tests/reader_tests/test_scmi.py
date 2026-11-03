@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The scmi_abi_l1b reader tests package."""
 
 import unittest
@@ -74,7 +57,7 @@ class TestSCMIFileHandler(unittest.TestCase):
                 "scale_factor": 0.5,
                 "add_offset": -1.,
                 "_FillValue": 20,
-                "standard_name": "toa_bidirectional_reflectance",
+                "standard_name": "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",  # noqa
             },
             coords={
                 "time": time,
@@ -114,17 +97,27 @@ class TestSCMIFileHandler(unittest.TestCase):
         """Test data loading."""
         from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            make_dataid(name="C05", calibration="reflectance"), {})
+            make_dataid(name="C05", calibration="unnormalized_reflectance"), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         assert "scale_factor" not in res.attrs
         assert "_FillValue" not in res.attrs
-        assert res.attrs["standard_name"] == "toa_bidirectional_reflectance"
+        assert res.attrs["standard_name"] == "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"  # noqa
         assert "orbital_parameters" in res.attrs
         orb_params = res.attrs["orbital_parameters"]
         assert orb_params["projection_longitude"] == -90.0
         assert orb_params["projection_latitude"] == 0.0
         assert orb_params["projection_altitude"] == 35785831.0
+
+    # 8< v1.0
+    def test_load_reflectance_warns(self):
+        """Test that using reflectance as calibration issues a warning."""
+        from satpy.tests.utils import make_dataid
+
+        with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+            _ = self.reader.get_dataset(
+                make_dataid(name="C05", calibration="reflectance"), {})
+    # >8 v1.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):

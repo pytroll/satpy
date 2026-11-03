@@ -1,23 +1,9 @@
-#!/usr/bin/python
-# Copyright (c) 2016 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittests for resamplers."""
 
+import logging
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -29,6 +15,7 @@ import xarray as xr
 from pyproj import CRS
 
 from satpy.resample.native import NativeResampler
+from satpy.utils import PerformanceWarning
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -132,7 +119,7 @@ class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
     @mock.patch("satpy.resample.kdtree.xr.Dataset")
-    @mock.patch("satpy.resample.kdtree.zarr.open")
+    @mock.patch("zarr.open")
     @mock.patch("satpy.resample.kdtree.KDTreeResampler._create_cache_filename")
     @mock.patch("pyresample.kd_tree.XArrayResamplerNN")
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
@@ -209,6 +196,35 @@ class TestKDTreeResampler(unittest.TestCase):
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
 
 
+def test_kdtree_resamplers_available_without_zarr():
+    """Test that a broken zarr installation doesn't make the kd-tree resamplers unavailable."""
+    import satpy.resample
+    from satpy.resample.base import get_all_resampler_classes
+
+    # mock.patch.dict drops modules first imported inside it, so import everything beforehand
+    get_all_resampler_classes()
+    # None in sys.modules makes 'import zarr' raise ImportError (ex. zarr 2 with numcodecs 0.16)
+    with mock.patch.dict(sys.modules, {"zarr": None}), mock.patch.object(satpy.resample, "kdtree"):
+        # force a fresh import of the kdtree module, the original is restored afterwards
+        del sys.modules["satpy.resample.kdtree"]
+        resamplers = get_all_resampler_classes()
+    assert {"kd_tree", "nearest", "bilinear"} <= resamplers.keys()
+
+
+def test_resampler_module_import_error_is_logged(caplog):
+    """Test that a builtin resampler module failing to import is logged instead of silently ignored."""
+    from satpy.resample.base import get_all_resampler_classes
+
+    # mock.patch.dict drops modules first imported inside it, so import everything beforehand
+    get_all_resampler_classes()
+    with mock.patch.dict(sys.modules, {"satpy.resample.bucket": None}), \
+            caplog.at_level(logging.WARNING, logger="satpy.resample.base"):
+        resamplers = get_all_resampler_classes()
+    assert "bucket_avg" not in resamplers
+    assert "nearest" in resamplers
+    assert "Resamplers from 'satpy.resample.bucket' are not available" in caplog.text
+
+
 class TestNativeResampler:
     """Tests for the 'native' resampling method."""
 
@@ -247,8 +263,6 @@ class TestNativeResampler:
         into that chunk size.
 
         """
-        from satpy.utils import PerformanceWarning
-
         d_arr = da.zeros((6, 20), chunks=3)
         text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
         with pytest.warns(PerformanceWarning, match=text):
@@ -322,6 +336,17 @@ class TestNativeResampler:
         resampler = NativeResampler(source_area, target_area)
         with pytest.raises(ValueError, match="Can only handle 2D or 3D arrays without dimensions."):
             resampler.resample(ds1)
+
+    def test_reduce_first_dim_rechunk_second_dim_good(self):
+        """Test inconsistent chunks are handled consistently."""
+        # See https://github.com/pytroll/satpy/issues/3304
+        row_chunks = (6, 6, 7, 6, 6, 7, 8, 6, 4) * 5
+        col_chunks = (280,)
+        d_arr = da.zeros((280, 280), chunks=(row_chunks, col_chunks))
+        text = "Array chunk size is not divisible by aggregation factor. Re-chunking to continue native resampling."
+        with pytest.warns(PerformanceWarning, match=text):
+            new_data = NativeResampler._expand_reduce(d_arr, {0: 0.5, 1: 0.5})
+        assert new_data.shape == (140, 140)
 
 
 class TestBilinearResampler(unittest.TestCase):

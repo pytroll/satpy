@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# Copyright (c) 2018-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for compositor core functionality."""
 
@@ -25,6 +9,8 @@ import numpy as np
 import pytest
 import xarray as xr
 from pyresample import AreaDefinition
+
+from satpy.tests.utils import assert_maximum_dask_computes
 
 
 class TestMatchDataArrays:
@@ -118,6 +104,49 @@ class TestMatchDataArrays:
         comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays([ds, ds])
         assert "acq_time" not in ret_datasets[0].coords
+
+    @pytest.mark.parametrize(
+        ("data_dims", "data_shape", "coord_dims", "keep_coord"),
+        [
+            pytest.param(("y", "x"), (3, 4), ("y",), False, id="foreign-dim-no-time-dim"),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("y",),
+                False,
+                id="foreign-dim-with-time-dim",
+            ),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("time",),
+                True,
+                id="matching-dimension-coordinate",
+            ),
+        ],
+    )
+    def test_drop_coordinates_handles_time_coordinate_dimensions(
+        self, data_dims, data_shape, coord_dims, keep_coord
+    ):
+        """Keep only a true dimension coordinate among negligible coordinates."""
+        from satpy.composites.core import CompositeBase
+
+        coord_size = data_shape[data_dims.index(coord_dims[0])]
+        coord_values = np.arange(coord_size)
+        data = xr.DataArray(
+            np.arange(np.prod(data_shape)).reshape(data_shape),
+            dims=data_dims,
+            coords={"time": xr.DataArray(coord_values, dims=coord_dims)},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert result.dims == data_dims
+        assert result.shape == data_shape
+        assert ("time" in result.coords) is keep_coord
+        if keep_coord:
+            assert result.coords["time"].dims == ("time",)
+            np.testing.assert_array_equal(result.coords["time"], coord_values)
 
     def test_almost_equal_geo_coordinates(self):
         """Test that coordinates that are almost-equal still match.
@@ -348,74 +377,75 @@ class TestGenericCompositor(unittest.TestCase):
             self.comp([self.all_valid])
 
 
-class TestAddBands(unittest.TestCase):
-    """Test case for the `add_bands` function."""
+@pytest.mark.parametrize(
+    ("data_bands", "new_bands", "exp_bands"),
+    [
+        (["L"], ["R", "G", "B"], ["R", "G", "B"]),
+        (["L"], ["R", "G", "B", "A"], ["R", "G", "B", "A"]),
+        (["L", "A"], ["R", "G", "B"], ["R", "G", "B", "A"]),
+        (["L", "A"], ["R", "G", "B", "A"], ["R", "G", "B", "A"]),
+        (["R", "G", "B"], ["R", "G", "B", "A"], ["R", "G", "B", "A"]),
+        (["R", "G", "B", "A"], ["R", "G", "B", "A"], ["R", "G", "B", "A"]),
+        (["R", "G", "B", "A"], ["R", "G", "B"], ["R", "G", "B", "A"]),
+    ]
+)
+def test_add_bands(data_bands, new_bands, exp_bands):
+    """Test adding bands."""
+    from satpy.composites.core import add_bands
 
-    def test_add_bands_l_rgb(self):
-        """Test adding bands."""
-        from satpy.composites.core import add_bands
+    data_arr = xr.DataArray(
+        da.ones((len(data_bands), 3, 3), dtype="float32"),
+        dims=("bands", "y", "x"),
+        attrs={"mode": "".join(data_bands)},
+        coords={"bands": data_bands},
+    )
+    new_bands_arr = xr.DataArray(
+        da.arange(len(new_bands)),
+        dims=("bands"),
+        coords={"bands": new_bands},
+    )
+    with assert_maximum_dask_computes(0):
+        res = add_bands(data_arr, new_bands_arr.coords["bands"])
+    _check_add_band_results(res, exp_bands, np.float32)
 
-        # L + RGB -> RGB
-        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
-                            coords={"bands": ["L"]})
-        new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
-                                 coords={"bands": ["R", "G", "B"]})
-        res = add_bands(data, new_bands)
-        res_bands = ["R", "G", "B"]
-        _check_add_band_results(res, res_bands, np.float32)
 
-    def test_add_bands_l_rgba(self):
-        """Test adding bands."""
-        from satpy.composites.core import add_bands
+def test_add_bands_sequence():
+    """Test adding bands with a sequence for the desired bands."""
+    from satpy.composites.core import add_bands
 
-        # L + RGBA -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
-                            coords={"bands": ["L"]}, attrs={"mode": "L"})
-        new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
-                                 coords={"bands": ["R", "G", "B", "A"]})
-        res = add_bands(data, new_bands)
-        res_bands = ["R", "G", "B", "A"]
-        _check_add_band_results(res, res_bands, np.float32)
+    data_bands = ["L"]
+    new_bands = ["R", "G", "B", "A"]
+    exp_bands = ["R", "G", "B", "A"]
 
-    def test_add_bands_la_rgb(self):
-        """Test adding bands."""
-        from satpy.composites.core import add_bands
+    data_arr = xr.DataArray(
+        da.ones((len(data_bands), 3, 3), dtype="float32"),
+        dims=("bands", "y", "x"),
+        attrs={"mode": "".join(data_bands)},
+        coords={"bands": data_bands},
+    )
+    with assert_maximum_dask_computes(0):
+        res = add_bands(data_arr, new_bands)
+    _check_add_band_results(res, exp_bands, np.float32)
 
-        # LA + RGB -> RGBA
-        data = xr.DataArray(da.ones((2, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
-                            coords={"bands": ["L", "A"]}, attrs={"mode": "LA"})
-        new_bands = xr.DataArray(da.array(["R", "G", "B"]), dims=("bands"),
-                                 coords={"bands": ["R", "G", "B"]})
-        res = add_bands(data, new_bands)
-        res_bands = ["R", "G", "B", "A"]
-        _check_add_band_results(res, res_bands, np.float32)
 
-    def test_add_bands_rgb_rbga(self):
-        """Test adding bands."""
-        from satpy.composites.core import add_bands
+def test_add_bands_p_l():
+    """Test failing P to L case."""
+    from satpy.composites.core import add_bands
 
-        # RGB + RGBA -> RGBA
-        data = xr.DataArray(da.ones((3, 3, 3), dtype="float32"), dims=("bands", "y", "x"),
-                            coords={"bands": ["R", "G", "B"]},
-                            attrs={"mode": "RGB"})
-        new_bands = xr.DataArray(da.array(["R", "G", "B", "A"]), dims=("bands"),
-                                 coords={"bands": ["R", "G", "B", "A"]})
-        res = add_bands(data, new_bands)
-        res_bands = ["R", "G", "B", "A"]
-        _check_add_band_results(res, res_bands, np.float32)
-
-    def test_add_bands_p_l(self):
-        """Test adding bands."""
-        from satpy.composites.core import add_bands
-
-        # P(RGBA) + L -> RGBA
-        data = xr.DataArray(da.ones((1, 3, 3)), dims=("bands", "y", "x"),
-                            coords={"bands": ["P"]},
-                            attrs={"mode": "P"})
-        new_bands = xr.DataArray(da.array(["L"]), dims=("bands"),
-                                 coords={"bands": ["L"]})
-        with pytest.raises(NotImplementedError):
-            add_bands(data, new_bands)
+    # P(RGBA) + L -> RGBA
+    data = xr.DataArray(
+        da.ones((1, 3, 3)),
+        dims=("bands", "y", "x"),
+        coords={"bands": ["P"]},
+        attrs={"mode": "P"},
+    )
+    new_bands = xr.DataArray(
+        da.arange(1),
+        dims=("bands"),
+        coords={"bands": ["L"]},
+    )
+    with pytest.raises(NotImplementedError), assert_maximum_dask_computes(0):
+        add_bands(data, new_bands.coords["bands"])
 
 
 def _check_add_band_results(res, res_bands, dtype):

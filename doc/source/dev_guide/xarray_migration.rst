@@ -13,7 +13,7 @@ To provide the most functionality for users,
 Satpy uses the `xarray <http://xarray.pydata.org/en/stable/>`_ library's
 :class:`~xarray.DataArray` object as the main representation for its data.
 DataArray objects can also benefit from the
-`dask <https://dask.pydata.org/en/latest/>`_ library. The combination of
+`dask <https://docs.dask.org/en/stable/>`_ library. The combination of
 these libraries allow Satpy to easily distribute operations over multiple
 workers, lazy evaluate operations, and keep track additional metadata and
 coordinate information.
@@ -261,48 +261,54 @@ Wrapping non-dask friendly functions
 ************************************
 
 Some operations are not supported by dask yet or are difficult to convert to
-take full advantage of dask's multithreaded operations. In these cases you
-can wrap a function to run on an entire dask array when it is being computed
-and pass on the result. Note that this requires fully computing all of the
-dask inputs to the function and are passed as a numpy array or in the case
-of an XArray DataArray they will be a DataArray with a numpy array
-underneath. You should *NOT* use dask functions inside the delayed function.
+take full advantage of dask's multithreaded operations. In these cases you can
+wrap the function so it runs on the individual chunks of a dask array with
+:func:`da.map_blocks <dask.array.map_blocks>`. The inputs to the wrapped
+function are fully computed numpy arrays, but only one chunk at a time, so
+memory usage stays bounded and the chunks are processed in parallel. You should
+*NOT* use dask functions inside the wrapped function.
 
+Note that ``map_blocks`` must be provided dask arrays and won't function
+properly on XArray DataArrays. It is recommended that the function object
+passed to ``map_blocks`` **not** be an internal function (a function defined
+inside another function) or it may be unserializable and can cause issues in
+some environments.
 
 .. code-block:: python
 
-    import dask
     import dask.array as da
 
     def _complex_operation(my_arr1, my_arr2):
         return my_arr1 + my_arr2
 
-    delayed_result = dask.delayed(_complex_operation)(my_dask_arr1, my_dask_arr2)
-    # to create a dask array to use in the future
-    my_new_arr = da.from_delayed(delayed_result, dtype=my_dask_arr1.dtype, shape=my_dask_arr1.shape)
+    my_new_arr = da.map_blocks(_complex_operation, my_dask_arr1, my_dask_arr2, dtype=my_dask_arr1.dtype)
 
-Dask Delayed objects can also be computed ``delayed_result.compute()`` if
-the array is not needed or if the function doesn't return an array.
+If the operation needs to see data from neighboring chunks, use
+:func:`~dask.array.map_overlap`. If it combines arrays along differing axes,
+use :func:`~dask.array.blockwise`.
 
-http://dask.pydata.org/en/latest/array-api.html#dask.array.from_delayed
+Avoid dask.delayed for building dask arrays
+*******************************************
 
-Map dask blocks to non-dask friendly functions
-**********************************************
-
-If the complicated operation you need to perform can be vectorized and does
-not need the entire data array to do its operations you can use
-:func:`da.map_blocks <dask.array.map_blocks>` to get better performance
-than creating a delayed function. Similar to delayed functions the inputs to
-the function are fully computed DataArrays or numpy arrays, but only the
-individual chunks of the dask array at a time. Note that ``map_blocks`` must
-be provided dask arrays and won't function properly on XArray DataArrays.
-It is recommended that the function object passed to ``map_blocks`` **not**
-be an internal function (a function defined inside another function) or it
-may be unserializable and can cause issues in some environments.
+It is possible to wrap a function with :func:`dask.delayed` and turn the result
+back into an array with :func:`~dask.array.from_delayed`:
 
 .. code-block:: python
 
-    my_new_arr = da.map_blocks(_complex_operation, my_dask_arr1, my_dask_arr2, dtype=my_dask_arr1.dtype)
+    # Legacy pattern -- prefer da.map_blocks instead.
+    delayed_result = dask.delayed(_complex_operation)(my_dask_arr1, my_dask_arr2)
+    my_new_arr = da.from_delayed(delayed_result, dtype=my_dask_arr1.dtype, shape=my_dask_arr1.shape)
+
+**This pattern should not be used in new code.** It forces the entire input
+array to be computed and held in memory at once instead of one chunk at a
+time, and current versions of dask incur a performance penalty when delayed
+objects are mixed into an array graph. Satpy is migrating away from it; the
+remaining uses in the codebase are legacy and should not be copied.
+
+This advice applies to *constructing arrays*. Returning a
+:class:`~dask.delayed.Delayed` object from a writer's ``save_datasets`` or
+``save_dataset`` when ``compute=False`` is a separate, supported pattern --
+see :func:`~satpy.writers.core.compute.compute_writer_results`.
 
 Helpful functions
 *****************

@@ -1,18 +1,3 @@
-# Copyright (c) 2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the writer base module."""
 from __future__ import annotations
 
@@ -68,7 +53,7 @@ class TestBaseWriter:
 
     def test_save_dataset_static_filename(self):
         """Test saving a dataset with a static filename specified."""
-        self.scn.save_datasets(base_dir=self.base_dir, filename="geotiff.tif")
+        self.scn.save_datasets(datasets=["test"], base_dir=self.base_dir, filename="geotiff.tif")
         assert os.path.isfile(os.path.join(self.base_dir, "geotiff.tif"))
 
     @pytest.mark.parametrize(
