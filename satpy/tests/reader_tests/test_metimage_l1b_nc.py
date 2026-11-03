@@ -6,6 +6,7 @@ This version tests the readers for METimage.
 
 
 import datetime
+import shutil
 
 import dask
 import dask.array as da
@@ -215,14 +216,16 @@ def test_perform_orthorectification_lon(reader):
     np.testing.assert_allclose(orthorect_variable.values, expected_values)
 
 
-def test_perform_orthorectification_partially_invalid(metimage_l1b_file):
+def test_perform_orthorectification_partially_invalid(metimage_l1b_file, tmp_path):
     """Test that the pixels with invalid delta data are left uncorrected."""
+    mod_filepath = tmp_path / "metimage_l1b_modified.nc"
+    shutil.copy2(metimage_l1b_file, mod_filepath)
     # swap a row with invalid numbers
-    with Dataset(metimage_l1b_file, "a") as nc:
+    with Dataset(mod_filepath, "a") as nc:
         var = nc["data/measurement_data"]["delta_lat_N_dem"]
         var[0, :] = np.ma.masked
 
-    reader = _make_handler(metimage_l1b_file)
+    reader = _make_handler(mod_filepath)
 
     orthorect_variable = reader._perform_orthorectification(_make_variable(), "data/measurement_data/delta_lat_N_dem")
 
