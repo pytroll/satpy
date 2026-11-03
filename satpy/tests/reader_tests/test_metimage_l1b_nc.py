@@ -6,6 +6,7 @@ This version tests the readers for METimage.
 
 
 import datetime
+import shutil
 
 import dask
 import dask.array as da
@@ -31,6 +32,7 @@ NUM_TIE_POINTS_ALT = NUM_SCANS * SCAN_ALT_TIE_POINTS
 COUNTS_FILL = np.uint16(8191)
 COUNTS_SCALE = np.float32(0.00235)
 COUNTS_OFFSET = np.float32(0.105)
+DELTA_FILL = np.float32(-9999.0)
 
 
 def _counts_raw():
@@ -95,11 +97,13 @@ def _create_l1b_file(path, with_tie_points=True,
         _add_counts_variable(measurement)
         delta_lat = measurement.createVariable("delta_lat_N_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
-                                               chunksizes=(1, NUM_PIXELS))
+                                               chunksizes=(1, NUM_PIXELS),
+                                               fill_value=DELTA_FILL)
         delta_lat[:] = 1.0
         delta_lon = measurement.createVariable("delta_lon_E_dem", np.float32,
                                                dimensions=("num_lines", "num_pixels"),
-                                               chunksizes=(1, NUM_PIXELS))
+                                               chunksizes=(1, NUM_PIXELS),
+                                               fill_value=DELTA_FILL)
         delta_lon[:] = 2.0
 
         if not with_tie_points:
@@ -210,6 +214,24 @@ def test_perform_orthorectification_lon(reader):
                                   (MEAN_EARTH_RADIUS*np.cos(np.radians(reader.latitude))))
                        + np.ones((NUM_LINES, NUM_PIXELS)))
     np.testing.assert_allclose(orthorect_variable.values, expected_values)
+
+
+def test_perform_orthorectification_partially_invalid(metimage_l1b_file, tmp_path):
+    """Test that the pixels with invalid delta data are left uncorrected."""
+    mod_filepath = tmp_path / "metimage_l1b_modified.nc"
+    shutil.copy2(metimage_l1b_file, mod_filepath)
+    # swap a row with invalid numbers
+    with Dataset(mod_filepath, "a") as nc:
+        var = nc["data/measurement_data"]["delta_lat_N_dem"]
+        var[0, :] = np.ma.masked
+
+    reader = _make_handler(mod_filepath)
+
+    orthorect_variable = reader._perform_orthorectification(_make_variable(), "data/measurement_data/delta_lat_N_dem")
+
+    np.testing.assert_allclose(orthorect_variable[0], 1.0)  # row 0 should be unchanged
+    np.testing.assert_allclose(orthorect_variable[1:],
+                               np.degrees(1.0 / MEAN_EARTH_RADIUS) + 1.0)  # all others corrected
 
 
 def test_radiance_calibration_returns_input(reader):
