@@ -4,21 +4,52 @@
 This reader supports the official NOAA JPSS OMPS EDR format which are in
 the NetCDF4 file format.
 
-Ozone Error Flag Filtering
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error Flag Filtering
+^^^^^^^^^^^^^^^^^^^^
 
-The Total Ozone files (V8TOZ) include a variable called "ErrorFlag" with
-values marking various conditions. It is possible to filter out any pixels
-not matching certain conditions of this ErrorFlag variable. To specify what
-values should be used/preserved specify ``filter_by_error_flag`` with a list
-of the "ErrorFlag" values.
+The Total Ozone (V8TOZ) and Total SO2 (V8TOS) files include a variable called
+"ErrorFlag" with values marking various retrieval conditions. It is possible to
+filter out any pixels not matching certain values of this ErrorFlag variable.
+Since the same ErrorFlag variable is used for every product in a file, but
+different products may need different values to be considered valid, the
+``filter_by_error_flag`` keyword argument is a mapping of variable name to the
+"ErrorFlag" values to keep (preserve) for that variable.
 
 .. code-block:: python
 
-   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": [0, 1]})
+   error_flag_filters = {
+       "ColumnAmountO3": [0, 1, 2],
+       "s_ColumnamountSO2_STL": [0, 1, 5],
+   }
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": error_flag_filters})
 
-By default no filtering is done related to "ErrorFlag". Refer to algorithm
-documentation for more details on the "ErrorFlag" variable.
+Variables not in the mapping are not filtered by "ErrorFlag". To apply the
+same filtering to every variable use a :class:`collections.defaultdict`:
+
+.. code-block:: python
+
+   from collections import defaultdict
+   error_flag_filters = defaultdict(lambda: [0, 1])
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": error_flag_filters})
+
+Geolocation variables (longitude and latitude) are never filtered. By default
+no filtering is done related to "ErrorFlag". Refer to algorithm documentation
+for more details on the "ErrorFlag" variable.
+
+Eclipse Filtering
+^^^^^^^^^^^^^^^^^
+
+The Total Ozone (V8TOZ) and Total SO2 (V8TOS) files include a variable called
+"EclipseFlag" which is 0 for pixels not affected by a solar eclipse. Passing
+``filter_eclipse=True`` will set any pixel where "EclipseFlag" is not 0 to the
+fill value (NaN) for every variable except geolocation and the "EclipseFlag"
+variable itself. Files without an "EclipseFlag" variable are not filtered.
+
+.. code-block:: python
+
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_eclipse": True})
+
+By default no eclipse filtering is done.
 
 Negative SO2 Filtering
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -40,7 +71,7 @@ By default no filtering of negative values is done.
 """
 
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -72,6 +103,7 @@ class EDRFileHandler(BaseFileHandler):
     y_dim_name = "nTimes"
     x_dim_name = "nIFOV"
     error_flag_var_name = "ErrorFlag"
+    eclipse_flag_var_name = "EclipseFlag"
     negative_filter_var_prefix = "s_ColumnamountSO2"
 
     def __init__(
@@ -79,15 +111,18 @@ class EDRFileHandler(BaseFileHandler):
         filename,
         filename_info,
         filetype_info,
-        filter_by_error_flag: Sequence[int] | None = None,
+        filter_by_error_flag: Mapping[str, Sequence[int]] | None = None,
         filter_negative_so2: bool = False,
+        filter_eclipse: bool = False,
         **kwargs,
     ):
         """Initialize the geo filehandler."""
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.filter_by_error_flag = filter_by_error_flag or []
+        # don't copy the mapping so special mappings like a defaultdict are preserved
+        self.filter_by_error_flag = filter_by_error_flag
         self.filter_negative_so2 = filter_negative_so2
+        self.filter_eclipse = filter_eclipse
 
         drop_variables = filetype_info.get("drop_variables", None)
         f_obj = open_file_or_filename(self.filename)
@@ -165,14 +200,14 @@ class EDRFileHandler(BaseFileHandler):
         data_arr = self.nc[var_path]
         data_arr = data_arr.rename({self.y_dim_name: "y", self.x_dim_name: "x"})
         data_arr.attrs = _rename_unit_attr(data_arr.attrs)
-        data_arr = self._mask_invalid(data_arr, metadata)
+        data_arr = self._mask_invalid(data_arr, var_path, metadata)
         data_arr.attrs.update(metadata)
         return data_arr
 
-    def _mask_invalid(self, data_arr: xr.DataArray, ds_info: dict) -> xr.DataArray:
-        if self.filter_by_error_flag:
-            ef_mask = np.isin(self.nc[self.error_flag_var_name].data, self.filter_by_error_flag)
-            data_arr.data = np.where(ef_mask, data_arr.data, np.nan)
+    def _mask_invalid(self, data_arr: xr.DataArray, var_name: str, ds_info: dict) -> xr.DataArray:
+        keep_mask = self._flag_keep_mask(var_name, ds_info)
+        if keep_mask is not None:
+            data_arr.data = np.where(keep_mask, data_arr.data, np.nan)
         # xarray auto mask and scale handled any fills from the file
         valid_range = ds_info.get("valid_range", data_arr.attrs.get("valid_range"))
         if isinstance(valid_range, np.ndarray):
@@ -184,7 +219,7 @@ class EDRFileHandler(BaseFileHandler):
         valid_cond = None
         if valid_range is not None:
             valid_cond = (valid_range[0] <= data_arr) & (data_arr <= valid_range[1])
-        if self._filters_negative_values(data_arr):
+        if self._filters_negative_values(var_name):
             neg_cond = data_arr >= 0
             valid_cond = neg_cond if valid_cond is None else (valid_cond & neg_cond)
         if valid_cond is not None:
@@ -193,8 +228,39 @@ class EDRFileHandler(BaseFileHandler):
             return data_arr.where(valid_cond, fill_value)
         return data_arr
 
-    def _filters_negative_values(self, data_arr: xr.DataArray) -> bool:
-        return self.filter_negative_so2 and str(data_arr.name).startswith(self.negative_filter_var_prefix)
+    def _flag_keep_mask(self, var_name: str, ds_info: dict) -> Any:
+        """Get a boolean mask of the pixels to keep based on the flag variables or None to keep everything."""
+        if ds_info.get("standard_name") in ("longitude", "latitude"):
+            # never mask geolocation
+            return None
+        keep_mask = None
+        error_flag_values = self._error_flag_values_to_keep(var_name)
+        if error_flag_values:
+            keep_mask = np.isin(self.nc[self.error_flag_var_name].data, error_flag_values)
+        if self._filters_eclipse(var_name):
+            not_eclipsed = self.nc[self.eclipse_flag_var_name].data == 0
+            keep_mask = not_eclipsed if keep_mask is None else (keep_mask & not_eclipsed)
+        return keep_mask
+
+    def _error_flag_values_to_keep(self, var_name: str) -> Sequence[int] | None:
+        # NOTE: An empty defaultdict is falsy so explicitly check for None
+        if self.filter_by_error_flag is None:
+            return None
+        try:
+            # use __getitem__ so things like defaultdict produce their default
+            return self.filter_by_error_flag[var_name]
+        except KeyError:
+            return None
+
+    def _filters_eclipse(self, var_name: str) -> bool:
+        return (
+            self.filter_eclipse
+            and var_name != self.eclipse_flag_var_name
+            and self.eclipse_flag_var_name in self.nc
+        )
+
+    def _filters_negative_values(self, var_name: str) -> bool:
+        return self.filter_negative_so2 and var_name.startswith(self.negative_filter_var_prefix)
 
     def _handle_fill_value(self, data_arr: xr.DataArray) -> Any:
         if "_FillValue" in data_arr.attrs and not np.issubdtype(data_arr.dtype, np.floating):
