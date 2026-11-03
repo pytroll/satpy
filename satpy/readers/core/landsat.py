@@ -15,10 +15,13 @@ Details of the data format can be found here:
 NOTE: The scene geometry data (SZA, VZA, SAA, VAA) is retrieved from the L1 TIFF files, which are derived from Band 04.
 The geometry differs between bands, so if you need precise geometry you should calculate this from the metadata instead.
 
+NOTE: The L1 reflectance coefficients from the metadata do not include the solar zenith angle, so the L1 readers
+provide 'unnormalized_reflectance'. The L2 surface reflectance is already normalized, so the L2 readers provide
+'reflectance'.
+
 """
 
 import logging
-import warnings
 from datetime import datetime, timezone
 
 import dask.array as da
@@ -245,8 +248,10 @@ class BaseLandsatL1Reader(BaseLandsatReader):
             data.data = data.data.astype(np.float32) * 100
             # 8< v1.0
             if calibration == "reflectance":
+                import warnings
+
                 warnings.warn(
-                    "The 'reflectance' calibration for OLI is missing Solar Zenith Angle (SZA) "
+                    "The 'reflectance' calibration for Landsat L1 is missing Solar Zenith Angle (SZA) "
                     "normalization and is actually unnormalized reflectance. To reflect this, "
                     "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
                     "The underlying data remain identical.",
@@ -269,18 +274,9 @@ class BaseLandsatL2Reader(BaseLandsatReader):
         if calibration == "counts":
             return data
 
-        if calibration in [
-            # 8< v1.0
-            "reflectance",
-            # >8 v1.0
-            "unnormalized_reflectance",
-            "brightness_temperature"]:
+        if calibration in ["reflectance", "brightness_temperature"]:
             data.data = data.data * self.calinfo[self.channel][0] + self.calinfo[self.channel][1]
-            if calibration in [
-                # 8< v1.0
-                "reflectance",
-                # >8 v1.0
-                "unnormalized_reflectance"]:
+            if calibration == "reflectance":
                 data.data = data.data * 100
             data.data = data.data.astype(np.float32)
             return data

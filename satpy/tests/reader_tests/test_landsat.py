@@ -492,6 +492,20 @@ def get_filename_info(date, level_correction, spacecraft, data_type):
                 collection_id="02")
 
 
+l1_reader_params = [
+    pytest.param("oli_tirs_l1_tif", lf("oli_tirs_l1_all_files"), id="oli_tirs_l1"),
+    pytest.param("etm_l1_tif", lf("etm_l1_all_files"), id="etm_l1"),
+    pytest.param("tm_l1_tif", lf("tm_l1_all_files"), id="tm_l1"),
+    pytest.param("mss_l1_tif", lf("mss_l1_landsat1_all_files"), id="mss_l1_landsat1"),
+    pytest.param("mss_l1_tif", lf("mss_l1_landsat4_all_files"), id="mss_l1_landsat4"),
+]
+l2_reader_params = [
+    pytest.param("oli_tirs_l2_tif", lf("oli_tirs_l2_all_files"), id="oli_tirs_l2"),
+    pytest.param("etm_l2_tif", lf("etm_l2_all_files"), id="etm_l2"),
+    pytest.param("tm_l2_tif", lf("tm_l2_all_files"), id="tm_l2"),
+]
+
+
 class TestLandsat:
     """Test Landsat image readers."""
 
@@ -997,7 +1011,8 @@ class TestLandsat:
         if "_l2_" in reader:
             assert scn[spectral_name].attrs["standard_name"] == "surface_bidirectional_reflectance"
         else:
-            assert scn[spectral_name].attrs["standard_name"] == "toa_bidirectional_reflectance"
+            assert scn[spectral_name].attrs["standard_name"] == \
+                "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance"
         np.testing.assert_allclose(np.array(scn[spectral_name].values), np.array(exp_spectral), rtol=1e-4)
 
         if thermal_name is not None:
@@ -1025,13 +1040,15 @@ class TestLandsat:
     @staticmethod
     def _get_scn_highlevel(reader, all_files, spectral_name, thermal_name, sza_rad_name):
         scn = Scene(reader=reader, filenames=all_files)
+        # L1 top-of-atmosphere reflectance is not normalized by the solar zenith angle,
+        # while L2 surface reflectance is
+        spectral_calibration = "reflectance" if "_l2_" in reader else "unnormalized_reflectance"
+        scn.load([spectral_name], calibration=spectral_calibration)
         if thermal_name is not None:
             if "_l2_" in reader:
-                scn.load([spectral_name, thermal_name, sza_rad_name])
+                scn.load([thermal_name, sza_rad_name])
             else:
-                scn.load([spectral_name, thermal_name])
-        else:
-            scn.load([spectral_name])
+                scn.load([thermal_name])
         return scn
 
     @staticmethod
@@ -1046,6 +1063,47 @@ class TestLandsat:
             assert scn[sza_rad_name].attrs["units"] == "W m-2 um-1 sr-1"
             assert scn[sza_rad_name].attrs["standard_name"] == "toa_outgoing_radiance_per_unit_wavelength"
             np.testing.assert_allclose(scn[sza_rad_name].values, exp_rad, rtol=1e-6)
+
+    @pytest.mark.parametrize(("reader", "all_files"), l1_reader_params + l2_reader_params)
+    def test_unnormalized_reflectance_availability(self, reader, all_files):
+        """Test that every L1 reflective band, and no L2 band, has the unnormalized reflectance calibration."""
+        scn = Scene(reader=reader, filenames=all_files)
+        unnormalized_bands = self._bands_with_calibration(scn, "unnormalized_reflectance")
+        if "_l2_" in reader:
+            assert not unnormalized_bands
+        else:
+            # Every L1 band has radiance, and the reflective bands are the ones without brightness temperature
+            reflective_bands = (self._bands_with_calibration(scn, "radiance") -
+                                self._bands_with_calibration(scn, "brightness_temperature"))
+            assert reflective_bands
+            assert unnormalized_bands == reflective_bands
+
+    @staticmethod
+    def _bands_with_calibration(scn, calibration):
+        return {data_id["name"] for data_id in scn.all_dataset_ids() if data_id.get("calibration") == calibration}
+
+    # 8< v1.0
+    @pytest.mark.parametrize(("reader", "all_files"), l1_reader_params)
+    def test_l1_reflectance_deprecated(self, reader, all_files):
+        """Test that L1 'reflectance' is deprecated and returns the unnormalized reflectance."""
+        scn = Scene(reader=reader, filenames=all_files)
+        scn.load(["B4"], calibration="unnormalized_reflectance")
+        deprecated_scn = Scene(reader=reader, filenames=all_files)
+        with pytest.warns(DeprecationWarning, match="'reflectance' calibration for Landsat L1"):
+            deprecated_scn.load(["B4"], calibration="reflectance")
+
+        assert deprecated_scn["B4"].attrs["standard_name"] == "toa_bidirectional_reflectance"
+        np.testing.assert_array_equal(deprecated_scn["B4"].values, scn["B4"].values)
+
+    @pytest.mark.filterwarnings("error:The 'reflectance' calibration:DeprecationWarning")
+    @pytest.mark.parametrize(("reader", "all_files"), l2_reader_params)
+    def test_l2_reflectance_not_deprecated(self, reader, all_files):
+        """Test that L2 surface reflectance is already normalized, so its 'reflectance' is not deprecated."""
+        scn = Scene(reader=reader, filenames=all_files)
+        scn.load(["B4"], calibration="reflectance")
+
+        assert scn["B4"].attrs["standard_name"] == "surface_bidirectional_reflectance"
+    # >8 v1.0
 
     @pytest.mark.parametrize(
         ("reader", "all_files"),
