@@ -204,7 +204,7 @@ def test_available_datasets(tmp_path):
     ],
 )
 @pytest.mark.parametrize(
-    "filter_by_error_flag",
+    "error_flags_to_keep",
     [
         None,
         {},
@@ -218,17 +218,17 @@ def test_available_datasets(tmp_path):
 )
 @pytest.mark.parametrize("filter_negative_so2", [False, True])
 @pytest.mark.parametrize("filter_eclipse", [False, True])
-def test_basic_load(tmp_path, file_func, vars_to_load, filter_by_error_flag, filter_negative_so2, filter_eclipse):
+def test_basic_load(tmp_path, file_func, vars_to_load, error_flags_to_keep, filter_negative_so2, filter_eclipse):
     """Test basic load from multiple files."""
     from satpy.tests.utils import assert_maximum_dask_computes
 
     # parametrized objects are shared between tests and defaultdict lookups insert keys
     # copy so every test starts with the original (possibly empty and falsy) mapping
-    filter_by_error_flag = copy.copy(filter_by_error_flag)
+    error_flags_to_keep = copy.copy(error_flags_to_keep)
     one_file = file_func(tmp_path, START_TIME1)
     two_file = file_func(tmp_path, START_TIME1 + datetime.timedelta(seconds=90))
     reader_kwargs = {
-        "filter_by_error_flag": filter_by_error_flag,
+        "error_flags_to_keep": error_flags_to_keep,
         "filter_negative_so2": filter_negative_so2,
         "filter_eclipse": filter_eclipse,
     }
@@ -241,7 +241,7 @@ def test_basic_load(tmp_path, file_func, vars_to_load, filter_by_error_flag, fil
         _check_expected_array(
             loaded_dict[var_name],
             num_granules=2,
-            filter_by_error_flag=filter_by_error_flag,
+            error_flags_to_keep=error_flags_to_keep,
             filter_negative_so2=filter_negative_so2,
             filter_eclipse=filter_eclipse,
         )
@@ -266,7 +266,7 @@ def test_missing_eclipse_flag(tmp_path):
 def _check_expected_array(
     data_arr: xr.DataArray,
     num_granules: int = 2,
-    filter_by_error_flag: None | Mapping[str, Sequence[int]] = None,
+    error_flags_to_keep: None | Mapping[str, Sequence[int]] = None,
     filter_negative_so2: bool = False,
     filter_eclipse: bool = False,
 ) -> None:
@@ -287,7 +287,7 @@ def _check_expected_array(
     is_so2 = var_name.startswith("s_ColumnamountSO2")
     expected_nans = _expected_nan_mask(
         num_granules,
-        _error_flag_values_for_var(filter_by_error_flag, var_name),
+        _error_flag_values_for_var(error_flags_to_keep, var_name),
         filter_negative_so2 and is_so2,
         filter_eclipse,
     )
@@ -306,12 +306,12 @@ def _check_expected_array(
 
 
 def _error_flag_values_for_var(
-    filter_by_error_flag: None | Mapping[str, Sequence[int]], var_name: str
+    error_flags_to_keep: None | Mapping[str, Sequence[int]], var_name: str
 ) -> None | Sequence[int]:
-    if filter_by_error_flag is None:
+    if error_flags_to_keep is None:
         return None
     try:
-        return filter_by_error_flag[var_name]
+        return error_flags_to_keep[var_name]
     except KeyError:
         return None
 

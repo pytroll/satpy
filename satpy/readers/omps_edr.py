@@ -8,33 +8,36 @@ Error Flag Filtering
 ^^^^^^^^^^^^^^^^^^^^
 
 The Total Ozone (V8TOZ) and Total SO2 (V8TOS) files include a variable called
-"ErrorFlag" with values marking various retrieval conditions. It is possible to
-filter out any pixels not matching certain values of this ErrorFlag variable.
-Since the same ErrorFlag variable is used for every product in a file, but
-different products may need different values to be considered valid, the
-``filter_by_error_flag`` keyword argument is a mapping of variable name to the
-"ErrorFlag" values to keep (preserve) for that variable.
+"ErrorFlag" with values marking various retrieval conditions. The
+``error_flags_to_keep`` keyword argument keeps only the pixels whose
+"ErrorFlag" value is one of the listed values and sets every other pixel to
+the fill value (NaN). The same "ErrorFlag" variable is used for every product
+in a file, but different products may need different "ErrorFlag" values to be
+considered valid. So ``error_flags_to_keep`` is a mapping of variable name to
+the "ErrorFlag" values to keep for that variable.
 
 .. code-block:: python
 
-   error_flag_filters = {
+   error_flags_to_keep = {
        "ColumnAmountO3": [0, 1, 2],
        "s_ColumnamountSO2_STL": [0, 1, 5],
    }
-   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": error_flag_filters})
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"error_flags_to_keep": error_flags_to_keep})
 
-Variables not in the mapping are not filtered by "ErrorFlag". To apply the
-same filtering to every variable use a :class:`collections.defaultdict`:
+In this example any "ColumnAmountO3" pixel whose "ErrorFlag" is not 0, 1, or 2
+is set to NaN. Only the variables in the mapping are filtered by "ErrorFlag".
+To apply the same filtering to every variable use a
+:class:`collections.defaultdict`:
 
 .. code-block:: python
 
    from collections import defaultdict
-   error_flag_filters = defaultdict(lambda: [0, 1])
-   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"filter_by_error_flag": error_flag_filters})
+   error_flags_to_keep = defaultdict(lambda: [0, 1])
+   scn = Scene(reader="omps_edr", filenames=[...], reader_kwargs={"error_flags_to_keep": error_flags_to_keep})
 
 Geolocation variables (longitude and latitude) are never filtered. By default
-no filtering is done related to "ErrorFlag". Refer to algorithm documentation
-for more details on the "ErrorFlag" variable.
+no "ErrorFlag" filtering is done. Refer to algorithm documentation for more
+details on the "ErrorFlag" variable.
 
 Eclipse Filtering
 ^^^^^^^^^^^^^^^^^
@@ -111,7 +114,7 @@ class EDRFileHandler(BaseFileHandler):
         filename,
         filename_info,
         filetype_info,
-        filter_by_error_flag: Mapping[str, Sequence[int]] | None = None,
+        error_flags_to_keep: Mapping[str, Sequence[int]] | None = None,
         filter_negative_so2: bool = False,
         filter_eclipse: bool = False,
         **kwargs,
@@ -120,7 +123,7 @@ class EDRFileHandler(BaseFileHandler):
         super(EDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         # don't copy the mapping so special mappings like a defaultdict are preserved
-        self.filter_by_error_flag = filter_by_error_flag
+        self.error_flags_to_keep = error_flags_to_keep
         self.filter_negative_so2 = filter_negative_so2
         self.filter_eclipse = filter_eclipse
 
@@ -244,11 +247,11 @@ class EDRFileHandler(BaseFileHandler):
 
     def _error_flag_values_to_keep(self, var_name: str) -> Sequence[int] | None:
         # NOTE: An empty defaultdict is falsy so explicitly check for None
-        if self.filter_by_error_flag is None:
+        if self.error_flags_to_keep is None:
             return None
         try:
             # use __getitem__ so things like defaultdict produce their default
-            return self.filter_by_error_flag[var_name]
+            return self.error_flags_to_keep[var_name]
         except KeyError:
             return None
 
