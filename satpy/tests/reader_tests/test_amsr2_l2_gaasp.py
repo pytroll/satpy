@@ -30,16 +30,12 @@ EXAMPLE_FILENAMES = [
 
 SEAICE_FILL = -9999
 SEAICE_NO_DATA_FLAG = 120
-SEAICE_NO_DATA_LATENCY = 2000
-# Kinds of pixels in a SEAICE file as (ice concentration, Flags, Latency).
-# "unobserved_good" is not in our real example files, but it is the one case
-# where the swath filter removes something the quality filter doesn't.
+# Kinds of pixels in a SEAICE file as (ice concentration, Flags)
 SEAICE_PIXELS = {
-    "observed_good": (80, 0, 1),
-    "observed_flagged": (20, 8, 2),
-    "unobserved_water": (0, 4, SEAICE_FILL),
-    "unobserved_filled": (60, 32, SEAICE_FILL),
-    "unobserved_good": (0, 0, SEAICE_FILL),
+    "good": (80, 0),
+    "weather": (20, 8),
+    "sst_missing": (0, 4),
+    "filled": (60, 32),
 }
 
 
@@ -218,11 +214,10 @@ def _create_seaice_var(pixel_values, no_data_value, dtype, **attrs):
 def _create_fake_seaice_file(filename):
     """Create a Dataset similar to reading an actual SEAICE file with each kind of pixel in it."""
     ds = _create_gridded_gaasp_dataset(filename)
-    ice_values, flag_values, latency_values = zip(*SEAICE_PIXELS.values())
+    ice_values, flag_values = zip(*SEAICE_PIXELS.values())
     ds["NASA_Team_2_Ice_Concentration"] = _create_seaice_var(ice_values, SEAICE_FILL, np.int32, units="1")
     ds["NASA_Team_2_Multiyear_Ice"] = _create_seaice_var(ice_values, SEAICE_FILL, np.int32, units="1")
     ds["Flags"] = _create_seaice_var(flag_values, SEAICE_NO_DATA_FLAG, np.int16, units="1", comment="0: good")
-    ds["Latency"] = _create_seaice_var(latency_values, SEAICE_NO_DATA_LATENCY, np.int32, units="seconds")
     ds.to_netcdf(filename)
 
 
@@ -426,52 +421,35 @@ class TestGAASPReader:
         ],
     )
     @pytest.mark.parametrize(
-        ("filter_quality", "filter_swath", "expected_pixels"),
+        ("filter_sea_ice", "expected_pixels"),
         [
-            (False, False, list(SEAICE_PIXELS)),
-            (True, False, ["observed_good", "unobserved_good"]),
-            (False, True, ["observed_good", "observed_flagged"]),
-            (True, True, ["observed_good"]),
+            (False, list(SEAICE_PIXELS)),
+            (True, ["good"]),
         ],
     )
-    def test_sea_ice_filtering(self, tmp_path, filename, var_suffix, filter_quality, filter_swath, expected_pixels):
-        """Test that sea ice concentration can be filtered by quality and swath."""
+    def test_sea_ice_filtering(self, tmp_path, filename, var_suffix, filter_sea_ice, expected_pixels):
+        """Test that sea ice concentration can be filtered."""
         _create_fake_seaice_file(tmp_path / filename)
         var_name = "NASA_Team_2_Ice_Concentration" + var_suffix
-        loaded_data_arrs = self._load_with_filters(
-            tmp_path / filename,
-            [var_name],
-            filter_sea_ice_quality=filter_quality,
-            filter_sea_ice_swath=filter_swath,
-        )
+        loaded_data_arrs = self._load_with_filters(tmp_path / filename, [var_name], filter_sea_ice=filter_sea_ice)
         data_arr = loaded_data_arrs[var_name]
         assert isinstance(data_arr.data, da.Array)
         self._check_attrs(data_arr)
         data = data_arr.data.compute()
         np.testing.assert_array_equal(~np.isnan(data), _expected_seaice_valid_mask(expected_pixels))
-        assert data[0, 0] == SEAICE_PIXELS["observed_good"][0]
+        assert data[0, 0] == SEAICE_PIXELS["good"][0]
 
     def test_sea_ice_filtering_only_applies_to_ice_concentration(self, tmp_path):
         """Test that other variables in the SEAICE files are not filtered."""
         _create_fake_seaice_file(tmp_path / SEAICE_NH_FILENAME)
-        names = ["NASA_Team_2_Multiyear_Ice_NH", "Flags_NH", "Latency_NH"]
+        names = ["NASA_Team_2_Multiyear_Ice_NH", "Flags_NH"]
         unfiltered = self._load_with_filters(tmp_path / SEAICE_NH_FILENAME, names)
-        filtered = self._load_with_filters(
-            tmp_path / SEAICE_NH_FILENAME,
-            names,
-            filter_sea_ice_quality=True,
-            filter_sea_ice_swath=True,
-        )
+        filtered = self._load_with_filters(tmp_path / SEAICE_NH_FILENAME, names, filter_sea_ice=True)
         for name in names:
             np.testing.assert_array_equal(filtered[name].data.compute(), unfiltered[name].data.compute())
 
-    def test_sea_ice_filters_accepted_by_non_seaice_files(self, tmp_path):
-        """Test that all file types accept the sea ice filters as they are given to every file handler."""
+    def test_sea_ice_filter_accepted_by_non_seaice_files(self, tmp_path):
+        """Test that all file types accept the sea ice filter as it is given to every file handler."""
         _create_fake_ocean_wind_speed_file(tmp_path / OCEAN_FILENAME)
-        loaded_data_arrs = self._load_with_filters(
-            tmp_path / OCEAN_FILENAME,
-            ["WSPD"],
-            filter_sea_ice_quality=True,
-            filter_sea_ice_swath=True,
-        )
+        loaded_data_arrs = self._load_with_filters(tmp_path / OCEAN_FILENAME, ["WSPD"], filter_sea_ice=True)
         assert not np.isnan(loaded_data_arrs["WSPD"].data.compute()).any()
