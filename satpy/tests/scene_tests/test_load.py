@@ -242,10 +242,7 @@ class TestLoadingReaderDatasets:
         scene.load(["ds5"], resolution=500)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]["name"] == "ds5"
-        assert loaded_ids[0]["resolution"] == 500
-        assert loaded_ids[1]["name"] == "ds5"
-        assert loaded_ids[1]["resolution"] == 1000
+        assert {(ds_id["name"], ds_id["resolution"]) for ds_id in loaded_ids} == {("ds5", 500), ("ds5", 1000)}
 
     def test_load_ds6_wl(self):
         """Test loading a dataset by wavelength."""
@@ -311,10 +308,7 @@ class TestLoadingComposites:
 
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]["name"] == "comp25"
-        assert loaded_ids[0]["resolution"] == 500
-        assert loaded_ids[1]["name"] == "comp25"
-        assert loaded_ids[1]["resolution"] == 1000
+        assert {(ds_id["name"], ds_id["resolution"]) for ds_id in loaded_ids} == {("comp25", 500), ("comp25", 1000)}
 
     def test_load_same_subcomposite(self):
         """Test loading a composite and one of it's subcomposites at the same time."""

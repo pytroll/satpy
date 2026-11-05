@@ -1,8 +1,17 @@
 """Classes and functions related to a dictionary with DataID keys."""
 
+import warnings
+
 import numpy as np
 
 from .dataid import DataID, create_filtered_query, minimal_default_keys_config
+
+# 8< v1.0
+_KEYS_KWARGS_WARNING = (
+    "The 'names' and 'wavelengths' keyword arguments to 'keys()' are deprecated and will be removed in "
+    "Satpy 1.0. Use 'data_id.get(\"name\")' or 'data_id.get(\"wavelength\")' on each key instead."
+)
+# >8 v1.0
 
 
 class TooManyResults(KeyError):
@@ -111,16 +120,23 @@ class DatasetDict(dict):
 
     """
 
+    # 8< v1.0
     def keys(self, names=False, wavelengths=False):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(DatasetDict, self).keys())
-        if names:
-            return (k.get("name") for k in keys)
-        elif wavelengths:
+        """Give currently contained keys.
+
+        The ``names`` and ``wavelengths`` keyword arguments are deprecated
+        and will be removed in Satpy 1.0.
+
+        """
+        if names or wavelengths:
+            warnings.warn(_KEYS_KWARGS_WARNING, UserWarning, stacklevel=2)
+            # sort keys so things are a little more deterministic (.keys() is not)
+            keys = sorted(super(DatasetDict, self).keys())
+            if names:
+                return (k.get("name") for k in keys)
             return (k.get("wavelength") for k in keys)
-        else:
-            return keys
+        return super(DatasetDict, self).keys()
+    # >8 v1.0
 
     def get_key(self, match_key, num_results=1, best=True, **dfilter):  # noqa: D417
         """Get multiple fully-specified keys that match the provided query.
