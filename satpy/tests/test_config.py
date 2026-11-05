@@ -125,9 +125,9 @@ def _get_entry_points_and_etc_paths(
     return etc_path, entry_points, entry_point_module_paths
 
 
-def _create_fake_iter_entry_points(entry_points: dict[str, list[EntryPoint]]) -> Callable[[], dict[str, EntryPoint]]:
-    def _fake_iter_entry_points() -> dict:
-        return entry_points
+def _create_fake_iter_entry_points(entry_points: dict[str, list[EntryPoint]]) -> Callable[[str], list[EntryPoint]]:
+    def _fake_iter_entry_points(group: str) -> list[EntryPoint]:
+        return entry_points.get(group, [])
     return _fake_iter_entry_points
 
 
