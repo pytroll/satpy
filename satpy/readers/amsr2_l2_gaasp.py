@@ -22,10 +22,19 @@ Data Quality Filtering
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Some variables can be filtered based on Quality Control (QC) variables in the
-data files. At the time of writing the only supported filtering is the "WSPD"
-variable from the "OCEAN" files using the "WSPD_QC" variable. Where the QC
-variable is non-zero the WSPD data is set to NaN. By default no filtering is
-applied. To enable filtering pass the keyword arguments to the ``Scene``::
+data files. Filtered pixels are set to NaN. The supported filters are:
+
+* ``filter_wind_speed``: Filter the "WSPD" variable from the "OCEAN" files
+  where the "WSPD_QC" variable is non-zero.
+* ``filter_sea_ice_quality``: Filter the "NASA_Team_2_Ice_Concentration"
+  variable from the "SEAICE" files where the "Flags" variable is non-zero.
+* ``filter_sea_ice_swath``: Filter the gridded "NASA_Team_2_Ice_Concentration"
+  variable from the "SEAICE" files where the pixel is outside the instrument
+  swath. These are the pixels where the "Latency" variable is either its fill
+  value or 2000.
+
+By default no filtering is applied. To enable filtering pass the keyword
+arguments to the ``Scene``::
 
     scn = Scene(reader="amsr2_l2_gaasp", filenames=[...],
                 reader_kwargs={"filter_wind_speed": True})
@@ -72,10 +81,13 @@ class GAASPFileHandler(BaseFileHandler):
         "Number_of_low_rez_FOVs": 10000,
     }
 
-    def __init__(self, filename, filename_info, filetype_info, filter_wind_speed=False):
+    def __init__(self, filename, filename_info, filetype_info, filter_wind_speed=False,
+                 filter_sea_ice_quality=False, filter_sea_ice_swath=False):
         """Initialize file reading and store filter keyword arguments."""
         super().__init__(filename, filename_info, filetype_info)
         self.filter_wind_speed = filter_wind_speed
+        self.filter_sea_ice_quality = filter_sea_ice_quality
+        self.filter_sea_ice_swath = filter_sea_ice_swath
 
     @cached_property
     def nc(self):
@@ -191,6 +203,12 @@ class GAASPFileHandler(BaseFileHandler):
         if orig_var_name == "WSPD" and self.filter_wind_speed:
             wspd_qc = self.nc["WSPD_QC"]
             data_arr = data_arr.where(wspd_qc == 0)
+        if orig_var_name == "NASA_Team_2_Ice_Concentration" and self.filter_sea_ice_quality:
+            data_arr = data_arr.where(self.nc["Flags"] == 0)
+        if orig_var_name == "NASA_Team_2_Ice_Concentration" and self.filter_sea_ice_swath:
+            latency = self.nc["Latency"]
+            # Raw values: -9999 fill and the 2000 sentinel both mean "not observed"
+            data_arr = data_arr.where((latency >= 0) & (latency < 2000))
         return data_arr
 
 
