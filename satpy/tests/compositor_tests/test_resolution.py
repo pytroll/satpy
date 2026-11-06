@@ -209,7 +209,8 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         # Three shades of grey
         rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
         rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
-                           dims=["bands", "y", "x"], coords={"bands": ["R", "G", "B"]})
+                           dims=["bands", "y", "x"], coords={"bands": ["R", "G", "B"]},
+                           attrs={"standard_name": "image_ready"})
         # 100 % luminance -> all result values ~1.0
         lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
                            dims=["y", "x"])

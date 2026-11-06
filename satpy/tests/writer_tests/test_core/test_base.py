@@ -30,6 +30,7 @@ class TestBaseWriter:
             dims=("y", "x"),
             attrs={
                 "name": "test",
+                "standard_name": "image_ready",
                 "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                 "sensor": "fake_sensor",
                 "area": adef,

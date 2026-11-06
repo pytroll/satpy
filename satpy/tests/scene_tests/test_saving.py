@@ -41,6 +41,7 @@ class TestSceneSaving:
             da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
+                   "standard_name": "image_ready",
                    "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                    "area": fake_area,
             }
@@ -50,12 +51,13 @@ class TestSceneSaving:
         scn.save_datasets(base_dir=tmp_path)
         assert os.path.isfile(os.path.join(tmp_path, "test_20180101_000000.tif"))
 
-    def test_save_datasets_by_ext(self, tmp_path):
+    def test_save_datasets_by_ext(self, tmp_path, fake_area):
         """Save a dataset using 'save_datasets' with 'filename'."""
         ds1 = xr.DataArray(
             da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
+                   "standard_name": "image_ready",
                    "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                    "area": fake_area,
             }
@@ -104,6 +106,7 @@ class TestSceneSaving:
             da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
+                   "standard_name": "image_ready",
                    "start_time": dt.datetime(2018, 1, 1, 0, 0, 0),
                    "area": fake_area,
             }
