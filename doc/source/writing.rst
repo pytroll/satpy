@@ -55,6 +55,10 @@ One common parameter across almost all Writers is ``filename`` and
       - :class:`ninjogeotiff <satpy.writers.ninjogeotiff.NinJoGeoTIFFWriter>`
       - Beta
       -
+    * - Zarr
+      - :class:`zarr <satpy.writers.zarr.ZarrWriter>`
+      - Beta
+      - :mod:`Usage example <satpy.writers.zarr>`
 
 Available Writers
 =================

@@ -219,7 +219,7 @@ class TestCFArea:
     @pytest.mark.parametrize("dims", [("y", "x"), ("bands", "y", "x")])
     def test_add_lonlat_coords(self, dims):
         """Test the conversion from areas to lon/lat."""
-        from satpy.cf.area import _add_lonlat_coords
+        from satpy.cf.area import add_lonlat_coords
 
         width, height = (2, 2) if len(dims) == 2 else (10, 10)
         area = AreaDefinition(
@@ -240,7 +240,7 @@ class TestCFArea:
                 attrs={"area": area},
             )
 
-        res = _add_lonlat_coords(data_arr)
+        res = add_lonlat_coords(data_arr)
 
         # original should be unmodified
         assert "longitude" not in data_arr.coords

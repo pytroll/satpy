@@ -8,7 +8,7 @@ from pyresample.geometry import AreaDefinition, SwathDefinition
 logger = logging.getLogger(__name__)
 
 
-def _add_lonlat_coords(data_arr: xr.DataArray) -> xr.DataArray:
+def add_lonlat_coords(data_arr: xr.DataArray) -> xr.DataArray:
     """Add 'longitude' and 'latitude' coordinates to DataArray."""
     data_arr = data_arr.copy()
     area = data_arr.attrs["area"]
@@ -55,7 +55,7 @@ def area2cf(data_arr: xr.DataArray, include_lonlats: bool = False, got_lonlats: 
     include_lonlats = include_lonlats or isinstance(data_arr.attrs["area"], SwathDefinition)
     is_area_def = isinstance(data_arr.attrs["area"], AreaDefinition)
     if not got_lonlats and include_lonlats:
-        data_arr = _add_lonlat_coords(data_arr)
+        data_arr = add_lonlat_coords(data_arr)
     if is_area_def:
         data_arr, gmapping = _add_grid_mapping(data_arr)
         res.append(gmapping)
