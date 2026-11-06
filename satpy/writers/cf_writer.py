@@ -73,6 +73,13 @@ Dataset encoding can be specified in two ways:
     >>> scn['my_dataset'].encoding = {'compression': 'zlib'}
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
 
+The ``encoding`` keyword argument takes precedence over the ``encoding`` attribute key by key, except that
+compression (``zlib``, ``compression``, ``complevel``) and chunking (``chunksizes``, ``contiguous``) are each
+taken from only one of them. Both take precedence over the writer's defaults, which use the dask chunks as
+netCDF chunk sizes and encode times relative to ``epoch``. From the ``encoding`` attribute, keys that xarray
+can't write (e.g. ``source`` or ``original_shape`` from reading a file), ``contiguous`` and chunk sizes that
+don't fit the data anymore are ignored.
+
 See the `xarray encoding documentation`_ for all encoding options.
 
 .. note::
