@@ -307,16 +307,47 @@ composites:
       surface terrain layer with city lights (NASA Black Marble).
     references:
       Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
-    lim_low: 78
+    lim_low: 82
     lim_high: 88
     standard_name: geo_color_day_night_blend
     prerequisites:
       - true_color
       - geo_color_night
 
+  geo_color_no_lights:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the background city lights (black marble).
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color
+      - geo_color_night_no_lights
+
+  geo_color_no_blue:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the blue colorization of low-level clouds.
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color
+      - geo_color_night_no_blue
+
+  geo_color_city_lights:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    standard_name: geo_color_city_lights
+    prerequisites:
+      - name: _night_background_hires
+
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
-    compositor: !!python/name:satpy.composites.mask.HighCloudCompositor
+    compositor: !!python/name:satpy.composites.mask.CloudCompositor
+    transition_min: 190
+    transition_max: 300
+    transition_gamma: 1.0
     prerequisites:
       - name: ir_105
 
@@ -325,8 +356,6 @@ composites:
     compositor: !!python/name:satpy.composites.mask.LowCloudCompositor
     values_water: 0
     values_land: 100
-    range_water: [0.0, 4.0]
-    range_land: [1.5, 4.0]
     prerequisites:
       - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
         prerequisites:
@@ -337,13 +366,19 @@ composites:
         standard_name: land_water_mask
         url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
         known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+    optional_prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: ir_105
+          - name: ir_87
+      - satellite_zenith_angle
 
   geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background
     prerequisites:
       - geo_color_low_clouds
-      - _night_background_hires
+      - geo_color_city_lights
 
   geo_color_night:
     compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
@@ -351,6 +386,34 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+
+  geo_color_black:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    standard_name: geo_color_black
+    prerequisites:
+      - ir_105
+
+  geo_color_black_with_low_clouds:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - geo_color_black
+
+  geo_color_night_no_lights:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_black_with_low_clouds
+
+  geo_color_night_no_blue:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_city_lights
 
   ### IR-Sandwich
   ir_sandwich:
