@@ -1,8 +1,8 @@
 reader:
   name: nwcsaf-pps_nc-remapped
   short_name: NWCSAF PPS
-  long_name: NWCSAF PPS products in netCDF4 format
-  description: NetCDF4 reader for the NWCSAF/PPS 2014 format
+  long_name: NWCSAF PPS products in netCDF4 format - results of running PPS on remapped (Meteosat SEVIRI/FCI) data
+  description: NetCDF4 reader for the NWCSAF/PPS format
   status: Alpha, only standard swath based ouput supported (remapped netCDF and CPP products not supported yet)
   supports_fsspec: false
   sensors: ['fci', 'seviri', 'avhrr-3', 'viirs', 'modis']
