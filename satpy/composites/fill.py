@@ -27,7 +27,8 @@ class FillingCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(projectables,
+                                              drop_coordinates=False)
         projectables[1] = projectables[1].fillna(projectables[0])
         projectables[2] = projectables[2].fillna(projectables[0])
         projectables[3] = projectables[3].fillna(projectables[0])
@@ -39,7 +40,8 @@ class Filler(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(projectables,
+                                              drop_coordinates=False)
         filled_projectable = projectables[0].fillna(projectables[1])
         return super(Filler, self).__call__([filled_projectable], **info)
 
@@ -99,7 +101,7 @@ class DayNightCompositor(GenericCompositor):
             **attrs
     ) -> xr.DataArray:
         """Generate the composite."""
-        datasets = self.match_data_arrays(datasets)
+        datasets = self.match_data_arrays(datasets, drop_coordinates=False)
         # At least one composite is requested.
         foreground_data = datasets[0]
         weights = self._get_coszen_blending_weights(datasets)
@@ -235,7 +237,14 @@ class DayNightCompositor(GenericCompositor):
                 night_band = night_band * (1 - weights)
             band = day_band + night_band
             band.attrs = attrs
+            # in theory, combining the times like the data values would be
+            # better, but averaging is good enough for any use case I can think
+            # of
+            time = self.combine_times([day_band, night_band])
+            if time is not None:
+                band.coords["time"] = time
             data.append(band)
+
         return data
 
     def _is_weightable(self, band):
