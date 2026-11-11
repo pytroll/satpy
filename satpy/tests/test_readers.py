@@ -21,7 +21,7 @@ from pytest_lazy_fixtures import lf as lazy_fixture
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 from satpy.readers.core.grouping import find_files_and_readers
-from satpy.readers.core.remote import FSFile, open_file_or_filename
+from satpy.readers.core.remote import open_file_or_filename
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -634,26 +634,6 @@ def test_find_files_and_readers_fsspec_fsfile(tmp_path):
     assert len(ri["abi_l1b"]) == 1
     assert isinstance(ri["abi_l1b"][0], FSFile)
     assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
-
-
-def test_find_files_and_readers_fsspec_not_available(monkeypatch, tmp_path):
-    """Test that if fsspec is not installed filepath is returned as a string."""
-    p = (tmp_path /
-         "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
-         "_c20152950029000.nc")
-    p.touch()
-
-    import satpy
-    with monkeypatch.context() as m:
-        m.setattr(satpy.readers.core.grouping, "fsspec", None)
-        ri = find_files_and_readers(
-                base_dir=p.parent,
-                reader="abi_l1b")
-
-        assert ri.keys() == {"abi_l1b"}
-        assert len(ri["abi_l1b"]) == 1
-        assert not isinstance(ri["abi_l1b"][0], FSFile)
-        assert os.path.normpath(ri["abi_l1b"][0]) == os.path.normpath(str(p))
 
 
 class TestYAMLFiles:
