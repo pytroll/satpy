@@ -5,10 +5,12 @@ import datetime as dt
 import logging
 import warnings
 
+import fsspec
 import yaml
 
 from .config import configs_for_reader
 from .loading import load_reader
+from .remote import FSFile
 
 LOG = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     Args:
         files_to_sort (Iterable): File paths to sort in to group
-        reader (str or Collection[str]): Reader or readers whose file patterns
+        reader (Union[str, Collection[str]]): Reader or readers whose file patterns
             should be used to sort files.  If not given, try all readers (slow,
             adding a list of readers is strongly recommended).
         time_threshold (int): Number of seconds used to consider time elements
@@ -33,7 +35,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             is used to group files then any time within `time_threshold`
             seconds of the first file's 'start_time' will be seen as occurring
             at the same time.
-        group_keys (list or tuple): File pattern information to use to group
+        group_keys (Union[list, tuple]): File pattern information to use to group
             files. Keys are sorted in order and only the first key is used when
             comparing datetime elements with `time_threshold` (see above). This
             means it is recommended that datetime values should only come from
@@ -57,7 +59,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             more readers have no files associated.
 
     Returns:
-        List of dictionaries mapping 'reader' to a list of filenames.
+        list[dict]: List of dictionaries mapping 'reader' to a list of filenames.
         Each of these dictionaries can be passed as ``filenames`` to
         a `Scene` object.
 
@@ -137,8 +139,12 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
 
     Internal helper for group_files.
 
+    Args:
+        reader_files (dict): {reader_name: (reader_instance, files_to_sort)}.
+        group_keys (Optional[tuple[str]]): keys to group by. Defaults to ``start_time``.
+
     Returns:
-        Mapping[str, List[Tuple[Tuple, str]]], as described.
+        Mapping[str, List[Tuple[Tuple, str]]]: As described above.
     """
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
@@ -177,14 +183,14 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):  # noqa: D417
     mapping a tuple of keys to a mapping of reader names to files.  The files
     listed in each list item are considered to be grouped within the same time.
 
+    Internal helper for group_files.
+
     Args:
         all_file_keys (Iterable): as returned by _get_file_keys_for_reader_files
         time_threshold (numbers.Number): temporal threshold in seconds
 
     Returns:
         List[Mapping[Tuple, Mapping[str, List[str]]]], as described
-
-    Internal helper for group_files.
     """
     # flatten to get an overall sorting; put the name in the middle in the
     # interest of sorting
@@ -290,6 +296,30 @@ def _get_keys_with_empty_values(grp):
     return empty
 
 
+def _assign_loadables_to_reader_name(fs, loadables, reader_instance_name, reader_files):
+    """Assign files (loadables) to reader names.
+
+    If a :class:`fsspec.spec.AbstractFileSystem` is passed the file pathes are converted to
+    :class:`FSFile` objects.
+
+    Args:
+        fs (:class:`fsspec.spec.AbstractFileSystem`): fsspec filesystem instance.
+        loadables (list[str]): List of filepathes.
+        reader_instance_name (str): Reader name.
+        reader_files (dict): Dictionary with list of filepathes associated with each reader name.
+
+    Returns:
+        dict: Dictionary with list of filepathes associated with each reader name.
+
+    """
+    if isinstance(fs, fsspec.spec.AbstractFileSystem):
+        reader_files[reader_instance_name] = [FSFile(fn, fs=fs) for fn in loadables]
+    else:
+        reader_files[reader_instance_name] = list(loadables)
+
+    return reader_files
+
+
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None,
                            filter_parameters=None, reader_kwargs=None,
@@ -304,9 +334,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     Files may be either on-disk or on a remote file system.  By default,
     files are searched for locally.  Users can search on remote filesystems by
-    passing an instance of an implementation of
-    `fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class
-    implementing a ``glob`` method works).
+    passing an instance of an implementation of :class:`fsspec.spec.AbstractFileSystem`
+    (strictly speaking, any object of a class implementing a ``glob`` method works).
+    Which for example can be generated with the conveniance function :func:`fsspec.filesystem`.
 
     If locating files on a local file system, the returned dictionary
     can be passed directly to the `Scene` object through the `filenames`
@@ -335,23 +365,21 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         start_time (datetime.datetime): Limit used files by starting time.
         end_time (datetime.datetime): Limit used files by ending time.
         base_dir (str): The directory to search for files containing the
-                        data to load. Defaults to the current directory.
-        reader (str or list): The name of the reader to use for loading the data or a list of names.
-        sensor (str or list): Limit used files by provided sensors.
+            data to load. Defaults to the current directory.
+        reader (Union[str, list[str]]): The name of the reader to use for loading the data or a list of names.
+        sensor (Union[str, list[str]]): Limit used files by provided sensors.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
-                                  automatically added to this dictionary. Shortcut for
-                                  `reader_kwargs['filter_parameters']`.
-        reader_kwargs (dict): Keyword arguments to pass to specific reader
-                              instances to further configure file searching.
-        missing_ok (bool): If False (default), raise ValueError if no files
-                            are found.  If True, return empty dictionary if no
-                            files are found.
-        fs (:class:`fsspec.spec.AbstractFileSystem`): Optional, instance of implementation of
-            :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing
-            ``.glob`` is enough).  Defaults to searching the local filesystem.
+            automatically added to this dictionary. Shortcut for `reader_kwargs['filter_parameters']`.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader instances to further
+            configure file searching.
+        missing_ok (bool): If False (default), raise ValueError if no files are found.  If True,
+            return empty dictionary if no files are found.
+        fs (:class:`fsspec.spec.AbstractFileSystem`, optional): Instance of implementation of
+            :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing ``.glob`` is
+            enough).  Defaults to searching the local filesystem.
 
     Returns:
-        dict: Dictionary mapping reader name string to list of filenames
+        dict: Dictionary mapping reader name string to list of string filenames or :class:`FSFile` objects
 
     """
     reader_files = {}
@@ -366,7 +394,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
                 base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
         sensor_supported = sensor_supported or this_sensor_supported
-        _update_reader_files(reader_files, reader_instance, loadables)
+        _update_reader_files(fs, reader_files, reader_instance, loadables)
 
     _check_sensor_status(sensor, sensor_supported)
     _check_reader_file_status(reader_files, missing_ok)
@@ -380,9 +408,10 @@ def _set_filter_times(filter_parameters, start_time, end_time):
         filter_parameters["end_time"] = end_time
 
 
-def _update_reader_files(reader_files, reader_instance, loadables):
+def _update_reader_files(fs, reader_files, reader_instance, loadables):
     if loadables:
-        reader_files[reader_instance.name] = list(loadables)
+        reader_files.update(_assign_loadables_to_reader_name(
+            fs, loadables, reader_instance.name, reader_files))
 
 
 def _check_sensor_status(sensor, sensor_supported):

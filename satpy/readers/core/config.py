@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections.abc import Collection
 
 import yaml
 from yaml.loader import BaseLoader, FullLoader, UnsafeLoader
@@ -24,9 +25,21 @@ OLD_READER_NAMES: dict[str, str] = {
     "viirs_l2_cloud_mask_nc": "viirs_edr"
 }
 
+PathArg = str | os.PathLike[str]
+YamlLoader = type[BaseLoader] | type[FullLoader] | type[UnsafeLoader]
 
-def read_reader_config(config_files, loader=UnsafeLoader):
-    """Read the reader `config_files` and return the extracted reader metadata."""
+def read_reader_config(
+        config_files: Collection[PathArg],
+        loader: YamlLoader=UnsafeLoader):
+    """Read the reader `config_files` and return the extracted reader metadata.
+
+    Args:
+        config_files: Filepaths to yaml config fils.
+        loader: The yaml loader to use defaults to `UnsafeLoader`
+
+    Returns:
+        dict: reader metadata
+    """
     reader_config = load_yaml_reader_configs(*config_files, loader=loader)
     return reader_config["reader"]
 
@@ -37,7 +50,7 @@ def configs_for_reader(reader=None):
     Args:
         reader (Optional[str]): Yield configs only for this reader
 
-    Returns: Generator of lists of configuration files
+    Yields: Lists of configuration files
 
     """
     config_files = _get_configs(reader)
@@ -74,7 +87,7 @@ def _get_configs(reader):
 
 def available_readers(
         as_dict: bool = False,
-        yaml_loader: type[BaseLoader] | type[FullLoader] | type[UnsafeLoader] = yaml.loader.UnsafeLoader,
+        yaml_loader: YamlLoader = yaml.loader.UnsafeLoader,
 ) -> list[str] | list[dict]:
     """Available readers based on current configuration.
 
@@ -105,8 +118,15 @@ def available_readers(
     return readers
 
 
-def get_valid_reader_names(reader):
-    """Check for old reader names or readers pending deprecation."""
+def get_valid_reader_names(reader: str) -> list:
+    """Check for old reader names or readers pending deprecation.
+
+    Args:
+        reader: Reader name.
+
+    Returns:
+        list: List of reader names.
+    """
     new_readers = []
     for reader_name in reader:
         if reader_name in OLD_READER_NAMES:
