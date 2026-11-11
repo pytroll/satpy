@@ -388,23 +388,12 @@ class NcNWCSAF(BaseFileHandler):
         dx = abs(float(x[1] - x[0]))
         dy = abs(float(y[1] - y[0]))
 
-        area_extent = (
-            float(x.min()) - dx / 2,
-            float(y.min()) - dy / 2,
-            float(x.max()) + dx / 2,
-            float(y.max()) + dy / 2,
-        )
+        area_extent = (float(x.min()) - dx / 2, float(y.min()) - dy / 2,
+                       float(x.max()) + dx / 2, float(y.max()) + dy / 2)
 
         nlines, ncols = variable.shape
 
-        return AreaDefinition(
-            "some_area_name",
-            "On-the-fly area",
-            "cf",
-            crs,
-            ncols,
-            nlines,
-            area_extent)
+        return AreaDefinition("some_area_name", "On-the-fly area", "cf", crs, ncols, nlines, area_extent)
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file."""
@@ -424,25 +413,17 @@ class NcNWCSAF(BaseFileHandler):
 
         nlines, ncols = variable.shape
 
-        return AreaDefinition(
-            "some_area_name",
-            "On-the-fly area",
-            "geosmsg",
-            crs,
-            ncols,
-            nlines,
-            area_extent)
+        return AreaDefinition("some_area_name", "On-the-fly area", "geosmsg",
+                              crs, ncols, nlines, area_extent)
 
     def _has_reduced_geolocation(self):
-        required = {
-            "nx_reduced",
-            "ny_reduced",
-            "lon_reduced",
-            "lat_reduced",
-        }
+        """Check if reduced geolocation is available."""
+        required = {"nx_reduced", "ny_reduced", "lon_reduced", "lat_reduced"}
+
         return required.issubset(self.nc.variables)
 
     def _has_cf_projection(self):
+        """Check if cf projection info is available."""
         return (
             "x" in self.nc.coords
             and "y" in self.nc.coords

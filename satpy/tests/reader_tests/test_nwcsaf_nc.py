@@ -120,11 +120,7 @@ def cf_projected_dataset():
     x = xmin + (np.arange(nx) + 0.5) * dx
     y = ymax - (np.arange(ny) + 0.5) * dy
 
-    data = xr.DataArray(
-        np.zeros((ny, nx)),
-        dims=("ny", "nx"),
-        attrs={"grid_mapping": "lambert_conformal_conic"},
-    )
+    data = xr.DataArray(np.zeros((ny, nx)), dims=("ny", "nx"), attrs={"grid_mapping": "lambert_conformal_conic"})
 
     grid_mapping = xr.DataArray(
         0,
