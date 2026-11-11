@@ -231,6 +231,48 @@ def test_fci_download(tmp_path, monkeypatch):
         assert os.path.exists(f)
 
 
+def _tar_file_member(name):
+    """Create a tar member for a small regular file containing its own name."""
+    content = name.encode()
+    info = tarfile.TarInfo(name)
+    info.size = len(content)
+    return info, io.BytesIO(content)
+
+
+def _fake_tarball_download(members):
+    """Create a replacement for demo.utils.download_url that writes a gzipped tar file with the given members."""
+    urls = []
+
+    def fake_download_url(url, target):
+        urls.append(url)
+        with tarfile.open(target, mode="x:gz") as tf:
+            for info, fileobj in members:
+                tf.addfile(info, fileobj)
+
+    return fake_download_url, urls
+
+
+def test_metimage_download(tmp_path):
+    """Test download and extraction of the METimage L1B demo data."""
+    import satpy
+    from satpy.demo import download_metimage_l1b_20261105_0926
+    from satpy.demo.metimage import FILENAMES_20261105_0926, ZENODO_TARBALL_URL
+
+    fake_download_url, urls = _fake_tarball_download([_tar_file_member(fn) for fn in FILENAMES_20261105_0926])
+    with mock.patch("satpy.demo.metimage.utils.download_url", new=fake_download_url):
+        files = download_metimage_l1b_20261105_0926(base_dir=tmp_path)
+        with satpy.config.set(demo_data_dir=tmp_path):
+            files_again = download_metimage_l1b_20261105_0926()
+
+    data_dir = tmp_path / "metimage_l1b" / "20261105_0926"
+    assert files == [os.fspath(data_dir / fn) for fn in FILENAMES_20261105_0926]
+    assert files_again == files
+    assert urls == [ZENODO_TARBALL_URL]
+    assert sorted(p.name for p in data_dir.iterdir()) == sorted(FILENAMES_20261105_0926)
+    with open(files[0]) as first_file:
+        assert first_file.read() == FILENAMES_20261105_0926[0]
+
+
 class _FakeRequest:
     """Fake object to act like a requests return value when downloading a file."""
 
