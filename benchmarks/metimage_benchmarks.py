@@ -74,7 +74,7 @@ class METimageL1B:
         """Time to create a scene and load one channel or composite."""
         self.load(granules, loadable)
     time_load.params = (time_create_scene.params,  # type: ignore
-                        ["vii_10690", "true_color_uncorrected"])
+                        ["vii_10690", "true_color_uncorrected", "convection"])
     time_load.param_names = time_create_scene.param_names + ["dataset"]  # type: ignore
 
     def peakmem_load(self, granules, loadable):
