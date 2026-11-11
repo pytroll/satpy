@@ -13,6 +13,7 @@ from typing import Iterator
 from unittest import mock
 
 import fsspec
+import fsspec.implementations.local
 import numpy as np
 import pytest
 import xarray as xr
@@ -28,12 +29,6 @@ from satpy.readers.core.remote import open_file_or_filename
 # - monkeypatch
 # - tmp_path
 
-try:
-    import fsspec.implementations.local
-except ImportError:
-    has_fsspec = False
-else:
-    has_fsspec = True
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
