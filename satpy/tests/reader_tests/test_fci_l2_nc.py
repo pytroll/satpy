@@ -92,24 +92,24 @@ def l2_file(tmp_path_factory):
     return test_file
 
 
+@pytest.fixture
+def l2_filehandler(l2_file):
+    """Open the test file with the FciL2NCFileHandler."""
+    return FciL2NCFileHandler(filename=str(l2_file), filename_info={}, filetype_info={})
+
+
 class TestFciL2NCFileHandler:
     """Test the FciL2NCFileHandler reader."""
 
-    @pytest.fixture(autouse=True)
-    def _open_test_file(self, l2_file):
-        """Open the test file with the reader."""
-        self.test_file = str(l2_file)
-        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={})
-
-    def test_all_basic(self):
+    def test_all_basic(self, l2_filehandler, l2_file):
         """Test all basic functionalities."""
-        assert self.fh.spacecraft_name == "TEST_PLATFORM"
-        assert self.fh.sensor_name == "test_data_source"
-        assert self.fh.ssp_lon == 0.0
+        assert l2_filehandler.spacecraft_name == "TEST_PLATFORM"
+        assert l2_filehandler.sensor_name == "test_data_source"
+        assert l2_filehandler.ssp_lon == 0.0
 
-        global_attributes = self.fh._get_global_attributes()
+        global_attributes = l2_filehandler._get_global_attributes()
         expected_global_attributes = {
-            "filename": self.test_file,
+            "filename": str(l2_file),
             "spacecraft_name": "TEST_PLATFORM",
             "ssp_lon": 0.0,
             "sensor": "test_data_source",
@@ -119,9 +119,9 @@ class TestFciL2NCFileHandler:
 
     @mock.patch("satpy.readers.fci_l2_nc.geometry.AreaDefinition")
     @mock.patch("satpy.readers.fci_l2_nc.make_ext")
-    def test_area_definition(self, me_, gad_):
+    def test_area_definition(self, me_, gad_, l2_filehandler):
         """Test the area definition computation."""
-        self.fh._compute_area_def(make_dataid(name="test_area_def", resolution=2000))
+        l2_filehandler._compute_area_def(make_dataid(name="test_area_def", resolution=2000))
 
         # Asserts that the make_ext function was called with the correct arguments
         me_.assert_called_once()
@@ -146,108 +146,126 @@ class TestFciL2NCFileHandler:
         assert args[4] == 10
         assert args[5] == 100
 
-    def test_dataset(self):
+    def test_dataset(self, l2_filehandler):
         """Test the correct execution of the get_dataset function with a valid nc_key."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_one_layer", resolution=2000),
-                                      {"name": "test_one_layer",
-                                       "nc_key": "test_one_layer",
-                                       "fill_value": -999,
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_one_layer", resolution=2000),
+                                             {"name": "test_one_layer",
+                                              "nc_key": "test_one_layer",
+                                              "fill_value": -999,
+                                              "file_type": "test_file_type"})
 
         np.testing.assert_allclose(dataset.values, np.arange(1000).reshape((100, 10)))
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["fill_value"] == -999
 
-    def test_dataset_with_layer(self):
+    def test_dataset_with_layer(self, l2_filehandler):
         """Check the correct execution of the get_dataset function with a valid nc_key & layer."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_two_layers", resolution=2000),
-                                      {"name": "test_two_layers",
-                                       "nc_key": "test_two_layers", "layer": 1,
-                                       "fill_value": -999,
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_two_layers", resolution=2000),
+                                             {"name": "test_two_layers",
+                                              "nc_key": "test_two_layers", "layer": 1,
+                                              "fill_value": -999,
+                                              "file_type": "test_file_type"})
         np.testing.assert_allclose(dataset.values, 2 * np.ones((100, 10)))
         assert dataset.attrs["spacecraft_name"] == "TEST_PLATFORM"
 
-    def test_dataset_with_invalid_filekey(self):
+    def test_dataset_with_invalid_filekey(self, l2_filehandler):
         """Test the correct execution of the get_dataset function with an invalid nc_key."""
-        invalid_dataset = self.fh.get_dataset(make_dataid(name="test_invalid", resolution=2000),
-                                              {"name": "test_invalid",
-                                               "nc_key": "test_invalid",
-                                               "fill_value": -999,
-                                               "file_type": "test_file_type"})
+        invalid_dataset = l2_filehandler.get_dataset(make_dataid(name="test_invalid", resolution=2000),
+                                                     {"name": "test_invalid",
+                                                      "nc_key": "test_invalid",
+                                                      "fill_value": -999,
+                                                      "file_type": "test_file_type"})
         assert invalid_dataset is None
 
-    def test_dataset_with_total_cot(self):
+    def test_dataset_with_total_cot(self, l2_filehandler):
         """Test the correct execution of the get_dataset function for total COT (add contributions from two layers)."""
-        dataset = self.fh.get_dataset(make_dataid(name="retrieved_cloud_optical_thickness", resolution=2000),
-                                      {"name": "retrieved_cloud_optical_thickness",
-                                       "nc_key": "test_two_layers",
-                                       "fill_value": -999,
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="retrieved_cloud_optical_thickness", resolution=2000),
+                                             {"name": "retrieved_cloud_optical_thickness",
+                                              "nc_key": "test_two_layers",
+                                              "fill_value": -999,
+                                              "file_type": "test_file_type"})
         # Checks that the function returns None
         expected_sum = np.empty((100, 10))
         expected_sum[:] = np.log10(10**2 + 10**1)
         np.testing.assert_allclose(dataset.values, expected_sum)
 
-    def test_dataset_with_scalar(self):
+    def test_dataset_with_scalar(self, l2_filehandler):
         """Test the execution of the get_dataset function for scalar values."""
         # Checks returned scalar value
-        dataset = self.fh.get_dataset(make_dataid(name="test_scalar"),
-                                      {"name": "product_quality",
-                                       "nc_key": "product_quality",
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_scalar"),
+                                             {"name": "product_quality",
+                                              "nc_key": "product_quality",
+                                              "file_type": "test_file_type"})
         assert dataset.values == 99.0
 
         # Checks that no AreaDefintion is implemented for scalar values
         with pytest.raises(NotImplementedError):
-            self.fh.get_area_def(None)
+            l2_filehandler.get_area_def(None)
 
-    def test_emumerations(self):
+    def test_emumerations(self, l2_filehandler):
         """Test the conversion of enumerated type information into flag_values and flag_meanings."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_enum", resolution=2000),
-                                      {"name": "quality_flag",
-                                       "nc_key": "quality_flag",
-                                       "file_type": "test_file_type",
-                                       "import_enum_information": True})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_enum", resolution=2000),
+                                             {"name": "quality_flag",
+                                              "nc_key": "quality_flag",
+                                              "file_type": "test_file_type",
+                                              "import_enum_information": True})
         attributes = dataset.attrs
         assert "flag_values" in attributes
         assert attributes["flag_values"] == [0,1]
         assert "flag_meanings" in attributes
         assert attributes["flag_meanings"] == ["False","True"]
 
-    def test_units_from_file(self):
+    def test_units_from_file(self, l2_filehandler):
         """Test units extraction from NetCDF file."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_units_from_file", resolution=2000),
-                                      {"name": "test_one_layer",
-                                       "nc_key": "test_one_layer",
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_units_from_file", resolution=2000),
+                                             {"name": "test_one_layer",
+                                              "nc_key": "test_one_layer",
+                                              "file_type": "test_file_type"})
         assert dataset.attrs["units"] == "test_units"
 
-    def test_unit_from_file(self):
+    def test_unit_from_file(self, l2_filehandler):
         """Test that a unit stored with attribute `unit` in the file is assigned to the `units` attribute."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_unit_from_file", resolution=2000),
-                                      {"name": "test_two_layers",
-                                       "nc_key": "test_two_layers", "layer": 1,
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_unit_from_file", resolution=2000),
+                                             {"name": "test_two_layers",
+                                              "nc_key": "test_two_layers", "layer": 1,
+                                              "file_type": "test_file_type"})
         assert dataset.attrs["units"] == "test_unit"
 
-    def test_units_from_yaml(self):
+    def test_units_from_yaml(self, l2_filehandler):
         """Test units extraction from yaml file."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_units_from_yaml", resolution=2000),
-                                      {"name": "test_one_layer",
-                                       "units": "test_unit_from_yaml",
-                                       "nc_key": "test_one_layer",
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_units_from_yaml", resolution=2000),
+                                             {"name": "test_one_layer",
+                                              "units": "test_unit_from_yaml",
+                                              "nc_key": "test_one_layer",
+                                              "file_type": "test_file_type"})
         assert dataset.attrs["units"] == "test_unit_from_yaml"
 
-    def test_units_none_conversion(self):
+    def test_units_none_conversion(self, l2_filehandler):
         """Test that a units stored as 'none' is converted to None."""
-        dataset = self.fh.get_dataset(make_dataid(name="test_units_none_conversion", resolution=2000),
-                                      {"name": "test_one_layer",
-                                       "units": "none",
-                                       "nc_key": "test_one_layer",
-                                       "file_type": "test_file_type"})
+        dataset = l2_filehandler.get_dataset(make_dataid(name="test_units_none_conversion", resolution=2000),
+                                             {"name": "test_one_layer",
+                                              "units": "none",
+                                              "nc_key": "test_one_layer",
+                                              "file_type": "test_file_type"})
         assert dataset.attrs["units"] is None
+
+
+def _get_unique_array(iarr, jarr):
+    if not hasattr(iarr, "__iter__"):
+        iarr = [iarr]
+
+    if not hasattr(jarr, "__iter__"):
+        jarr = [jarr]
+
+    array = np.zeros((348, 348, 8, 6))
+    for i in iarr:
+        for j in jarr:
+            array[:, :, i, j] = (i * 10) + j
+
+    array = array[:, :, list(iarr), :]
+    array = array[:, :, :, list(jarr)]
+
+    return np.squeeze(array)
 
 
 @pytest.fixture(scope="module")
@@ -289,32 +307,38 @@ def seg_file(tmp_path_factory):
                                          dimensions=("number_of_FoR_rows", "number_of_FoR_cols",
                                                      "number_of_channels", "number_of_categories"))
 
-        test_dataset[:] = TestFciL2NCSegmentFileHandler._get_unique_array(range(8), range(6))
+        test_dataset[:] = _get_unique_array(range(8), range(6))
         test_dataset.test_attr = "attr"
         test_dataset.units = "test_units"
     return test_file
 
 
+@pytest.fixture
+def seg_filehandler(seg_file):
+    """Open the test file with the FciL2NCSegmentFileHandler."""
+    return FciL2NCSegmentFileHandler(filename=str(seg_file), filename_info={}, filetype_info={})
+
+
+@pytest.fixture
+def seg_filehandler_with_adef(seg_file):
+    """Open the test file with the FciL2NCSegmentFileHandler, including the area definition."""
+    return FciL2NCSegmentFileHandler(filename=str(seg_file), filename_info={}, filetype_info={},
+                                     with_area_definition=True)
+
+
 class TestFciL2NCSegmentFileHandler:
     """Test the FciL2NCSegmentFileHandler reader."""
 
-    @pytest.fixture(autouse=True)
-    def _get_test_file(self, seg_file):
-        """Get the test file, which each test opens with the reader."""
-        self.seg_test_file = str(seg_file)
-
-    def test_all_basic(self):
+    def test_all_basic(self, seg_filehandler, seg_file):
         """Test all basic functionalities."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+        assert seg_filehandler.spacecraft_name == "TEST_FCI_PLATFORM"
+        assert seg_filehandler.sensor_name == "test_fci_data_source"
+        assert seg_filehandler.ssp_lon == 0.0
 
-        assert self.fh.spacecraft_name == "TEST_FCI_PLATFORM"
-        assert self.fh.sensor_name == "test_fci_data_source"
-        assert self.fh.ssp_lon == 0.0
-
-        global_attributes = self.fh._get_global_attributes()
+        global_attributes = seg_filehandler._get_global_attributes()
 
         expected_global_attributes = {
-            "filename": self.seg_test_file,
+            "filename": str(seg_file),
             "spacecraft_name": "TEST_FCI_PLATFORM",
             "ssp_lon": 0.0,
             "sensor": "test_fci_data_source",
@@ -322,16 +346,14 @@ class TestFciL2NCSegmentFileHandler:
         }
         assert global_attributes == expected_global_attributes
 
-    def test_dataset(self):
+    def test_dataset(self, seg_filehandler):
         """Test the correct execution of the get_dataset function with valid nc_key."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
         # Checks the correct execution of the get_dataset function with a valid nc_key
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999, })
-        expected_dataset = self._get_unique_array(range(8), range(6))
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                              {"name": "test_values",
+                                               "nc_key": "test_values",
+                                               "fill_value": -999, })
+        expected_dataset = _get_unique_array(range(8), range(6))
         np.testing.assert_allclose(dataset.values, expected_dataset)
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["units"] == "test_units"
@@ -339,131 +361,97 @@ class TestFciL2NCSegmentFileHandler:
 
         # Checks that no AreaDefintion is implemented
         with pytest.raises(NotImplementedError):
-            self.fh.get_area_def(None)
+            seg_filehandler.get_area_def(None)
 
-    def test_dataset_with_invalid_filekey(self):
+    def test_dataset_with_invalid_filekey(self, seg_filehandler):
         """Test the correct execution of the get_dataset function with an invalid nc_key."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
         # Checks the correct execution of the get_dataset function with an invalid nc_key
-        invalid_dataset = self.fh.get_dataset(make_dataid(name="test_invalid", resolution=32000),
-                                              {"name": "test_invalid",
-                                               "nc_key": "test_invalid",
-                                               "fill_value": -999, })
+        invalid_dataset = seg_filehandler.get_dataset(make_dataid(name="test_invalid", resolution=32000),
+                                                      {"name": "test_invalid",
+                                                       "nc_key": "test_invalid",
+                                                       "fill_value": -999, })
         # Checks that the function returns None
         assert invalid_dataset is None
 
-    def test_dataset_with_adef(self):
+    def test_dataset_with_adef(self, seg_filehandler_with_adef):
         """Test the correct execution of the get_dataset function with `with_area_definition=True`."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
-                                            with_area_definition=True)
-
         # Checks the correct execution of the get_dataset function with a valid nc_key
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999,
-                                       "coordinates": ("test_lon", "test_lat"), })
-        expected_dataset = self._get_unique_array(range(8), range(6))
+        dataset = seg_filehandler_with_adef.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                                        {"name": "test_values",
+                                                         "nc_key": "test_values",
+                                                         "fill_value": -999,
+                                                         "coordinates": ("test_lon", "test_lat"), })
+        expected_dataset = _get_unique_array(range(8), range(6))
         np.testing.assert_allclose(dataset.values, expected_dataset)
         assert dataset.attrs["test_attr"] == "attr"
         assert dataset.attrs["units"] == "test_units"
         assert dataset.attrs["fill_value"] == -999
 
         # Checks returned AreaDefinition against reference
-        adef = self.fh.get_area_def(None)
+        adef = seg_filehandler_with_adef.get_area_def(None)
         assert adef == SEG_AREA_DEF
 
-    def test_dataset_with_adef_and_wrongs_dims(self):
+    def test_dataset_with_adef_and_wrongs_dims(self, seg_filehandler_with_adef):
         """Test the correct execution of the get_dataset function with dims that don't match expected AreaDefinition."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
-                                            with_area_definition=True)
         with pytest.raises(NotImplementedError):
-            self.fh.get_dataset(make_dataid(name="test_wrong_dims", resolution=6000),
-                                {"name": "test_wrong_dims", "nc_key": "test_values", "fill_value": -999}
-                                )
+            seg_filehandler_with_adef.get_dataset(make_dataid(name="test_wrong_dims", resolution=6000),
+                                                  {"name": "test_wrong_dims", "nc_key": "test_values",
+                                                   "fill_value": -999})
 
-    def test_dataset_with_scalar(self):
+    def test_dataset_with_scalar(self, seg_filehandler):
         """Test the execution of the get_dataset function for scalar values."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
         # Checks returned scalar value
-        dataset = self.fh.get_dataset(make_dataid(name="test_scalar"),
-                                      {"name": "product_quality",
-                                       "nc_key": "product_quality",
-                                       "file_type": "test_file_type"})
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_scalar"),
+                                              {"name": "product_quality",
+                                               "nc_key": "product_quality",
+                                               "file_type": "test_file_type"})
         assert dataset.values == 99.0
 
         # Checks that no AreaDefintion is implemented for scalar values
         with pytest.raises(NotImplementedError):
-            self.fh.get_area_def(None)
+            seg_filehandler.get_area_def(None)
 
-    def test_dataset_slicing_catid(self):
+    def test_dataset_slicing_catid(self, seg_filehandler):
         """Test the correct execution of the _slice_dataset function with 'category_id' set."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999,
-                                       "category_id": 5})
-        expected_dataset = self._get_unique_array(range(8), 5)
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                              {"name": "test_values",
+                                               "nc_key": "test_values",
+                                               "fill_value": -999,
+                                               "category_id": 5})
+        expected_dataset = _get_unique_array(range(8), 5)
         np.testing.assert_allclose(dataset.values, expected_dataset)
 
-    def test_dataset_slicing_chid_catid(self):
+    def test_dataset_slicing_chid_catid(self, seg_filehandler):
         """Test the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999,
-                                       "channel_id": 0, "category_id": 1})
-        expected_dataset = self._get_unique_array(0, 1)
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                              {"name": "test_values",
+                                               "nc_key": "test_values",
+                                               "fill_value": -999,
+                                               "channel_id": 0, "category_id": 1})
+        expected_dataset = _get_unique_array(0, 1)
         np.testing.assert_allclose(dataset.values, expected_dataset)
 
-    def test_dataset_slicing_visid_catid(self):
+    def test_dataset_slicing_visid_catid(self, seg_filehandler):
         """Test the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
-        self.fh.nc = self.fh.nc.rename_dims({"number_of_channels": "number_of_vis_channels"})
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999,
-                                       "vis_channel_id": 3, "category_id": 3})
-        expected_dataset = self._get_unique_array(3, 3)
+        seg_filehandler.nc = seg_filehandler.nc.rename_dims({"number_of_channels": "number_of_vis_channels"})
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                              {"name": "test_values",
+                                               "nc_key": "test_values",
+                                               "fill_value": -999,
+                                               "vis_channel_id": 3, "category_id": 3})
+        expected_dataset = _get_unique_array(3, 3)
         np.testing.assert_allclose(dataset.values, expected_dataset)
 
-    def test_dataset_slicing_irid(self):
+    def test_dataset_slicing_irid(self, seg_filehandler):
         """Test the correct execution of the _slice_dataset function with 'ir_channel_id' set."""
-        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
-
-        self.fh.nc = self.fh.nc.rename_dims({"number_of_channels": "number_of_ir_channels"})
-        dataset = self.fh.get_dataset(make_dataid(name="test_values", resolution=32000),
-                                      {"name": "test_values",
-                                       "nc_key": "test_values",
-                                       "fill_value": -999,
-                                       "ir_channel_id": 4})
-        expected_dataset = self._get_unique_array(4, range(6))
+        seg_filehandler.nc = seg_filehandler.nc.rename_dims({"number_of_channels": "number_of_ir_channels"})
+        dataset = seg_filehandler.get_dataset(make_dataid(name="test_values", resolution=32000),
+                                              {"name": "test_values",
+                                               "nc_key": "test_values",
+                                               "fill_value": -999,
+                                               "ir_channel_id": 4})
+        expected_dataset = _get_unique_array(4, range(6))
         np.testing.assert_allclose(dataset.values, expected_dataset)
-
-    @staticmethod
-    def _get_unique_array(iarr, jarr):
-        if not hasattr(iarr, "__iter__"):
-            iarr = [iarr]
-
-        if not hasattr(jarr, "__iter__"):
-            jarr = [jarr]
-
-        array = np.zeros((348, 348, 8, 6))
-        for i in iarr:
-            for j in jarr:
-                array[:, :, i, j] = (i * 10) + j
-
-        array = array[:, :, list(iarr), :]
-        array = array[:, :, :, list(jarr)]
-
-        return np.squeeze(array)
 
 
 @pytest.fixture(scope="module")
@@ -502,23 +490,19 @@ def byte_file(tmp_path_factory):
     return test_file
 
 
+@pytest.fixture
+def byte_filehandler(byte_file):
+    """Open the byte data test file with the FciL2NCFileHandler."""
+    return FciL2NCFileHandler(filename=str(byte_file), filename_info={}, filetype_info={})
+
+
 class TestFciL2NCReadingByteData:
     """Test the FciL2NCFileHandler when reading and extracting byte data."""
 
-    @pytest.fixture(autouse=True)
-    def _open_test_file(self, byte_file):
-        """Open the test file with the reader."""
-        self.test_byte_file = str(byte_file)
-        self.byte_reader = FciL2NCFileHandler(
-            filename=self.test_byte_file,
-            filename_info={},
-            filetype_info={}
-        )
-
-    def test_byte_extraction(self):
+    def test_byte_extraction(self, byte_filehandler):
         """Test the execution of the get_dataset function."""
         # Value of 1 is expected to be returned for this test
-        dataset = self.byte_reader.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
+        dataset = byte_filehandler.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
                                                {"name": "cloud_mask_test_flag",
                                                 "nc_key": "cloud_mask_test_flag",
                                                 "fill_value": -999,
@@ -529,7 +513,7 @@ class TestFciL2NCReadingByteData:
         np.testing.assert_allclose(dataset.values, 1)
 
         # Value of 0 is expected fto be returned or this test
-        dataset = self.byte_reader.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
+        dataset = byte_filehandler.get_dataset(make_dataid(name="cloud_mask_test_flag", resolution=2000),
                                                {"name": "cloud_mask_test_flag",
                                                 "nc_key": "cloud_mask_test_flag",
                                                 "fill_value": -999, "mask_value": 0.,
@@ -577,7 +561,7 @@ def amv_file(tmp_path_factory):
     return test_file
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def amv_filehandler(amv_file):
     """Create an AMV filehandler."""
     fh = FciL2NCAMVFileHandler(filename=amv_file,
