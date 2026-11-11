@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections.abc import Collection
 
 import yaml
 from yaml.loader import BaseLoader, FullLoader, UnsafeLoader
@@ -24,13 +25,17 @@ OLD_READER_NAMES: dict[str, str] = {
     "viirs_l2_cloud_mask_nc": "viirs_edr"
 }
 
+PathArg = str | os.PathLike[str]
+YamlLoader = type[BaseLoader] | type[FullLoader] | type[UnsafeLoader]
 
-def read_reader_config(config_files, loader=UnsafeLoader):
+def read_reader_config(
+        config_files: Collection[PathArg],
+        loader: YamlLoader=UnsafeLoader):
     """Read the reader `config_files` and return the extracted reader metadata.
 
     Args:
-        config_files (str): Filepathes to yaml config fils.
-        loader (Optional[yaml.Loader]): The yaml loader to use defaults to `UnsafeLoader`
+        config_files: Filepaths to yaml config fils.
+        loader: The yaml loader to use defaults to `UnsafeLoader`
 
     Returns:
         dict: reader metadata
@@ -82,7 +87,7 @@ def _get_configs(reader):
 
 def available_readers(
         as_dict: bool = False,
-        yaml_loader: type[BaseLoader] | type[FullLoader] | type[UnsafeLoader] = yaml.loader.UnsafeLoader,
+        yaml_loader: YamlLoader = yaml.loader.UnsafeLoader,
 ) -> list[str] | list[dict]:
     """Available readers based on current configuration.
 
@@ -113,11 +118,11 @@ def available_readers(
     return readers
 
 
-def get_valid_reader_names(reader):
+def get_valid_reader_names(reader: str) -> list:
     """Check for old reader names or readers pending deprecation.
 
     Args:
-        reader (str): Reader name.
+        reader: Reader name.
 
     Returns:
         list: List of reader names.
