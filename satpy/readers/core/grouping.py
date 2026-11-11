@@ -5,11 +5,7 @@ import datetime as dt
 import logging
 import warnings
 
-try:
-    import fsspec
-except ModuleNotFoundError:
-    fsspec = None
-
+import fsspec
 import yaml
 
 from .config import configs_for_reader
@@ -316,7 +312,7 @@ def _assign_loadables_to_reader_name(fs, loadables, reader_instance_name, reader
         dict: Dictionary with list of filepathes associated with each reader name.
 
     """
-    if fsspec and isinstance(fs, fsspec.spec.AbstractFileSystem):
+    if isinstance(fs, fsspec.spec.AbstractFileSystem):
         reader_files[reader_instance_name] = [FSFile(fn, fs=fs) for fn in loadables]
     else:
         reader_files[reader_instance_name] = list(loadables)
