@@ -843,6 +843,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
         else:
+            # The distances are float32 values in km, which a float32 mean would be off by tens of km
             sun_earth_distance = np.nanmean(
-                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
+                self._get_aux_data_lut_vector("earth_sun_distance"), dtype=np.float64) / 149597870.7  # [AU]
         return sun_earth_distance
