@@ -509,9 +509,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
-        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
-        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
-        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        # The vectors are float32, averaged in float64 to avoid float32 rounding errors
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude"),
+                                             dtype=np.float64))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude"),
+                                             dtype=np.float64))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude"), dtype=np.float64))
         return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     @cached_property
@@ -843,6 +846,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
         else:
+            # The distances are float32 values in km, which a float32 mean would be off by tens of km
             sun_earth_distance = np.nanmean(
-                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
+                self._get_aux_data_lut_vector("earth_sun_distance"), dtype=np.float64) / 149597870.7  # [AU]
         return sun_earth_distance
