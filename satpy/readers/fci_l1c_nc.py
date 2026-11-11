@@ -509,9 +509,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
-        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
-        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
-        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        # The vectors are float32, averaged in float64 to avoid float32 rounding errors
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude"),
+                                             dtype=np.float64))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude"),
+                                             dtype=np.float64))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude"), dtype=np.float64))
         return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     @cached_property
