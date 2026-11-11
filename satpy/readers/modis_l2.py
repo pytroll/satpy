@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modis level 2 hdf-eos format reader.
 
 Introduction
@@ -28,7 +11,11 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../readers`.
+Additionally the reader tries to add non yaml configured 2D datasets dynamically. As mentioned above there are a lot
+of different level 2 datasets so this might not work in every case (for example bit encoded datasets similar to the
+supported m[0/y]d35_l2 cloud mask are not decoded).
+
+To get a list of the available datasets for a given file refer to the :ref:`reading:available datasets` section.
 
 
 Geolocation files
@@ -50,8 +37,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf4_utils import from_sds
-from satpy.readers.hdfeos_base import HDFEOSGeoReader
+from satpy.readers.core.hdf4 import from_sds
+from satpy.readers.core.hdfeos import HDFEOSGeoReader
 from satpy.utils import get_legacy_chunk_size
 
 logger = logging.getLogger(__name__)
@@ -111,32 +98,32 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
         """Load a dataset from HDF-EOS level 2 file."""
         dataset = self.sd.select(hdf_dataset_name)
-        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        dask_arr = from_sds(dataset, self.filename, chunks=CHUNK_SIZE)
         attrs = dataset.attributes()
-        dims = ['y', 'x']
+        dims = ["y", "x"]
         if byte_dimension == 0:
-            dims = ['i', 'y', 'x']
+            dims = ["i", "y", "x"]
             dask_arr = dask_arr.astype(np.uint8)
         elif byte_dimension == 2:
-            dims = ['y', 'x', 'i']
+            dims = ["y", "x", "i"]
             dask_arr = dask_arr.astype(np.uint8)
         dataset = xr.DataArray(dask_arr, dims=dims, attrs=attrs)
-        if 'i' in dataset.dims:
+        if "i" in dataset.dims:
             # Reorder dimensions for consistency
-            dataset = dataset.transpose('i', 'y', 'x')
+            dataset = dataset.transpose("i", "y", "x")
         return dataset
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
-        dataset_name = dataset_id['name']
+        dataset_name = dataset_id["name"]
         if self.is_geo_loadable_dataset(dataset_name):
             return HDFEOSGeoReader.get_dataset(self, dataset_id, dataset_info)
-        dataset_name_in_file = dataset_info['file_key']
+        dataset_name_in_file = dataset_info["file_key"]
         if self.is_imapp_mask_byte1:
-            dataset_name_in_file = dataset_info.get('imapp_file_key', dataset_name_in_file)
+            dataset_name_in_file = dataset_info.get("imapp_file_key", dataset_name_in_file)
 
         # The dataset asked correspond to a given set of bits of the HDF EOS dataset
-        if 'byte' in dataset_info and 'byte_dimension' in dataset_info:
+        if "byte" in dataset_info and "byte_dimension" in dataset_info:
             dataset = self._extract_and_mask_category_dataset(dataset_id, dataset_info, dataset_name_in_file)
         else:
             # No byte manipulation required
@@ -145,41 +132,81 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         self._add_satpy_metadata(dataset_id, dataset)
         return dataset
 
+    def available_datasets(self, configured_datasets):
+        """Add dataset information from arbitrary level 2 files.
+
+        Adds dataset information not specifically specified in reader yaml file
+        from arbitrary modis level 2 product files to available datasets.
+
+        Notes:
+             Currently only adds 2D datasets and does not decode bit encoded information.
+        """
+        # pass along yaml configured (handled) datasets and collect their file keys to check against dynamically
+        # collected variables later on.
+        handled = set()
+        for is_avail, ds_info in (configured_datasets or []):
+            file_key = ds_info.get("file_key", ds_info["name"])
+            handled.add(file_key)
+
+            if is_avail is not None:
+                yield is_avail, ds_info
+                continue
+            yield self.file_type_matches(ds_info["file_type"]), ds_info
+
+        res_dict = {5416: 250, 2708: 500, 1354: 1000, 270: 5000, 135: 10000}
+
+        # get variables from file dynamically and only add those which are not already configured in yaml
+        for var_name, val in self.sd.datasets().items():
+            if var_name in handled:
+                continue
+            if len(val[0]) != 2:
+                continue
+            resolution = res_dict.get(val[1][-1])
+            if resolution is not None:
+                ds_info = {
+                    "file_type": self.filetype_info["file_type"],
+                    "resolution": resolution,
+                    "name": var_name,
+                    "file_key": var_name,
+                    "coordinates": ["longitude", "latitude"]
+                }
+                yield True, ds_info
+
     def _extract_and_mask_category_dataset(self, dataset_id, dataset_info, var_name):
         # what dimension is per-byte
-        byte_dimension = None if self.is_imapp_mask_byte1 else dataset_info['byte_dimension']
+        byte_dimension = None if self.is_imapp_mask_byte1 else dataset_info["byte_dimension"]
         dataset = self._select_hdf_dataset(var_name, byte_dimension)
         # category products always have factor=1/offset=0 so don't apply them
         # also remove them so they don't screw up future satpy processing
-        dataset.attrs.pop('scale_factor', None)
-        dataset.attrs.pop('add_offset', None)
+        dataset.attrs.pop("scale_factor", None)
+        dataset.attrs.pop("add_offset", None)
         # Don't do this byte work if we are using the IMAPP mask_byte1 file
         if self.is_imapp_mask_byte1:
             return dataset
 
         dataset = _extract_byte_mask(dataset,
-                                     dataset_info['byte'],
-                                     dataset_info['bit_start'],
-                                     dataset_info['bit_count'])
+                                     dataset_info["byte"],
+                                     dataset_info["bit_start"],
+                                     dataset_info["bit_count"])
         dataset = self._mask_with_quality_assurance_if_needed(dataset, dataset_info, dataset_id)
         return dataset
 
     def _mask_with_quality_assurance_if_needed(self, dataset, dataset_info, dataset_id):
-        if not dataset_info.get('quality_assurance', False):
+        if not dataset_info.get("quality_assurance", False):
             return dataset
 
         # Get quality assurance dataset recursively
         quality_assurance_dataset_id = dataset_id.from_dict(
-            dict(name='quality_assurance', resolution=1000)
+            dict(name="quality_assurance", resolution=1000)
         )
         quality_assurance_dataset_info = {
-            'name': 'quality_assurance',
-            'resolution': 1000,
-            'byte_dimension': 2,
-            'byte': 0,
-            'bit_start': 0,
-            'bit_count': 1,
-            'file_key': 'Quality_Assurance'
+            "name": "quality_assurance",
+            "resolution": 1000,
+            "byte_dimension": 2,
+            "byte": 0,
+            "bit_start": 0,
+            "bit_count": 1,
+            "file_key": "Quality_Assurance"
         }
         quality_assurance = self.get_dataset(
             quality_assurance_dataset_id, quality_assurance_dataset_info
@@ -233,21 +260,18 @@ def _extract_two_byte_mask(data_a: np.ndarray, data_b: np.ndarray, bit_start: in
     return _bits_strip(bit_start, bit_count, byte_dataset)
 
 
-def _bits_strip(bit_start, bit_count, value):
+def _bits_strip(bit_start: int, bit_count: int, value: int) -> int:
     """Extract specified bit from bit representation of integer value.
 
-    Parameters
-    ----------
-    bit_start : int
-        Starting index of the bits to extract (first bit has index 0)
-    bit_count : int
-        Number of bits starting from bit_start to extract
-    value : int
-        Number from which to extract the bits
+    Args:
+        bit_start:
+            Starting index of the bits to extract (first bit has index 0)
+        bit_count:
+            Number of bits starting from bit_start to extract
+        value:
+            Number from which to extract the bits
 
-    Returns
-    -------
-        int
+    Returns:
         Value of the extracted bits
 
     """

@@ -1,3 +1,5 @@
+.. _faq:
+
 FAQ
 ===
 
@@ -177,3 +179,52 @@ See the
 `GDAL GeoTIFF documentation <https://gdal.org/drivers/raster/gtiff.html#creation-options>`_
 for more information on the creation options available including other
 compression choices.
+
+Why is matplotlib returning the error ``Invalid shape (3, Ny, Nx) for image data`` when using ``pyplot.imshow``?
+----------------------------------------------------------------------------------------------------------------
+
+Satpy datasets are stored in memory with the dimensions of bands first, then the vertical
+and horizontal spatial indices, whereas matplotlib expects an array of shape ``(M, N, 3)``
+(RGB) or ``(M, N, 4)`` (RGBA).
+
+Satpy's datasets can 'be converted to a proper range of value by the enhancements, so for
+showing the ``natural_color`` composite, for instance, the following code can be used,
+assuming a scene loaded in the variable ``scn``.
+
+.. code-block:: python
+
+   from satpy.enhancements.enhancer import get_enhanced_image
+
+   im = get_enhanced_image(scn['natural_color'])
+   im.data.plot.imshow(rgb='bands')
+
+Here, the utility :func:`~xarray.plot.imshow` will prepare the data the matplotlib's
+routine. A similar result can be obtained as follows:
+
+.. code-block:: python
+
+    plt.imshow((sub_scn['natural_color'].transpose('y', 'x', 'bands') / 100 * 255).astype('uint8'))
+
+To learn more about how Satpy scales data for images and more on the
+:func:`~satpy.enhancements.enhancer.get_enhanced_image` function see the
+:doc:`enhancements` documentation.
+
+
+What are the reflectance vs unnormalized reflectance quantities for reflective channels
+---------------------------------------------------------------------------------------
+
+Satpy reads data from reflective/solar channels and carries two calibration levels for it:
+`unnormalized_reflectance` and `reflectance`.
+The difference is that `reflectance` is normalised by the cosine of the sun zenith angle, while the
+`unnormalized_reflectance` is not.
+
+Unnormalized reflectance:
+
+rf = π × L_vis × d² / E_sun
+
+Reflectance:
+
+ρ = π × L_vis × d² / (E_sun × cos(sza))
+
+where L_vis is the measured radiance, d is the Sun-Earth distance (in AU) at the time of observation,
+E_sun is the solar irradiance of the channel at 1 AU, and sza is the sun zenith angle.

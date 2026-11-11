@@ -5,7 +5,7 @@ reader:
   description: Reader for IASI L2 files
   status: Alpha
   supports_fsspec: false
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [iasi]
   default_datasets:
 
@@ -155,6 +155,49 @@ datasets:
     units: "degrees"
     resolution: 12000
     coordinates: [longitude, latitude]
+
+  amsu_instrument_flags:
+    name: amsu_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  iasi_instrument_flags:
+    name: iasi_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  mhs_instrument_flags:
+    name: mhs_instrument_flags
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  observation_minus_calculation:
+    name: observation_minus_calculation
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_elevation:
+    name: surface_elevation
+    file_type: iasi_l2_hdf5
+    units: "m"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_elevation_std:
+    name: surface_elevation_std
+    file_type: iasi_l2_hdf5
+    units: "m"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
 
 file_types:
   iasi_l2_hdf5:

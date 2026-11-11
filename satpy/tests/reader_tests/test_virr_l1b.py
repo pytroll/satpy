@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test for readers/virr_l1b.py."""
 import os
 import unittest
@@ -25,6 +8,13 @@ import numpy as np
 import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+
+# Expected reflective band values for the fake data (all 10s): 10 * slope + intercept,
+# using the CMA 2016 coefficients. FY3C reads its coefficients from the file, so it is not listed.
+REFSB_EXPECTED = {
+    "FY3A": {"1": -0.317, "2": -0.303, "6": -1.514, "7": -0.319, "8": -0.182, "9": -0.170, "10": -0.135},
+    "FY3B": {"1": -0.355, "2": -0.370, "6": -1.693, "7": -0.260, "8": -0.155, "9": -0.225, "10": -0.103},
+}
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -39,48 +29,49 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         dim_1 = 20
         test_file = {
             # Satellite data.
-            '/attr/Day Or Night Flag': 'D', '/attr/Observing Beginning Date': '2018-12-25',
-            '/attr/Observing Beginning Time': '21:41:47.090', '/attr/Observing Ending Date': '2018-12-25',
-            '/attr/Observing Ending Time': '21:47:28.254', '/attr/Satellite Name': platform_id,
-            '/attr/Sensor Identification Code': 'VIRR',
+            "/attr/Day Or Night Flag": "D", "/attr/Observing Beginning Date": "2018-12-25",
+            "/attr/Observing Beginning Time": "21:41:47.090", "/attr/Observing Ending Date": "2018-12-25",
+            "/attr/Observing Ending Time": "21:47:28.254", "/attr/Satellite Name": platform_id,
+            "/attr/Sensor Identification Code": "VIRR",
             # Emissive data.
-            l1b_prefix + 'EV_Emissive': self.make_test_data([3, dim_0, dim_1]),
-            l1b_prefix + 'EV_Emissive/attr/valid_range': [0, 50000],
-            l1b_prefix + 'Emissive_Radiance_Scales': self.make_test_data([dim_0, dim_1]),
-            l1b_prefix + 'EV_Emissive/attr/units': Emissive_units,
-            l1b_prefix + 'Emissive_Radiance_Offsets': self.make_test_data([dim_0, dim_1]),
-            '/attr/' + ECWN: [2610.31, 917.6268, 836.2546],
+            l1b_prefix + "EV_Emissive": self.make_test_data([3, dim_0, dim_1]),
+            l1b_prefix + "EV_Emissive/attr/valid_range": [0, 50000],
+            l1b_prefix + "Emissive_Radiance_Scales": self.make_test_data([dim_0, dim_1]),
+            l1b_prefix + "EV_Emissive/attr/units": Emissive_units,
+            l1b_prefix + "Emissive_Radiance_Offsets": self.make_test_data([dim_0, dim_1]),
+            "/attr/" + ECWN: [2610.31, 917.6268, 836.2546],
             # Reflectance data.
-            l1b_prefix + 'EV_RefSB': self.make_test_data([7, dim_0, dim_1]),
-            l1b_prefix + 'EV_RefSB/attr/valid_range': [0, 32767], l1b_prefix + 'EV_RefSB/attr/units': 'none',
-            '/attr/RefSB_Cal_Coefficients': np.ones(14, dtype=np.float32) * 2
+            l1b_prefix + "EV_RefSB": self.make_test_data([7, dim_0, dim_1]),
+            l1b_prefix + "EV_RefSB/attr/valid_range": [0, 32767], l1b_prefix + "EV_RefSB/attr/units": "none",
+            "/attr/RefSB_Cal_Coefficients": np.ones(14, dtype=np.float32) * 2
         }
-        for attribute in ['Latitude', 'Longitude', geolocation_prefix + 'SolarZenith',
-                          geolocation_prefix + 'SensorZenith', geolocation_prefix + 'SolarAzimuth',
-                          geolocation_prefix + 'SensorAzimuth']:
+        for attribute in ["Latitude", "Longitude", geolocation_prefix + "SolarZenith",
+                          geolocation_prefix + "SensorZenith", geolocation_prefix + "SolarAzimuth",
+                          geolocation_prefix + "SensorAzimuth"]:
             test_file[attribute] = self.make_test_data([dim_0, dim_1])
-            test_file[attribute + '/attr/Intercept'] = 0.
-            test_file[attribute + '/attr/units'] = 'degrees'
-            if 'Solar' in attribute or 'Sensor' in attribute:
-                test_file[attribute + '/attr/Slope'] = .01
-                if 'Azimuth' in attribute:
-                    test_file[attribute + '/attr/valid_range'] = [0, 18000]
+            test_file[attribute + "/attr/Intercept"] = 0.
+            test_file[attribute + "/attr/units"] = "degrees"
+            if "Solar" in attribute or "Sensor" in attribute:
+                test_file[attribute + "/attr/Slope"] = .01
+                if "Azimuth" in attribute:
+                    test_file[attribute + "/attr/valid_range"] = [0, 18000]
                 else:
-                    test_file[attribute + '/attr/valid_range'] = [-18000, 18000]
+                    test_file[attribute + "/attr/valid_range"] = [-18000, 18000]
             else:
-                test_file[attribute + '/attr/Slope'] = 1.
-                if 'Longitude' == attribute:
-                    test_file[attribute + '/attr/valid_range'] = [-180., 180.]
+                test_file[attribute + "/attr/Slope"] = 1.
+                if "Longitude" == attribute:
+                    test_file[attribute + "/attr/valid_range"] = [-180., 180.]
                 else:
-                    test_file[attribute + '/attr/valid_range'] = [-90., 90.]
+                    test_file[attribute + "/attr/valid_range"] = [-90., 90.]
         return test_file
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        if filename_info['platform_id'] == 'FY3B':
-            return self._make_file('FY3B', '', '', 'Emmisive_Centroid_Wave_Number', 'milliWstts/m^2/cm^(-1)/steradian')
-        return self._make_file(filename_info['platform_id'], 'Geolocation/', 'Data/',
-                               'Emissive_Centroid_Wave_Number', 'none')
+        if filename_info["platform_id"] in ("FY3A", "FY3B"):
+            return self._make_file(filename_info["platform_id"], "", "", "Emmisive_Centroid_Wave_Number",
+                                   "milliWstts/m^2/cm^(-1)/steradian")
+        return self._make_file(filename_info["platform_id"], "Geolocation/", "Data/",
+                               "Emissive_Centroid_Wave_Number", "none")
 
 
 class TestVIRRL1BReader(unittest.TestCase):
@@ -92,9 +83,9 @@ class TestVIRRL1BReader(unittest.TestCase):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.virr_l1b import VIRR_L1B
-        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.reader_configs = config_search_paths(os.path.join("readers", self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIRR_L1B, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(VIRR_L1B, "__bases__", (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -104,84 +95,92 @@ class TestVIRRL1BReader(unittest.TestCase):
 
     def _band_helper(self, attributes, units, calibration, standard_name,
                      file_type, band_index_size, resolution):
-        self.assertEqual(units, attributes['units'])
-        self.assertEqual(calibration, attributes['calibration'])
-        self.assertEqual(standard_name, attributes['standard_name'])
-        self.assertEqual(file_type, attributes['file_type'])
-        self.assertTrue(attributes['band_index'] in range(band_index_size))
-        self.assertEqual(resolution, attributes['resolution'])
-        self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
+        assert units == attributes["units"]
+        assert calibration == attributes["calibration"]
+        assert standard_name == attributes["standard_name"]
+        assert file_type == attributes["file_type"]
+        assert (attributes["band_index"] in range(band_index_size)) is True
+        assert resolution == attributes["resolution"]
+        assert ("longitude", "latitude") == attributes["coordinates"]
 
     def _fy3_helper(self, platform_name, reader, Emissive_units):
         """Load channels and test accurate metadata."""
         import datetime
-        band_values = {'1': 22.0, '2': 22.0, '6': 22.0, '7': 22.0, '8': 22.0, '9': 22.0, '10': 22.0,
-                       '3': 496.542155, '4': 297.444511, '5': 288.956557, 'solar_zenith_angle': .1,
-                       'satellite_zenith_angle': .1, 'solar_azimuth_angle': .1, 'satellite_azimuth_angle': .1,
-                       'longitude': 10}
-        if platform_name == 'FY3B':
-            # updated 2015 coefficients
-            band_values['1'] = -0.168
-            band_values['2'] = -0.2706
-            band_values['6'] = -1.5631
-            band_values['7'] = -0.2114
-            band_values['8'] = -0.171
-            band_values['9'] = -0.1606
-            band_values['10'] = -0.1328
+        band_values = {"1": 22.0, "2": 22.0, "6": 22.0, "7": 22.0, "8": 22.0, "9": 22.0, "10": 22.0,
+                       "3": 496.542155, "4": 297.444511, "5": 288.956557, "solar_zenith_angle": .1,
+                       "satellite_zenith_angle": .1, "solar_azimuth_angle": .1, "satellite_azimuth_angle": .1,
+                       "longitude": 10}
+        band_values.update(REFSB_EXPECTED.get(platform_name, {}))
         datasets = reader.load([band for band in band_values])
         for dataset in datasets:
             # Object returned by get_dataset.
-            ds = datasets[dataset['name']]
+            ds = datasets[dataset["name"]]
             attributes = ds.attrs
-            self.assertTrue(isinstance(ds.data, da.Array))
-            self.assertEqual('virr', attributes['sensor'])
-            self.assertEqual(platform_name, attributes['platform_name'])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((19, 20), datasets[dataset['name']].shape)
-            self.assertEqual(('y', 'x'), datasets[dataset['name']].dims)
-            if dataset['name'] in ['1', '2', '6', '7', '8', '9', '10']:
-                self._band_helper(attributes, '%', 'reflectance',
-                                  'toa_bidirectional_reflectance', 'virr_l1b',
+            assert isinstance(ds.data, da.Array)
+            assert "virr" == attributes["sensor"]
+            assert platform_name == attributes["platform_name"]
+            assert datetime.datetime(2018, 12, 25, 21, 41, 47, 90000) == attributes["start_time"]
+            assert datetime.datetime(2018, 12, 25, 21, 47, 28, 254000) == attributes["end_time"]
+            assert (19, 20) == datasets[dataset["name"]].shape
+            assert ("y", "x") == datasets[dataset["name"]].dims
+            # 8< v1.0
+            if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
+                self._band_helper(attributes, "%", "reflectance",
+                                  "toa_bidirectional_reflectance", "virr_l1b",
                                   7, 1000)
-            elif dataset['name'] in ['3', '4', '5']:
-                self._band_helper(attributes, Emissive_units, 'brightness_temperature',
-                                  'toa_brightness_temperature', 'virr_l1b', 3, 1000)
-            elif dataset['name'] in ['longitude', 'latitude']:
-                self.assertEqual('degrees', attributes['units'])
-                self.assertTrue(attributes['standard_name'] in ['longitude', 'latitude'])
-                self.assertEqual(['virr_l1b', 'virr_geoxx'], attributes['file_type'])
-                self.assertEqual(1000, attributes['resolution'])
+            # >8 v1.0
+            # WARN: v1.0 uncomment this
+            # if dataset["name"] in ["1", "2", "6", "7", "8", "9", "10"]:
+            #     self._band_helper(attributes, "%", "unnormalized_reflectance",
+            #                       "product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance",
+            #                       "virr_l1b", 7, 1000)
+            elif dataset["name"] in ["3", "4", "5"]:
+                self._band_helper(attributes, Emissive_units, "brightness_temperature",
+                                  "toa_brightness_temperature", "virr_l1b", 3, 1000)
+            elif dataset["name"] in ["longitude", "latitude"]:
+                assert "degrees" == attributes["units"]
+                assert (attributes["standard_name"] in ["longitude", "latitude"]) is True
+                assert ["virr_l1b", "virr_geoxx"] == attributes["file_type"]
+                assert 1000 == attributes["resolution"]
             else:
-                self.assertEqual('degrees', attributes['units'])
-                self.assertTrue(
-                    attributes['standard_name'] in ['solar_zenith_angle', 'sensor_zenith_angle', 'solar_azimuth_angle',
-                                                    'sensor_azimuth_angle'])
-                self.assertEqual(['virr_geoxx', 'virr_l1b'], attributes['file_type'])
-                self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
-            self.assertEqual(band_values[dataset['name']],
-                             round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
+                assert "degrees" == attributes["units"]
+                assert attributes["standard_name"] in ["solar_zenith_angle", "sensor_zenith_angle",
+                                                       "solar_azimuth_angle", "sensor_azimuth_angle"]
+                assert ["virr_geoxx", "virr_l1b"] == attributes["file_type"]
+                assert ("longitude", "latitude") == attributes["coordinates"]
+            np.testing.assert_allclose(band_values[dataset["name"]], ds[ds.shape[0] // 2][ds.shape[1] // 2], rtol=1e-6)
             assert "valid_range" not in ds.attrs
+
+    def test_fy3a_file(self):
+        """Test that FY3A files are recognized."""
+        from satpy.readers.core.loading import load_reader
+        FY3A_reader = load_reader(self.reader_configs)
+        FY3A_file = FY3A_reader.select_files_from_pathnames(["tf2010290135500.FY3A-L_VIRRX_L1B.HDF"])
+        assert 1 == len(FY3A_file)
+        FY3A_reader.create_filehandlers(FY3A_file)
+        # Make sure we have some files
+        assert FY3A_reader.file_handlers
+        self._fy3_helper("FY3A", FY3A_reader, "milliWstts/m^2/cm^(-1)/steradian")
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         FY3B_reader = load_reader(self.reader_configs)
-        FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
-        self.assertEqual(1, len(FY3B_file))
+        FY3B_file = FY3B_reader.select_files_from_pathnames(["tf2018359214943.FY3B-L_VIRRX_L1B.HDF"])
+        assert 1 == len(FY3B_file)
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
-        self.assertTrue(FY3B_reader.file_handlers)
-        self._fy3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
+        assert FY3B_reader.file_handlers
+        self._fy3_helper("FY3B", FY3B_reader, "milliWstts/m^2/cm^(-1)/steradian")
 
     def test_fy3c_file(self):
         """Test that FY3C files are recognized."""
-        from satpy.readers import load_reader
+        from satpy.readers.core.loading import load_reader
         FY3C_reader = load_reader(self.reader_configs)
-        FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
-                                                              'tf2018359143912.FY3C-L_VIRRX_L1B.HDF'])
-        self.assertEqual(2, len(FY3C_files))
+        FY3C_files = FY3C_reader.select_files_from_pathnames(["tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF",
+                                                              "tf2018359143912.FY3C-L_VIRRX_L1B.HDF"])
+        assert 2 == len(FY3C_files)
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
-        self.assertTrue(FY3C_reader.file_handlers)
-        self._fy3_helper('FY3C', FY3C_reader, '1')
+        assert FY3C_reader.file_handlers
+        self._fy3_helper("FY3C", FY3C_reader, "1")

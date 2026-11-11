@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """IASI L2 files."""
 
 import datetime as dt
@@ -23,10 +8,9 @@ import h5py
 import numpy as np
 import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
+from satpy.readers.core.netcdf import NetCDF4FsspecFileHandler
 from satpy.utils import get_legacy_chunk_size
-
-from .netcdf_utils import NetCDF4FsspecFileHandler
 
 CHUNK_SIZE = get_legacy_chunk_size()
 
@@ -45,33 +29,51 @@ VALUES_PER_SCAN_LINE = 120
 # Epoch for the dates
 EPOCH = dt.datetime(2000, 1, 1)
 
-SHORT_NAMES = {'M01': 'Metop-B',
-               'M02': 'Metop-A',
-               'M03': 'Metop-C'}
+SHORT_NAMES = {"M01": "Metop-B",
+               "M02": "Metop-A",
+               "M03": "Metop-C"}
 
-DSET_NAMES = {'ozone_mixing_ratio': 'O',
-              'ozone_mixing_ratio_quality': 'QO',
-              'pressure': 'P',
-              'pressure_quality': 'QP',
-              'temperature': 'T',
-              'temperature_quality': 'QT',
-              'water_mixing_ratio': 'W',
-              'water_mixing_ratio_quality': 'QW',
-              'water_total_column': 'WC',
-              'ozone_total_column': 'OC',
-              'surface_skin_temperature': 'Ts',
-              'surface_skin_temperature_quality': 'QTs',
-              'emissivity': 'E',
-              'emissivity_quality': 'QE'}
+# Data in the "PWLR" group
+DSET_NAMES = {
+    "ozone_mixing_ratio": "O",
+    "ozone_mixing_ratio_quality": "QO",
+    "pressure": "P",
+    "pressure_quality": "QP",
+    "temperature": "T",
+    "temperature_quality": "QT",
+    "water_mixing_ratio": "W",
+    "water_mixing_ratio_quality": "QW",
+    "water_total_column": "WC",
+    "ozone_total_column": "OC",
+    "surface_skin_temperature": "Ts",
+    "surface_skin_temperature_quality": "QTs",
+    "emissivity": "E",
+    "emissivity_quality": "QE",
+}
+# Data in "INFO" group
+INFO_DSET_NAMES = {
+    "amsu_instrument_flags": "FLG_AMSUBAD",
+    "iasi_instrument_flags": "FLG_IASIBAD",
+    "mhs_instrument_flags": "FLG_MHSBAD",
+    "observation_minus_calculation": "OmC",
+}
+# Data in "Maps" group
+MAPS_DSET_NAMES = {
+    "surface_elevation": "Height",
+    "surface_elevation_std": "HeightStd",
+}
 
-GEO_NAMES = {'latitude': 'Latitude',
-             'longitude': 'Longitude',
-             'satellite_azimuth_angle': 'SatAzimuth',
-             'satellite_zenith_angle': 'SatZenith',
-             'sensing_time': {'day': 'SensingTime_day',
-                              'msec': 'SensingTime_msec'},
-             'solar_azimuth_angle': 'SunAzimuth',
-             'solar_zenith_angle': 'SunZenith'}
+ALL_DATASET_NAMES = tuple(DSET_NAMES.keys()) + tuple(INFO_DSET_NAMES.keys()) + tuple(MAPS_DSET_NAMES.keys())
+
+# Data in "L1C" group
+GEO_NAMES = {"latitude": "Latitude",
+             "longitude": "Longitude",
+             "satellite_azimuth_angle": "SatAzimuth",
+             "satellite_zenith_angle": "SatZenith",
+             "sensing_time": {"day": "SensingTime_day",
+                              "msec": "SensingTime_msec"},
+             "solar_azimuth_angle": "SunAzimuth",
+             "solar_zenith_angle": "SunZenith"}
 
 
 LOGGER = logging.getLogger(__name__)
@@ -88,52 +90,56 @@ class IASIL2HDF5(BaseFileHandler):
         self.finfo = filename_info
         self.lons = None
         self.lats = None
-        self.sensor = 'iasi'
+        self.sensor = "iasi"
+        short_name = filename_info["platform_id"]
+        self.platform_name = SHORT_NAMES.get(short_name, short_name)
 
         self.mda = {}
-        short_name = filename_info['platform_id']
-        self.mda['platform_name'] = SHORT_NAMES.get(short_name, short_name)
-        self.mda['sensor'] = 'iasi'
+        self.mda["platform_name"] = self.platform_name
+        self.mda["sensor"] = "iasi"
 
     @property
     def start_time(self):
         """Get the start time."""
-        return self.finfo['start_time']
+        return self.finfo["start_time"]
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = dt.datetime.combine(self.start_time.date(),
-                                       self.finfo['end_time'].time())
+                                       self.finfo["end_time"].time())
         if end_time < self.start_time:
             end_time += dt.timedelta(days=1)
         return end_time
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        with h5py.File(self.filename, 'r') as fid:
-            LOGGER.debug('Reading %s.', key['name'])
-            if key['name'] in DSET_NAMES:
+        with h5py.File(self.filename, "r") as fid:
+            LOGGER.debug("Reading %s.", key["name"])
+            if key["name"] in ALL_DATASET_NAMES:
                 m_data = read_dataset(fid, key)
             else:
                 m_data = read_geo(fid, key)
         m_data.attrs.update(info)
-        m_data.attrs['sensor'] = self.sensor
+        m_data.attrs["sensor"] = self.sensor
+        m_data.attrs["platform_name"] = self.platform_name
 
         return m_data
 
 
 def read_dataset(fid, key):
     """Read dataset."""
-    dsid = DSET_NAMES[key['name']]
-    dset = fid["/PWLR/" + dsid]
+    names, group = _get_names_and_group(key)
+    dsid = names[key["name"]]
+    dset = fid[group + dsid]
     if dset.ndim == 3:
-        dims = ['y', 'x', 'level']
+        dims = ["y", "x", "level"]
     else:
-        dims = ['y', 'x']
-    data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
-                        name=key['name'], dims=dims).astype(np.float32)
-    data = xr.where(data > 1e30, np.nan, data)
+        dims = ["y", "x"]
+    data = xr.DataArray(da.from_array(_harmonize_data(dset[()]), chunks=CHUNK_SIZE),
+                        name=key["name"], dims=dims)
+    if data.dtype == np.float32:
+        data = xr.where(data > 1e30, np.nan, data)
 
     dset_attrs = dict(dset.attrs)
     data.attrs.update(dset_attrs)
@@ -141,11 +147,35 @@ def read_dataset(fid, key):
     return data
 
 
+def _get_names_and_group(key):
+    name = key["name"]
+    if name in DSET_NAMES:
+        names = DSET_NAMES
+        group = "/PWLR/"
+    elif name in INFO_DSET_NAMES:
+        names = INFO_DSET_NAMES
+        group = "/INFO/"
+    elif name in MAPS_DSET_NAMES:
+        names = MAPS_DSET_NAMES
+        group = "/Maps/"
+    else:
+        raise KeyError(f"Unsupported name: {key}")
+
+    return names, group
+
+
+def _harmonize_data(arr):
+    if arr.shape[1] == 30:
+        # This is specifically for AMSU flags that have not been repeated for the IASI footprints
+        return np.repeat(arr, 4, axis=1)
+    return arr
+
+
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
-    dsid = GEO_NAMES[key['name']]
+    dsid = GEO_NAMES[key["name"]]
     add_epoch = False
-    if "time" in key['name']:
+    if "time" in key["name"]:
         days = fid["/L1C/" + dsid["day"]][()]
         msecs = fid["/L1C/" + dsid["msec"]][()]
         data = _form_datetimes(days, msecs)
@@ -155,10 +185,10 @@ def read_geo(fid, key):
         data = fid["/L1C/" + dsid][()]
         dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key['name'], dims=['y', 'x']).astype(dtype)
+                        name=key["name"], dims=["y", "x"]).astype(dtype)
 
     if add_epoch:
-        data.attrs['sensing_time_epoch'] = EPOCH
+        data.attrs["sensing_time_epoch"] = EPOCH
 
     return data
 

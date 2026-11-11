@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark utilities."""
 
 import os
@@ -64,7 +47,7 @@ class GeoBenchmarks:
                                   area=None, filenames=None):
         """Save a composite to disk as geotiff."""
         lscn = self.load_and_resample(composite, resampler, area, filenames)
-        lscn.save_dataset(composite, filename='test.tif', tiled=True)
+        lscn.save_dataset(composite, filename="test.tif", tiled=True)
 
     def compute_channel(self, channel, filenames=None):
         """Load and compute one channel."""

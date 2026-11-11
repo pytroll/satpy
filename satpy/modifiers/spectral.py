@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes dealing with spectral domain changes or corrections."""
 
 import logging
@@ -43,7 +26,7 @@ class NIRReflectance(ModifierBase):
     TERMINATOR_LIMIT = 85.0
     MASKING_LIMIT = 88.0
 
-    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,  # noqa: D417
                  masking_limit=MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
@@ -66,36 +49,58 @@ class NIRReflectance(ModifierBase):
 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        projectables = self.match_data_arrays(projectables)
-        return self._get_reflectance_as_dataarray(projectables, optional_datasets)
+        projectables, optional_datasets = self._match_projectables_and_optionals(projectables, optional_datasets)
+        inputs = self._get_nir_inputs(projectables, optional_datasets)
+        return self._get_reflectance_as_dataarray(*inputs)
 
-    def _get_reflectance_as_dataarray(self, projectables, optional_datasets):
+    def _match_projectables_and_optionals(self, projectables, optional_datasets):
+        """Check the geometry of the projectables and the optional datasets together.
+
+        The optional datasets are consumed by :meth:`_get_nir_inputs` just like the
+        projectables are, so they must take part in the compatibility check. Leaving
+        them out lets a mismatched optional dataset through to the computation, where
+        it fails as an opaque broadcasting error instead of ``IncompatibleAreas``.
+
+        Args:
+            projectables: The required input arrays.
+            optional_datasets: The optional input arrays, or ``None``.
+
+        Returns:
+            The matched projectables and the matched optional datasets.
+
+        """
+        optional_datasets = optional_datasets or []
+        num_projectables = len(projectables)
+        matched_data_arrs = self.match_data_arrays(list(projectables) + list(optional_datasets))
+        return matched_data_arrs[:num_projectables], matched_data_arrs[num_projectables:]
+
+    def _get_reflectance_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the reflectance as a dataarray."""
-        _nir, _tb11 = projectables
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
-
-        logger.info('Getting reflective part of %s', _nir.attrs['name'])
-        reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
-
-        proj = self._create_modified_dataarray(reflectance, base_dataarray=_nir)
-        proj.attrs['units'] = '%'
+        logger.info("Getting reflective part of %s", nir.attrs["name"])
+        reflectance = self._get_reflectance_as_dask(nir.data, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
+        proj = self._create_modified_dataarray(reflectance, base_dataarray=nir)
+        proj.attrs["units"] = "%"
         return proj
+
+    def _get_nir_inputs(self, projectables, optional_datasets):
+        nir, tb11 = projectables
+        da_tb11 = tb11.data
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(nir, optional_datasets, nir.dtype)
+        return (nir, da_tb11, da_tb13_4, da_sun_zenith)
 
     @staticmethod
     def _get_tb13_4_from_optionals(optional_datasets):
         tb13_4 = None
         for dataset in optional_datasets:
-            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
-            if (dataset.attrs.get('units') == 'K' and
+            wavelengths = dataset.attrs.get("wavelength", [100., 0, 0])
+            if (dataset.attrs.get("units") == "K" and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset.data
         return tb13_4
 
     @staticmethod
-    def _get_sun_zenith_from_provided_data(projectables, optional_datasets):
+    def _get_sun_zenith_from_provided_data(nir, optional_datasets, dtype):
         """Get the sunz from available data or compute it if unavailable."""
         sun_zenith = None
 
@@ -106,16 +111,15 @@ class NIRReflectance(ModifierBase):
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
-            _nir = projectables[0]
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
-            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
+            lons, lats = nir.attrs["area"].get_lonlats(chunks=nir.data.chunks, dtype=dtype)
+            sun_zenith = sun_zenith_angle(nir.attrs["start_time"], lons, lats)
         return sun_zenith
 
     def _create_modified_dataarray(self, reflectance, base_dataarray):
         proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
                             coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
-        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
-        proj.attrs['sun_zenith_masking_limit'] = self.masking_limit
+        proj.attrs["sun_zenith_threshold"] = self.sun_zenith_threshold
+        proj.attrs["sun_zenith_masking_limit"] = self.masking_limit
         self.apply_modifier_info(base_dataarray, proj)
         return proj
 
@@ -130,7 +134,7 @@ class NIRReflectance(ModifierBase):
             logger.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
 
-        reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+        reflectance_3x_calculator = Calculator(metadata["platform_name"], metadata["sensor"], metadata["name"],
                                                sunz_threshold=self.sun_zenith_threshold,
                                                masking_limit=self.masking_limit)
         return reflectance_3x_calculator
@@ -139,7 +143,7 @@ class NIRReflectance(ModifierBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
     """Get the emissive part of NIR bands."""
 
-    def __init__(self, sunz_threshold=None, **kwargs):
+    def __init__(self, sunz_threshold=None, **kwargs):  # noqa: D417
         """Collect custom configuration values.
 
         Args:
@@ -158,22 +162,17 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
-        projectables = self.match_data_arrays(projectables)
-        return self._get_emissivity_as_dataarray(projectables, optional_datasets)
+        projectables, optional_datasets = self._match_projectables_and_optionals(projectables, optional_datasets)
+        inputs = self._get_nir_inputs(projectables, optional_datasets)
+        return self._get_emissivity_as_dataarray(*inputs)
 
-    def _get_emissivity_as_dataarray(self, projectables, optional_datasets):
+    def _get_emissivity_as_dataarray(self, nir, da_tb11, da_tb13_4, da_sun_zenith):
         """Get the emissivity as a dataarray."""
-        _nir, _tb11 = projectables
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
-        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
+        logger.info("Getting emissive part of %s", nir.attrs["name"])
+        emissivity = self._get_emissivity_as_dask(nir.data, da_tb11, da_tb13_4, da_sun_zenith, nir.attrs)
 
-        logger.info('Getting emissive part of %s', _nir.attrs['name'])
-        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
-
-        proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
-        proj.attrs['units'] = 'K'
+        proj = self._create_modified_dataarray(emissivity, base_dataarray=nir)
+        proj.attrs["units"] = "K"
         return proj
 
     def _get_emissivity_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):

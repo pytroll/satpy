@@ -14,29 +14,29 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import sys
-from datetime import datetime
-
-from pkg_resources import get_distribution
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath('../../'))
+sys.path.append(os.path.abspath("../../"))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 from reader_table import generate_reader_table  # noqa: E402
+
+import satpy  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # get version using setuptools-scm
-release = get_distribution('satpy').version
+release = satpy.__version__
 # The full version, including alpha/beta/rc tags.
 # for example take major/minor
-version = '.'.join(release.split('.')[:2])
+version = ".".join(release.split(".")[:2])
 
 
 class Mock(object):  # noqa
@@ -44,7 +44,7 @@ class Mock(object):  # noqa
 
     def __init__(self, *args, **kwargs):
         """Mask any arguments to mock object."""
-        pass
+        self.__version__ = "0.0.0"
 
     def __call__(self, *args, **kwargs):
         """Mock a function and class object when accessed from mocked module."""
@@ -53,8 +53,8 @@ class Mock(object):  # noqa
     @classmethod
     def __getattr__(cls, name):
         """Mock common module attributes used in documentation."""
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
+        if name in ("__file__", "__path__"):
+            return "/dev/null"
         elif name[0] == name[0].upper():
             mockType = type(name, (), {})
             mockType.__module__ = __name__
@@ -66,15 +66,42 @@ class Mock(object):  # noqa
 
 
 # https://github.com/sphinx-doc/sphinx/issues/3920
-MOCK_MODULES = ['h5py']
+MOCK_MODULES = ["h5py"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()  # type: ignore
 
-autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
-                        'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
-                        'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
-                        'zarr']
-autoclass_content = 'both'  # append class __init__ docstring to the class docstring
+autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
+                        "pygac", "pygrib", "pyhdf", "pyninjotiff",
+                        "pyorbital", "pyspectral", "rasterio", "trollimage", "rioxarray",
+                        "zarr"]
+autodoc_type_aliases = {
+    "ArrayLike": "numpy.typing.ArrayLike",
+    "DTypeLike": "numpy.typing.DTypeLike",
+}
+autodoc_default_options = {
+    "special-members": "__init__, __reduce_ex__",
+}
+nitpick_ignore_regex = [
+    ("py:class", r"yaml\.loader\..*Loader"),
+    ("py:class", r"numpy\.float32"),
+    ("py:class", r"numpy\.uint8"),
+    ("py:class", r"numpy\.uint16"),
+    ("py:class", r"numpy\.uint32"),
+    ("py:data", r"typing\.Union"),
+    ("py:class", r"pathlib\._local\.Path"),
+    ("py:class", r"upath\.core\.UPath"),
+]
+autoclass_content = "both"  # append class __init__ docstring to the class docstring
+
+# sphinx-autodoc-typehints executes the body of every ``if TYPE_CHECKING:`` block it finds so the names
+# inside become resolvable, then warns about any statement that will not run. A guard exists precisely so
+# its contents need not be runtime-valid, so third-party guards we do not control routinely trip this:
+# upath imports pydantic, trollsift imports _typeshed, xarray writes TypeVar(bound="DataArray" | Dataset).
+# None are actionable here. Read the Docs builds with ``fail_on_warning: true``, so the warnings would
+# break the build; suppress them there and leave them visible locally, where they cost nothing.
+# See https://github.com/tox-dev/sphinx-autodoc-typehints/issues/741 -- drop this once a release fixes it.
+if os.environ.get("READTHEDOCS") == "True":
+    suppress_warnings = ["sphinx_autodoc_typehints.guarded_import"]
 
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:
@@ -82,42 +109,60 @@ with open("reader_table.rst", mode="w") as f:
 
 # -- General configuration -----------------------------------------------------
 
+# sphinxcontrib.apidoc was added to sphinx in 8.2.0 as sphinx.etx.apidoc
+needs_sphinx = "8.2.0"
+
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
-              'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc',
-              'sphinx.ext.mathjax']
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.todo", "sphinx.ext.coverage",
+              "sphinx.ext.doctest", "sphinx.ext.napoleon", "sphinx.ext.autosummary", "sphinx.ext.autosectionlabel",
+              "doi_role", "sphinx.ext.viewcode", "sphinx.ext.apidoc",
+              "sphinx.ext.mathjax", "sphinx_autodoc_typehints"]
+
+linkcheck_allowed_redirects: dict[str, str] = {}
+
+# Autosectionlabel
+# Make sure target is unique
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 3
 
 # API docs
-apidoc_module_dir = "../../satpy"
-apidoc_output_dir = "api"
-apidoc_excluded_paths = [
-    'readers/caliop_l2_cloud.py',
-    'readers/ghrsst_l3c_sst.py',
-    'readers/li_l2.py',
-    'readers/scatsat1_l2b.py',
+apidoc_modules = [
+    {
+        "path": "../../satpy",
+        "destination": "api/",
+        "exclude_patterns": [
+            "../../satpy/readers/caliop_l2_cloud.py",
+            "../../satpy/readers/ghrsst_l3c_sst.py",
+            "../../satpy/readers/scatsat1_l2b.py",
+            # Prefer to not document test modules. Most users will look at
+            # source code if needed and we want to avoid documentation builds
+            # suffering from import-time test data creation. We want to keep
+            # things contributors might be interested in like satpy.tests.utils.
+            "../../satpy/tests/test_*.py",
+            "../../satpy/tests/**/test_*.py",
+            "../../satpy/tests/*_tests/*",
+        ],
+    },
 ]
 apidoc_separate_modules = True
-apidoc_extra_args = [
-    "--private",
-]
+apidoc_include_private = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 # source_encoding = 'utf-8'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'Satpy'
-copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y"))
+project = u"Satpy"
+copyright = u"2009-{}, The PyTroll Team".format(dt.datetime.now(dt.timezone.utc).strftime("%Y"))  # noqa: A001
 
 # The language for content autogenerated by Sphinx. Refer to documentation
 # for a list of supported languages.
@@ -151,7 +196,7 @@ exclude_trees: list[str] = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -161,7 +206,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -190,16 +235,18 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 html_css_files = [
-    'theme_overrides.css',  # override wide tables in RTD theme
-    'https://cdn.datatables.net/1.10.23/css/jquery.dataTables.min.css',
+    "theme_overrides.css",  # override wide tables in RTD theme
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.css",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.css"
 ]
 
 html_js_files = [
-    'https://cdn.datatables.net/1.10.23/js/jquery.dataTables.min.js',
-    'main.js',
+    # "https://cdn.datatables.net/v/dt/dt-2.0.0/datatables.min.js",
+    "https://cdn.datatables.net/v/dt/dt-2.0.8/r-3.0.2/datatables.min.js",
+    "main.js",
 ]
 
 
@@ -239,7 +286,7 @@ html_js_files = [
 # html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'NWCSAFMSGPPdoc'
+htmlhelp_basename = "NWCSAFMSGPPdoc"
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -253,8 +300,8 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'satpy.tex', 'Satpy Documentation',
-   'Satpy Developers', 'manual'),
+  ("index", "satpy.tex", "Satpy Documentation",
+   "Satpy Developers", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -277,22 +324,23 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'dask': ('https://docs.dask.org/en/latest', None),
-    'geoviews': ('http://geoviews.org', None),
-    'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
-    'numpy': ('https://numpy.org/doc/stable', None),
-    'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
-    'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
-    'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
-    'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
-    'pytest': ('https://docs.pytest.org/en/stable/', None),
-    'python': ('https://docs.python.org/3', None),
-    'scipy': ('http://scipy.github.io/devdocs', None),
-    'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
-    'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None),
-    'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
-    'donfig': ('https://donfig.readthedocs.io/en/latest', None),
-    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
-    'fsspec': ('https://filesystem-spec.readthedocs.io/en/latest/', None),
+    "dask": ("https://docs.dask.org/en/latest", None),
+    "geoviews": ("https://geoviews.org", None),
+    "jobqueue": ("https://jobqueue.dask.org/en/latest", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pydecorate": ("https://pydecorate.readthedocs.io/en/stable", None),
+    "pyorbital": ("https://pyorbital.readthedocs.io/en/stable", None),
+    "pyproj": ("https://pyproj4.github.io/pyproj/dev", None),
+    "pyresample": ("https://pyresample.readthedocs.io/en/stable", None),
+    "pytest": ("https://docs.pytest.org/en/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+    "scipy": ("https://scipy.github.io/devdocs", None),
+    "trollimage": ("https://trollimage.readthedocs.io/en/stable", None),
+    "trollsift": ("https://trollsift.readthedocs.io/en/stable", None),
+    "xarray": ("https://docs.xarray.dev/en/stable", None),
+    "rasterio": ("https://rasterio.readthedocs.io/en/latest", None),
+    "donfig": ("https://donfig.readthedocs.io/en/latest", None),
+    "pooch": ("https://www.fatiando.org/pooch/latest/", None),
+    "fsspec": ("https://filesystem-spec.readthedocs.io/en/latest/", None),
+    "asv": ("https://asv.readthedocs.io/en/latest", None),
 }

@@ -1,34 +1,19 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Composite classes for the VIIRS instrument."""
+
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import math
-from datetime import datetime
 
-import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.composites import CompositeBase, GenericCompositor
 from satpy.dataset import combine_metadata
+
+from .core import CompositeBase, GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
@@ -61,17 +46,23 @@ class HistogramDNB(CompositeBase):
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
 
-        :param datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
-        :param **info: Miscellaneous metadata for the newly produced composite
+        Args:
+            datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
+            info: Miscellaneous metadata for the newly produced composite
         """
         if len(datasets) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(datasets), ))
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
-        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data.data, sza_data.data)
+        output_data = da.map_blocks(
+            self._run_dnb_normalization,
+            dnb_data.data.rechunk(dnb_data.shape),
+            sza_data.data.rechunk(sza_data.shape),
+            dtype=dnb_data.dtype,
+            meta=np.ndarray((), dtype=dnb_data.dtype),
+        )
         output_dataset = dnb_data.copy()
-        output_data = da.from_delayed(delayed, dnb_data.shape, dnb_data.dtype)
         output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
 
         info = dnb_data.attrs.copy()
@@ -81,26 +72,26 @@ class HistogramDNB(CompositeBase):
         output_dataset.attrs = info
         return output_dataset
 
-    def _run_dnb_normalization(self, dnb_data, sza_data):
+    def _run_dnb_normalization(self, dnb_data: np.ndarray, sza_data: np.ndarray) -> np.ndarray:
         """Scale the DNB data using a histogram equalization method.
 
         Args:
-            dnb_data (ndarray): Day/Night Band data array
-            sza_data (ndarray): Solar Zenith Angle data array
+            dnb_data: Day/Night Band data numpy array
+            sza_data: Solar Zenith Angle data numpy array
 
         """
         # convert dask arrays to DataArray objects
-        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
-        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+        dnb_data_arr = xr.DataArray(dnb_data, dims=("y", "x"))
+        sza_data_arr = xr.DataArray(sza_data, dims=("y", "x"))
 
-        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
-        output_dataset = dnb_data.where(good_mask)
+        good_mask = ~(dnb_data_arr.isnull() | sza_data_arr.isnull())
+        output_data_arr = dnb_data_arr.where(good_mask)
         # we only need the numpy array
-        output_dataset = output_dataset.values.copy()
-        dnb_data = dnb_data.values
-        sza_data = sza_data.values
-        self._normalize_dnb_for_mask(dnb_data, sza_data, good_mask, output_dataset)
-        return output_dataset
+        output_data = output_data_arr.values.copy()
+        dnb_data = dnb_data_arr.values
+        sza_data = sza_data_arr.values
+        self._normalize_dnb_for_mask(dnb_data, sza_data, good_mask, output_data)
+        return output_data
 
     def _normalize_dnb_for_mask(self, dnb_data, sza_data, good_mask, output_dataset):
         day_mask, mixed_mask, night_mask = make_day_night_masks(
@@ -222,8 +213,7 @@ class ERFDNB(CompositeBase):
                                                 False)
         super(ERFDNB, self).__init__(*args, **kwargs)
 
-    def _saturation_correction(self, dnb_data, unit_factor, min_val,
-                               max_val):
+    def _saturation_correction(self, dnb_data, min_val, max_val, unit_factor):
         saturation_pct = float(np.count_nonzero(dnb_data >
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
@@ -294,9 +284,16 @@ class ERFDNB(CompositeBase):
         # Update from Curtis Seaman, increase max radiance curve until less
         # than 0.5% is saturated
         if self.saturation_correction:
-            delayed = dask.delayed(self._saturation_correction)(output_dataset.data, unit_factor, min_val, max_val)
-            output_dataset.data = da.from_delayed(delayed, output_dataset.shape, output_dataset.dtype)
-            output_dataset.data = output_dataset.data.rechunk(dnb_data.data.chunks)
+            output_data = da.map_blocks(
+                self._saturation_correction,
+                output_dataset.data.rechunk(output_dataset.shape),
+                min_val.rechunk(output_dataset.shape),
+                max_val.rechunk(output_dataset.shape),
+                unit_factor,
+                dtype=output_dataset.dtype,
+                meta=np.ndarray((), dtype=output_dataset.dtype),
+            )
+            output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
@@ -842,7 +839,7 @@ def _linear_normalization_from_0to1(
     data[mask] = data[mask] / theoretical_max
 
 
-def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: datetime) -> float:
+def _check_moon_phase(moon_datasets: list[xr.DataArray], start_time: dt.datetime) -> float:
     """Check if we have Moon phase as an input dataset and, if not, calculate it."""
     if moon_datasets:
         # convert to decimal instead of %
@@ -904,8 +901,8 @@ class NCCZinke(CompositeBase):
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = self.attrs['name']
-        mda['standard_name'] = 'ncc_radiance'
+        mda["name"] = self.attrs["name"]
+        mda["standard_name"] = "ncc_radiance"
         dnb_data.attrs = mda
         return dnb_data
 

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark VIIRS SDR operations.."""
 
 from __future__ import annotations
@@ -42,7 +25,7 @@ class VIIRSSDRBenchmarkBase:
         except ImportError:
             assert len(self.get_filenames()) == 6 * 3  # nosec
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_types=["rayleigh_only"])
 
     def setup(self, name):
         """Set up the benchmarks."""
@@ -58,14 +41,14 @@ class VIIRSSDRBenchmarkBase:
     def load(self, composite):
         """Load one composite."""
         from satpy import Scene
-        scn = Scene(filenames=self.data_files, reader='viirs_sdr')
+        scn = Scene(filenames=self.data_files, reader="viirs_sdr")
         scn.load([composite])
         return scn
 
     def load_and_native_resample(self, composite):
         """Load and native resample a composite."""
         scn = self.load(composite)
-        lscn = scn.resample(resampler='native')
+        lscn = scn.resample(resampler="native")
         return lscn
 
 
@@ -119,4 +102,4 @@ class VIIRSSDRCompositeBenchmarks(VIIRSSDRBenchmarkBase):
     def save_composite_as_geotiff(self, name):
         """Save a composite to disk as geotiff."""
         lscn = self.load_and_native_resample(name)
-        lscn.save_dataset(name, filename='test.tif', tiled=True)
+        lscn.save_dataset(name, filename="test.tif", tiled=True)

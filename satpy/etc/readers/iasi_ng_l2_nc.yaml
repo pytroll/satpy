@@ -1,0 +1,26 @@
+reader:
+  name: iasi_ng_l2_nc
+  short_name: IASI-NG L2 NC Reader
+  long_name: IASI-NG Level-2 NetCDF Reader
+  description: Reader for IASI-NG Level-2 NetCDF files
+  sensors: [iasi]
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
+  status: Alpha
+  supports_fsspec: false
+
+file_types:
+  iasi_ng_l2_nc:
+    file_reader: !!python/name:satpy.readers.iasi_ng_l2_nc.IASINGL2NCFileHandler
+    file_patterns:
+      [
+        "{pflag}_{country}-{organization}-{location},{data_designator},{spacecraft}-{instrument}-{processing_level}-{product_type:3s}_{oflag}_{originator}_{generation_time}_{mission_type}_{environment}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode}_{processing_mode}_{free_text1}_{free_text2}_{free_text3}_{extension}.nc",
+      ]
+
+    # keeping optimal_estimation folder for the moment due to feature freeze,
+    # but it might be necessary to re-introduce this in a near future.
+    # So keeping this reference entry here for now.
+    # ignored_patterns:
+    #   - /optimal_estimation/ # cf. eum respase2 task2 issue #4
+
+    dataset_aliases:
+      "/optimal_estimation/(.+)$": "${VAR_NAME}_oem"

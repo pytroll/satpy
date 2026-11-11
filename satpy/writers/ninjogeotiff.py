@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
 Starting with NinJo 7, NinJo is able to read standard GeoTIFF images,
@@ -67,18 +50,20 @@ Moreover, two keyword arguments are no longer supported because
 their functionality has become redundant.  This applies to
 ``ch_min_measurement_unit`` and ``ch_max_measurement_unit``.
 Instead, pass those values in source units to the
-:func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
+:func:`~satpy.enhancements.contrast.stretch` enhancement with the ``min_stretch``
 and ``max_stretch`` arguments.
 
 For images where the pixel value corresponds directly to a physical value,
 NinJo has a functionality to read the corresponding quantity (example:
 brightness temperature or reflectance).  To make this possible, the writer
 adds the tags ``Gradient`` and ``AxisIntercept``.  Those tags are added if
-and only if the image has mode ``L`` or ``LA`` and ``PhysicUnit`` is not set
+and only if the image has mode ``L``, ``P``, or ``LA`` and ``PhysicUnit`` is not set
 to ``"N/A"``.  In other words, to suppress those tags for images with mode
 ``L`` or ``LA`` (for example, for the composite ``vis_with_ir``, where the
 physical interpretation of individual pixels is lost), one should set
 ``PhysicUnit`` to ``"N/A"``, ``"n/a"``, ``"1"``, or ``""`` (empty string).
+If the image has mode ``P``, ``Gradient`` is set to ``1.0`` and ``AxisIntercept``
+to ``0.0`` (as expected by NinJo).
 """
 
 import copy
@@ -103,7 +88,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     scale_offset_tag_names = ("ninjo_Gradient", "ninjo_AxisIntercept")
 
-    def save_image(
+    def save_image(  # noqa: D417
             self, image, filename=None, fill_value=None,
             compute=True, keep_palette=False, cmap=None, overviews=None,
             overviews_minsize=256, overviews_resampling=None,
@@ -204,10 +189,21 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overviews_minsize=overviews_minsize,
             overviews_resampling=overviews_resampling,
             tags={**(tags or {}), **ninjo_tags},
-            scale_offset_tags=(self.scale_offset_tag_names
-                               if self._check_include_scale_offset(image, PhysicUnit)
-                               else None),
+            scale_offset_tags=self._get_scale_offset_tags(image, PhysicUnit),
             **gdal_opts)
+
+    def _get_scale_offset_tags(self, image, unit):
+        """Get scale offset tags (tuple or dict)."""
+        if self._check_include_scale_offset(image, unit):
+            # image.mode cannot be trusted https://github.com/pytroll/satpy/issues/2300
+            try:
+                mod = image.data.attrs["mode"]
+            except KeyError:
+                mod = image.mode
+            if mod == "P":
+                return dict(zip(self.scale_offset_tag_names, (1, 0)))
+            return self.scale_offset_tag_names
+        return None  # explicit is better than implicit
 
     def _fix_units(self, image, quantity, unit):
         """Adapt units between °C and K.
@@ -236,7 +232,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def _check_include_scale_offset(self, image, unit):
         """Check if scale-offset tags should be included."""
-        if image.mode.startswith("L") and unit.lower() not in ("n/a", "1", ""):
+        if image.mode[0] in "LP" and unit.lower() not in ("n/a", "1", ""):
             return True
         return False
 
@@ -426,14 +422,14 @@ class NinJoTagGenerator:
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.min(),
+            self.dataset.min(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
         return self.image._scale_to_dtype(
-            self.dataset.max(),
+            self.dataset.max(keep_attrs=False),
             np.uint8,
             self.fill_value).astype(np.uint8)
 

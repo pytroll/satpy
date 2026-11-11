@@ -1,25 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2009-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reading and calibrating hrpt avhrr data.
 
-Todo:
-- AMSU
-- Compare output with AAPP
+"""Reading and calibrating hrpt avhrr data.
 
 Reading:
 http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c4/sec4-1.htm#t413-1
@@ -29,8 +9,8 @@ http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c7/sec7-1.htm
 
 """
 
+import datetime as dt
 import logging
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
@@ -42,27 +22,27 @@ from pyorbital.orbital import Orbital
 
 from satpy._compat import cached_property
 from satpy.readers.aapp_l1b import get_avhrr_lac_chunks
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
 
-dtype = np.dtype([('frame_sync', '>u2', (6, )),
-                  ('id', [('id', '>u2'),
-                          ('spare', '>u2')]),
-                  ('timecode', '>u2', (4, )),
-                  ('telemetry', [("ramp_calibration", '>u2', (5, )),
-                                 ("PRT", '>u2', (3, )),
-                                 ("ch3_patch_temp", '>u2'),
-                                 ("spare", '>u2'), ]),
-                  ('back_scan', '>u2', (10, 3)),
-                  ('space_data', '>u2', (10, 5)),
-                  ('sync', '>u2'),
-                  ('TIP_data', '>u2', (520, )),
-                  ('spare', '>u2', (127, )),
-                  ('image_data', '>u2', (2048, 5)),
-                  ('aux_sync', '>u2', (100, ))])
+scanline_dtype = np.dtype([("frame_sync", ">u2", (6, )),
+                           ("id", [("id", ">u2"),
+                                   ("spare", ">u2")]),
+                           ("timecode", ">u2", (4, )),
+                           ("telemetry", [("ramp_calibration", ">u2", (5, )),
+                                          ("PRT", ">u2", (3, )),
+                                          ("ch3_patch_temp", ">u2"),
+                                          ("spare", ">u2"), ]),
+                           ("back_scan", ">u2", (10, 3)),
+                           ("space_data", ">u2", (10, 5)),
+                           ("sync", ">u2"),
+                           ("TIP_data", ">u2", (520, )),
+                           ("spare", ">u2", (127, )),
+                           ("image_data", ">u2", (2048, 5)),
+                           ("aux_sync", ">u2", (100, ))])
 
 
 def time_seconds(tc_array, year):
@@ -78,9 +58,9 @@ def time_seconds(tc_array, year):
     word = tc_array[:, 3]
     msecs += word & 1023
     return (np.datetime64(
-        str(year) + '-01-01T00:00:00Z', 's') +
-        msecs[:].astype('timedelta64[ms]') +
-        (day - 1)[:].astype('timedelta64[D]'))
+        str(year) + "-01-01T00:00:00", "s") +
+        msecs[:].astype("timedelta64[ms]") +
+        (day - 1)[:].astype("timedelta64[D]"))
 
 
 def bfield(array, bit):
@@ -111,13 +91,13 @@ def geo_interpolate(lons32km, lats32km):
 
 def _get_channel_index(key):
     """Get the avhrr channel index."""
-    avhrr_channel_index = {'1': 0,
-                           '2': 1,
-                           '3a': 2,
-                           '3b': 2,
-                           '4': 3,
-                           '5': 4}
-    index = avhrr_channel_index[key['name']]
+    avhrr_channel_index = {"1": 0,
+                           "2": 1,
+                           "3a": 2,
+                           "3b": 2,
+                           "4": 3,
+                           "5": 4}
+    index = avhrr_channel_index[key["name"]]
     return index
 
 
@@ -128,9 +108,9 @@ class HRPTFile(BaseFileHandler):
         """Init the file handler."""
         super(HRPTFile, self).__init__(filename, filename_info, filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
-        self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
+        self.units = {i: "counts" for i in AVHRR_CHANNEL_NAMES}
 
-        self.year = filename_info.get('start_time', datetime.utcnow()).year
+        self.year = filename_info["start_time"].year
 
     @cached_property
     def times(self):
@@ -150,9 +130,9 @@ class HRPTFile(BaseFileHandler):
     def read(self):
         """Read the file."""
         with open(self.filename, "rb") as fp_:
-            data = np.memmap(fp_, dtype=dtype, mode="r")
-        if np.all(np.median(data['frame_sync'], axis=0) > 1024):
-            data = self._data.newbyteorder()
+            data = np.memmap(fp_, dtype=scanline_dtype, mode="r")
+        if np.all(np.median(data["frame_sync"], axis=0) > 1024):
+            data = data.view(data.dtype.newbyteorder())
         return data
 
     @cached_property
@@ -162,33 +142,44 @@ class HRPTFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset."""
+        # 8< v1.0
+        import warnings
+        if "calibration" in key and key["calibration"] == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for AVHRR L0 is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         attrs = info.copy()
-        attrs['platform_name'] = self.platform_name
+        attrs["platform_name"] = self.platform_name
 
-        if key['name'] in ['latitude', 'longitude']:
+        if key["name"] in ["latitude", "longitude"]:
             data = self._get_navigation_data(key)
         else:
             data = self._get_channel_data(key)
 
-        result = xr.DataArray(data, dims=['y', 'x'], attrs=attrs)
+        result = xr.DataArray(data, dims=["y", "x"], attrs=attrs)
         mask = self._get_ch3_mask_or_true(key)
         return result.where(mask)
 
     def _get_channel_data(self, key):
         """Get channel data."""
         data = da.from_array(self._data["image_data"][:, :, _get_channel_index(key)], chunks=self._chunks)
-        if key['calibration'] != 'counts':
-            if key['name'] in ['1', '2', '3a']:
+        if key["calibration"] != "counts":
+            if key["name"] in ["1", "2", "3a"]:
                 data = self.calibrate_solar_channel(data, key)
 
-            if key['name'] in ['3b', '4', '5']:
+            if key["name"] in ["3b", "4", "5"]:
                 data = self.calibrate_thermal_channel(data, key)
         return data
 
     def _get_navigation_data(self, key):
         """Get navigation data."""
         lons, lats = self.lons_lats
-        if key['name'] == 'latitude':
+        if key["name"] == "latitude":
             data = da.from_array(lats, chunks=self._chunks)
         else:
             data = da.from_array(lons, chunks=self._chunks)
@@ -196,9 +187,9 @@ class HRPTFile(BaseFileHandler):
 
     def _get_ch3_mask_or_true(self, key):
         mask = True
-        if key['name'] == '3a':
+        if key["name"] == "3a":
             mask = np.tile(np.logical_not(self._is3b), (2048, 1)).T
-        elif key['name'] == '3b':
+        elif key["name"] == "3b":
             mask = np.tile(self._is3b, (2048, 1)).T
         return mask
 
@@ -208,10 +199,10 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_thermal_channel(self, data, key):
         """Calibrate a thermal channel."""
-        from pygac.calibration import calibrate_thermal
+        from pygac.calibration.noaa import calibrate_thermal
         line_numbers = (
             np.round((self.times - self.times[-1]) /
-                     np.timedelta64(166666667, 'ns'))).astype(int)
+                     np.timedelta64(166666667, "ns"))).astype(int)
         line_numbers -= line_numbers[0]
         prt, ict, space = self.telemetry
         index = _get_channel_index(key)
@@ -222,10 +213,10 @@ class HRPTFile(BaseFileHandler):
 
     def calibrate_solar_channel(self, data, key):
         """Calibrate a solar channel."""
-        from pygac.calibration import calibrate_solar
+        from pygac.calibration.noaa import calibrate_solar
         julian_days = ((np.datetime64(self.start_time)
-                        - np.datetime64(str(self.year) + '-01-01T00:00:00Z'))
-                       / np.timedelta64(1, 'D'))
+                        - np.datetime64(str(self.year) + "-01-01T00:00:00"))
+                       / np.timedelta64(1, "D"))
         data = calibrate_solar(data, _get_channel_index(key), self.year, julian_days,
                                self.calibrator)
         return data
@@ -233,17 +224,17 @@ class HRPTFile(BaseFileHandler):
     @cached_property
     def calibrator(self):
         """Create a calibrator for the data."""
-        from pygac.calibration import Calibrator
-        pg_spacecraft = ''.join(self.platform_name.split()).lower()
+        from pygac.calibration.noaa import Calibrator
+        pg_spacecraft = "".join(self.platform_name.split()).lower()
         return Calibrator(pg_spacecraft)
 
     @cached_property
     def telemetry(self):
         """Get the telemetry."""
         # This isn't converted to dask arrays as it does not work with pygac
-        prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
-        ict = np.mean(self._data['back_scan'], axis=1)
-        space = np.mean(self._data['space_data'][:, :], axis=1)
+        prt = np.mean(self._data["telemetry"]["PRT"], axis=1)
+        ict = np.mean(self._data["back_scan"], axis=1)
+        space = np.mean(self._data["space_data"][:, :], axis=1)
 
         return prt, ict, space
 
@@ -272,10 +263,10 @@ class HRPTFile(BaseFileHandler):
     def start_time(self):
         """Get the start time."""
         return time_seconds(self._data["timecode"][0, np.newaxis, :],
-                            self.year).astype(datetime)[0]
+                            self.year).astype(dt.datetime)[0]
 
     @property
     def end_time(self):
         """Get the end time."""
         return time_seconds(self._data["timecode"][-1, np.newaxis, :],
-                            self.year).astype(datetime)[0]
+                            self.year).astype(dt.datetime)[0]

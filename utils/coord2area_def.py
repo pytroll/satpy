@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2012-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Convert human coordinates (lon and lat) to an area definition.
 
 Here is a usage example.
@@ -66,7 +49,7 @@ import sys
 
 from pyproj import Proj
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("name",
@@ -126,7 +109,7 @@ if __name__ == '__main__':
         " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
-    print('### ' + proj4_string)
+    print("### " + proj4_string)
     print()
     print(name + ":")
     print("  description: " + name)
@@ -146,14 +129,14 @@ if __name__ == '__main__':
         sys.exit(0)
     from PIL import Image
     from pycoast import ContourWriterAGG
-    img = Image.new('RGB', (xsize, ysize))
+    img = Image.new("RGB", (xsize, ysize))
 
     area_def = (proj4_string, area_extent)
     cw = ContourWriterAGG(args.shapes)
 
     cw.add_coastlines(img, (proj4_string, area_extent),
-                      resolution='l', width=0.5)
+                      resolution="l", width=0.5)
 
-    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline='white', outline_opacity=175,
-                width=1.0, minor_outline='white', minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
+    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline="white", outline_opacity=175,
+                width=1.0, minor_outline="white", minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
     img.show()

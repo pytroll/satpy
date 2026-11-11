@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared preparation and utilities for testing.
 
 This module is executed automatically by pytest.
@@ -26,11 +9,11 @@ import pytest
 
 import satpy
 
-TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
+TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), "etc")
 
 
 @pytest.fixture(autouse=True)
-def reset_satpy_config(tmpdir):
+def _reset_satpy_config(tmpdir):
     """Set satpy config to logical defaults for tests."""
     test_config = {
         "cache_dir": str(tmpdir / "cache"),
@@ -44,7 +27,7 @@ def reset_satpy_config(tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def clear_function_caches():
+def _clear_function_caches():
     """Clear out global function-level caches that may cause conflicts between tests."""
     from satpy.composites.config_loader import load_compositor_configs_for_sensor
     load_compositor_configs_for_sensor.cache_clear()
@@ -55,3 +38,11 @@ def include_test_etc():
     """Tell Satpy to use the config 'etc' directory from the tests directory."""
     with satpy.config.set(config_path=[TEST_ETC_DIR]):
         yield TEST_ETC_DIR
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _forbid_pyspectral_downloads():
+    from pyspectral.testing import forbid_pyspectral_downloads
+
+    with forbid_pyspectral_downloads():
+        yield

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Classes related to the CREFL (corrected reflectance) modifier."""
 
 import logging
@@ -35,7 +18,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
     """
 
-    def __init__(self, *args, dem_filename=None, dem_sds="averaged elevation",
+    def __init__(self, *args, dem_filename=None, dem_sds="averaged elevation",  # noqa: D417
                  url=None, known_hash=None, **kwargs):
         """Initialize the compositor with values from the user or from the configuration file.
 
@@ -70,7 +53,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         if not self.url:
             return
         reg_files = self.register_data_files([{
-            'url': self.url, 'known_hash': self.known_hash}
+            "url": self.url, "known_hash": self.known_hash}
         ])
         return reg_files[0]
 

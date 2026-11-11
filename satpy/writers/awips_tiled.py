@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The AWIPS Tiled writer is used to create AWIPS-compatible tiled NetCDF4 files.
 
 The Advanced Weather Interactive Processing System (AWIPS) is a
@@ -213,13 +196,15 @@ geolocation by up to 0.5 pixels in each dimension instead of shifting the
 lettered tile locations.
 
 """
+
+import datetime as dt
 import logging
 import os
 import string
 import sys
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta
+from typing import Any
 
 import dask
 import dask.array as da
@@ -230,45 +215,30 @@ from pyresample.geometry import AreaDefinition
 from trollsift.parser import Parser, StringFormatter
 
 from satpy import __version__
-from satpy.writers import DecisionTree, Enhancer, Writer, get_enhanced_image
+from satpy.decision_tree import DecisionTree
+from satpy.writers.core.base import Writer
 
 LOG = logging.getLogger(__name__)
-DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_' \
-                         '{name}_{sector_id}_{tile_id}_' \
-                         '{start_time:%Y%m%d_%H%M}.nc'
+DEFAULT_OUTPUT_PATTERN = "{source_name}_AII_{platform_name}_{sensor}_" \
+                         "{name}_{sector_id}_{tile_id}_" \
+                         "{start_time:%Y%m%d_%H%M}.nc"
 
 UNIT_CONV = {
-    'micron': 'microm',
-    'mm h-1': 'mm/h',
-    '1': '*1',
-    'none': '*1',
-    'percent': '%',
-    'Kelvin': 'kelvin',
-    'K': 'kelvin',
+    "micron": "microm",
+    "mm h-1": "mm/h",
+    "1": "*1",
+    "none": "*1",
+    "percent": "%",
+    "Kelvin": "kelvin",
+    "K": "kelvin",
+    "Meter": "meters",
 }
 
-TileInfo = namedtuple('TileInfo', ['tile_count', 'image_shape', 'tile_shape',
-                                   'tile_row_offset', 'tile_column_offset', 'tile_id',
-                                   'tile_number',
-                                   'x', 'y', 'xy_factors', 'tile_slices', 'data_slices'])
-XYFactors = namedtuple('XYFactors', ['mx', 'bx', 'my', 'by'])
-
-
-def fix_awips_file(fn):
-    """Hack the NetCDF4 files to workaround NetCDF-Java bugs used by AWIPS.
-
-    This should not be needed for new versions of AWIPS.
-
-    """
-    # hack to get files created by new NetCDF library
-    # versions to be read by AWIPS buggy java version
-    # of NetCDF
-    LOG.info("Modifying output NetCDF file to work with AWIPS")
-    import h5py
-    h = h5py.File(fn, 'a')
-    if '_NCProperties' in h.attrs:
-        del h.attrs['_NCProperties']
-    h.close()
+TileInfo = namedtuple("TileInfo", ["tile_count", "image_shape", "tile_shape",
+                                   "tile_row_offset", "tile_column_offset", "tile_id",
+                                   "tile_number",
+                                   "x", "y", "xy_factors", "tile_slices", "data_slices"])
+XYFactors = namedtuple("XYFactors", ["mx", "bx", "my", "by"])
 
 
 class NumberedTileGenerator(object):
@@ -422,19 +392,29 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents, sector_crs,
-                 cell_size=(2000000, 2000000),
-                 num_subtiles=None, use_sector_reference=False):
+    def __init__(
+            self,
+            area_definition: AreaDefinition,
+            extents: tuple[float, float, float, float],
+            sector_crs: CRS,
+            cell_size: tuple[int, int] = (2000000, 2000000),
+            num_subtiles: tuple[int, int] | None = None,
+            use_sector_reference: bool = False):
         """Initialize tile information for later generation.
 
         Args:
-            area_definition (AreaDefinition): Area of the data being saved.
-            extents (tuple): Four element tuple of the configured lettered
-                 area.
-            sector_crs (pyproj.CRS): CRS of the configured lettered sector
-                area.
-            cell_size (tuple): Two element tuple of resolution of each tile
+            area_definition: Area of the data being saved.
+            extents: Four element tuple of the configured lettered area.
+            sector_crs: CRS of the configured lettered sector area.
+            cell_size: Two element tuple of resolution of each tile
                 in sector projection units (y, x).
+            num_subtiles: Two element tuple of number of sub-tiles to create
+                for each larger lettered tile. Defaults to (2, 2).
+            use_sector_reference: If False (default), the data's geolocation
+                is used to determine where pixels should align. If True, the
+                data's geolocation is shifted by up to half a pixel to align
+                with the extents of the lettered grid/area.
+
         """
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
@@ -604,12 +584,12 @@ class LetteredTileGenerator(NumberedTileGenerator):
 
 
 def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
-    dtype_str = encoding['dtype']
+    dtype_str = encoding["dtype"]
     dtype = np.dtype(getattr(np, dtype_str))
     file_bit_depth = dtype.itemsize * 8
-    unsigned_in_signed = encoding.get('_Unsigned') == "true"
-    is_unsigned = dtype.kind == 'u'
-    bit_depth = input_data_arr.attrs.get('bit_depth', file_bit_depth)
+    unsigned_in_signed = encoding.get("_Unsigned") == "true"
+    is_unsigned = dtype.kind == "u"
+    bit_depth = input_data_arr.attrs.get("bit_depth", file_bit_depth)
     num_fills = 1  # future: possibly support more than one fill value
     if bit_depth is None:
         bit_depth = file_bit_depth
@@ -620,14 +600,23 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # file data type to allow for extra fill values
         num_fills = 0
 
-    if is_unsigned or unsigned_in_signed:
+    if is_unsigned:
         # max value
         fills = [2 ** file_bit_depth - 1]
+    elif unsigned_in_signed:
+        # max unsigned value is -1 as a signed int
+        fills = [dtype.type(-1)]
     else:
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    # NOTE: AWIPS is buggy and does not properly handle both
+    #   halves an integers data space. The below code limits
+    #   unsigned integers to the positive half and this seems
+    #   to work better with current AWIPS.
+    mx = (vmax - vmin) / (2 ** (bit_depth - 1) - 1 - num_fills)
+    # NOTE: This is what the line should look like if AWIPS wasn't buggy:
+    # mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
@@ -666,7 +655,7 @@ def _add_valid_ranges(data_arrs):
             # we don't want to effect the original attrs
             data_arr = data_arr.copy(deep=False)
             # these are dask arrays, they need to get computed later
-            data_arr.attrs['valid_range'] = (vmin, vmax)
+            data_arr.attrs["valid_range"] = (vmin, vmax)
         yield data_arr
 
 
@@ -676,7 +665,7 @@ class AWIPSTiledVariableDecisionTree(DecisionTree):
     def __init__(self, decision_dicts, **kwargs):
         """Initialize decision tree with specific keys to look for."""
         # Fields used to match a product object to it's correct configuration
-        attrs = kwargs.pop('attrs',
+        attrs = kwargs.pop("attrs",
                            ["name",
                             "standard_name",
                             "satellite",
@@ -693,30 +682,30 @@ class NetCDFTemplate:
 
     def __init__(self, template_dict):
         """Parse template dictionary and prepare for rendering."""
-        self.is_single_variable = template_dict.get('single_variable', False)
-        self.global_attributes = template_dict.get('global_attributes', {})
+        self.is_single_variable = template_dict.get("single_variable", False)
+        self.global_attributes = template_dict.get("global_attributes", {})
 
         default_var_config = {
             "default": {
                 "encoding": {"dtype": "uint16"},
             }
         }
-        self.variables = template_dict.get('variables', default_var_config)
+        self.variables = template_dict.get("variables", default_var_config)
 
         default_coord_config = {
             "default": {
                 "encoding": {"dtype": "uint16"},
             }
         }
-        self.coordinates = template_dict.get('coordinates', default_coord_config)
+        self.coordinates = template_dict.get("coordinates", default_coord_config)
 
         self._var_tree = AWIPSTiledVariableDecisionTree([self.variables])
         self._coord_tree = AWIPSTiledVariableDecisionTree([self.coordinates])
-        self._filename_format_str = template_dict.get('filename')
+        self._filename_format_str = template_dict.get("filename")
         self._str_formatter = StringFormatter()
         self._template_dict = template_dict
 
-    def get_filename(self, base_dir='', **kwargs):
+    def get_filename(self, base_dir="", **kwargs):
         """Generate output NetCDF file from metadata."""
         # format the filename
         if self._filename_format_str is None:
@@ -766,8 +755,9 @@ class NetCDFTemplate:
                 `value` and `raw_key` are both ``None`` and `attr_name`
                 is ``"my_attr"``, then the method ``self._my_attr`` will be
                 called as ``return self._my_attr(input_metadata)``.
-                See :meth:`NetCDFTemplate.render_global_attributes` for
-                additional information (prefix is ``"_global_"``).
+                See :meth:`NetCDFTemplate.render_global_attributes
+                <satpy.writers.awips_tiled.NetCDFTemplate._render_global_attributes>`
+                for additional information (prefix is ``"_global_"``).
 
         """
         if raw_value is not None:
@@ -794,7 +784,7 @@ class NetCDFTemplate:
         if func is not None:
             value = func(input_metadata)
         if value is None:
-            LOG.debug('no routine matching %s', meth_name)
+            LOG.debug("no routine matching %s", meth_name)
         return value
 
     def _render_attrs(self, attr_configs, input_metadata, prefix="_"):
@@ -814,28 +804,28 @@ class NetCDFTemplate:
                                   prefix="_global_")
 
     def _render_variable_attributes(self, var_config, input_metadata):
-        attr_configs = var_config['attributes']
+        attr_configs = var_config["attributes"]
         var_attrs = self._render_attrs(attr_configs, input_metadata, prefix="_data_")
         return var_attrs
 
     def _render_coordinate_attributes(self, coord_config, input_metadata):
-        attr_configs = coord_config['attributes']
+        attr_configs = coord_config["attributes"]
         coord_attrs = self._render_attrs(attr_configs, input_metadata, prefix="_coord_")
         return coord_attrs
 
     def _render_variable_encoding(self, var_config, input_data_arr):
         new_encoding = input_data_arr.encoding.copy()
         # determine fill value and
-        if 'encoding' in var_config:
-            new_encoding.update(var_config['encoding'])
+        if "encoding" in var_config:
+            new_encoding.update(var_config["encoding"])
         if "dtype" not in new_encoding:
-            new_encoding['dtype'] = 'int16'
-            new_encoding['_Unsigned'] = 'true'
+            new_encoding["dtype"] = "int16"
+            new_encoding["_Unsigned"] = "true"
         return new_encoding
 
     def _render_variable(self, data_arr):
         var_config = self._var_tree.find_match(**data_arr.attrs)
-        new_var_name = var_config.get('var_name', data_arr.attrs['name'])
+        new_var_name = var_config.get("var_name", data_arr.attrs["name"])
         new_data_arr = data_arr.copy()
         # remove coords which may cause issues later on
         new_data_arr = new_data_arr.reset_coords(drop=True)
@@ -848,8 +838,8 @@ class NetCDFTemplate:
 
     def _get_matchable_coordinate_metadata(self, coord_name, coord_attrs):
         match_kwargs = {}
-        if 'name' not in coord_attrs:
-            match_kwargs['name'] = coord_name
+        if "name" not in coord_attrs:
+            match_kwargs["name"] = coord_name
         match_kwargs.update(coord_attrs)
         return match_kwargs
 
@@ -865,7 +855,11 @@ class NetCDFTemplate:
             new_coords[coord_name].encoding = coord_encoding
         return new_coords
 
-    def render(self, dataset_or_data_arrays, shared_attrs=None):
+    def render(
+            self,
+            dataset_or_data_arrays: xr.Dataset | list[xr.DataArray],
+            shared_attrs: dict[str, Any] | None = None,
+    ) -> xr.Dataset:
         """Create :class:`xarray.Dataset` from provided data."""
         data_arrays = dataset_or_data_arrays
         if isinstance(data_arrays, xr.Dataset):
@@ -897,29 +891,29 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def _swap_attributes_end_time(self, template_dict):
         """Swap every use of 'start_time' to use 'end_time' instead."""
-        variable_attributes = [var_section['attributes'] for var_section in template_dict.get('variables', {}).values()]
-        global_attributes = template_dict.get('global_attributes', {})
+        variable_attributes = [var_section["attributes"] for var_section in template_dict.get("variables", {}).values()]
+        global_attributes = template_dict.get("global_attributes", {})
         for attr_section in variable_attributes + [global_attributes]:
             for attr_name in attr_section:
                 attr_config = attr_section[attr_name]
-                if '{start_time' in attr_config.get('value', ''):
-                    attr_config['value'] = attr_config['value'].replace('{start_time', '{end_time')
-                if attr_config.get('raw_key', '') == 'start_time':
-                    attr_config['raw_key'] = 'end_time'
+                if "{start_time" in attr_config.get("value", ""):
+                    attr_config["value"] = attr_config["value"].replace("{start_time", "{end_time")
+                if attr_config.get("raw_key", "") == "start_time":
+                    attr_config["raw_key"] = "end_time"
 
     def _data_units(self, input_metadata):
-        units = input_metadata.get('units', '1')
+        units = input_metadata.get("units", "1")
         # we *know* AWIPS can't handle some units
         return UNIT_CONV.get(units, units)
 
     def _global_start_date_time(self, input_metadata):
-        start_time = input_metadata['start_time']
+        start_time = input_metadata["start_time"]
         if self._swap_end_time:
-            start_time = input_metadata['end_time']
+            start_time = input_metadata["end_time"]
         return start_time.strftime("%Y-%m-%dT%H:%M:%S")
 
     def _global_awips_id(self, input_metadata):
-        return "AWIPS_" + input_metadata['name']
+        return "AWIPS_" + input_metadata["name"]
 
     def _global_physical_element(self, input_metadata):
         var_config = self._var_tree.find_match(**input_metadata)
@@ -930,13 +924,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
     def _global_production_location(self, input_metadata):
         """Get default global production_location attribute."""
         del input_metadata
-        org = os.environ.get('ORGANIZATION', None)
+        org = os.environ.get("ORGANIZATION", None)
         if org is not None:
             prod_location = org
         else:
-            LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
             import socket
-            prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
+            prod_location = socket.gethostname()
 
         if len(prod_location) > 31:
             warnings.warn(
@@ -954,25 +947,25 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     @staticmethod
     def _get_vmin_vmax(var_config, input_data_arr):
-        if 'valid_range' in var_config:
-            return var_config['valid_range']
+        if "valid_range" in var_config:
+            return var_config["valid_range"]
         data_vmin, data_vmax = _get_data_vmin_vmax(input_data_arr)
         return data_vmin, data_vmax
 
     def _render_variable_encoding(self, var_config, input_data_arr):
         new_encoding = super()._render_variable_encoding(var_config, input_data_arr)
         vmin, vmax = self._get_vmin_vmax(var_config, input_data_arr)
-        has_flag_meanings = 'flag_meanings' in input_data_arr.attrs
+        has_flag_meanings = "flag_meanings" in input_data_arr.attrs
         is_int = np.issubdtype(input_data_arr.dtype, np.integer)
         is_cat = has_flag_meanings or is_int
-        has_sf = new_encoding.get('scale_factor') is not None
+        has_sf = new_encoding.get("scale_factor") is not None
         if not has_sf and is_cat:
             # AWIPS doesn't like Identity conversion so we can't have
             # a factor of 1 and an offset of 0
             # new_encoding['scale_factor'] = None
             # new_encoding['add_offset'] = None
-            if '_FillValue' in input_data_arr.attrs:
-                new_encoding['_FillValue'] = input_data_arr.attrs['_FillValue']
+            if "_FillValue" in input_data_arr.attrs:
+                new_encoding["_FillValue"] = input_data_arr.attrs["_FillValue"]
         elif not has_sf and vmin is not None and vmax is not None:
             # calculate scale_factor and add_offset
             sf, ao, fill = _get_factor_offset_fill(
@@ -980,57 +973,57 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             )
             # NOTE: These could be dask arrays that will be computed later
             #   when we go to write the files.
-            new_encoding['scale_factor'] = sf
-            new_encoding['add_offset'] = ao
-            new_encoding['_FillValue'] = fill
-            new_encoding['coordinates'] = ' '.join([ele for ele in input_data_arr.dims])
+            new_encoding["scale_factor"] = sf
+            new_encoding["add_offset"] = ao
+            new_encoding["_FillValue"] = fill
+            new_encoding["coordinates"] = " ".join([ele for ele in input_data_arr.dims])
         return new_encoding
 
     def _get_projection_attrs(self, area_def):
         """Assign projection attributes per CF standard."""
         proj_attrs = area_def.crs.to_cf()
         proj_encoding = {"dtype": "i4"}
-        proj_attrs['short_name'] = area_def.area_id
-        gmap_name = proj_attrs['grid_mapping_name']
+        proj_attrs["short_name"] = area_def.area_id
+        gmap_name = proj_attrs["grid_mapping_name"]
 
         preferred_names = {
-            'geostationary': 'fixedgrid_projection',
-            'lambert_conformal_conic': 'lambert_projection',
-            'polar_stereographic': 'polar_projection',
-            'mercator': 'mercator_projection',
+            "geostationary": "fixedgrid_projection",
+            "lambert_conformal_conic": "lambert_projection",
+            "polar_stereographic": "polar_projection",
+            "mercator": "mercator_projection",
         }
         if gmap_name not in preferred_names:
             LOG.warning("Data is in projection %s which may not be supported "
                         "by AWIPS", gmap_name)
-        area_id_as_var_name = area_def.area_id.replace('-', '_').lower()
+        area_id_as_var_name = area_def.area_id.replace("-", "_").lower()
         proj_name = preferred_names.get(gmap_name, area_id_as_var_name)
         return proj_name, proj_attrs, proj_encoding
 
     def _set_xy_coords_attrs(self, new_ds, crs):
-        y_attrs = new_ds.coords['y'].attrs
+        y_attrs = new_ds.coords["y"].attrs
         if crs.is_geographic:
-            self._fill_units_and_standard_name(y_attrs, 'degrees_north', 'latitude')
+            self._fill_units_and_standard_name(y_attrs, "degrees_north", "latitude")
         else:
-            self._fill_units_and_standard_name(y_attrs, 'meters', 'projection_y_coordinate')
-            y_attrs['axis'] = 'Y'
+            self._fill_units_and_standard_name(y_attrs, "meters", "projection_y_coordinate")
+            y_attrs["axis"] = "Y"
 
-        x_attrs = new_ds.coords['x'].attrs
+        x_attrs = new_ds.coords["x"].attrs
         if crs.is_geographic:
-            self._fill_units_and_standard_name(x_attrs, 'degrees_east', 'longitude')
+            self._fill_units_and_standard_name(x_attrs, "degrees_east", "longitude")
         else:
-            self._fill_units_and_standard_name(x_attrs, 'meters', 'projection_x_coordinate')
-            x_attrs['axis'] = 'X'
+            self._fill_units_and_standard_name(x_attrs, "meters", "projection_x_coordinate")
+            x_attrs["axis"] = "X"
 
     @staticmethod
     def _fill_units_and_standard_name(attrs, units, standard_name):
         """Fill in units and standard_name if not set in `attrs`."""
-        if attrs.get('units') is None:
-            attrs['units'] = units
-        if attrs['units'] in ('meter', 'metre'):
+        if attrs.get("units") is None:
+            attrs["units"] = units
+        if attrs["units"] in ("meter", "metre"):
             # AWIPS doesn't like 'meter'
-            attrs['units'] = 'meters'
-        if attrs.get('standard_name') is None:
-            attrs['standard_name'] = standard_name
+            attrs["units"] = "meters"
+        if attrs.get("standard_name") is None:
+            attrs["standard_name"] = standard_name
 
     def apply_area_def(self, new_ds, area_def):
         """Apply information we can gather from the AreaDefinition."""
@@ -1040,25 +1033,23 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds[gmap_name] = gmap_data_arr
         self._set_xy_coords_attrs(new_ds, area_def.crs)
         for data_arr in new_ds.data_vars.values():
-            if 'y' in data_arr.dims and 'x' in data_arr.dims:
-                data_arr.attrs['grid_mapping'] = gmap_name
+            if "y" in data_arr.dims and "x" in data_arr.dims:
+                data_arr.attrs["grid_mapping"] = gmap_name
 
-        new_ds.attrs['pixel_x_size'] = area_def.pixel_size_x / 1000.0
-        new_ds.attrs['pixel_y_size'] = area_def.pixel_size_y / 1000.0
+        new_ds.attrs["pixel_x_size"] = area_def.pixel_size_x / 1000.0
+        new_ds.attrs["pixel_y_size"] = area_def.pixel_size_y / 1000.0
         return new_ds
 
     def apply_tile_coord_encoding(self, new_ds, xy_factors):
         """Add encoding information specific to the coordinate variables."""
-        if 'x' in new_ds.coords:
-            new_ds.coords['x'].encoding['dtype'] = 'int16'
-            new_ds.coords['x'].encoding['scale_factor'] = np.float64(xy_factors.mx)
-            new_ds.coords['x'].encoding['add_offset'] = np.float64(xy_factors.bx)
-            new_ds.coords['x'].encoding['_FillValue'] = -1
-        if 'y' in new_ds.coords:
-            new_ds.coords['y'].encoding['dtype'] = 'int16'
-            new_ds.coords['y'].encoding['scale_factor'] = np.float64(xy_factors.my)
-            new_ds.coords['y'].encoding['add_offset'] = np.float64(xy_factors.by)
-            new_ds.coords['y'].encoding['_FillValue'] = -1
+        if "x" in new_ds.coords:
+            new_ds.coords["x"].encoding["dtype"] = "int16"
+            new_ds.coords["x"].encoding["scale_factor"] = np.float64(xy_factors.mx)
+            new_ds.coords["x"].encoding["add_offset"] = np.float64(xy_factors.bx)
+        if "y" in new_ds.coords:
+            new_ds.coords["y"].encoding["dtype"] = "int16"
+            new_ds.coords["y"].encoding["scale_factor"] = np.float64(xy_factors.my)
+            new_ds.coords["y"].encoding["add_offset"] = np.float64(xy_factors.by)
         return new_ds
 
     def apply_tile_info(self, new_ds, tile_info):
@@ -1067,37 +1058,37 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         total_pixels = tile_info.image_shape
         tile_row = tile_info.tile_row_offset
         tile_column = tile_info.tile_column_offset
-        tile_height = new_ds.sizes['y']
-        tile_width = new_ds.sizes['x']
-        new_ds.attrs['tile_row_offset'] = tile_row
-        new_ds.attrs['tile_column_offset'] = tile_column
-        new_ds.attrs['product_tile_height'] = tile_height
-        new_ds.attrs['product_tile_width'] = tile_width
-        new_ds.attrs['number_product_tiles'] = total_tiles[0] * total_tiles[1]
-        new_ds.attrs['product_rows'] = total_pixels[0]
-        new_ds.attrs['product_columns'] = total_pixels[1]
+        tile_height = new_ds.sizes["y"]
+        tile_width = new_ds.sizes["x"]
+        new_ds.attrs["tile_row_offset"] = tile_row
+        new_ds.attrs["tile_column_offset"] = tile_column
+        new_ds.attrs["product_tile_height"] = tile_height
+        new_ds.attrs["product_tile_width"] = tile_width
+        new_ds.attrs["number_product_tiles"] = total_tiles[0] * total_tiles[1]
+        new_ds.attrs["product_rows"] = total_pixels[0]
+        new_ds.attrs["product_columns"] = total_pixels[1]
         return new_ds
 
     def _add_sector_id_global(self, new_ds, sector_id):
-        if not self._template_dict.get('add_sector_id_global'):
+        if not self._template_dict.get("add_sector_id_global"):
             return
 
         if sector_id is None:
             raise ValueError("Keyword 'sector_id' is required for this "
                              "template.")
-        new_ds.attrs['sector_id'] = sector_id
+        new_ds.attrs["sector_id"] = sector_id
 
     def apply_misc_metadata(self, new_ds, sector_id=None, creator=None, creation_time=None):
         """Add attributes that don't fit into any other category."""
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
-            creation_time = datetime.utcnow()
+            creation_time = dt.datetime.now(dt.timezone.utc)
 
         self._add_sector_id_global(new_ds, sector_id)
-        new_ds.attrs['Conventions'] = "CF-1.7"
-        new_ds.attrs['creator'] = creator
-        new_ds.attrs['creation_time'] = creation_time.strftime('%Y-%m-%dT%H:%M:%S')
+        new_ds.attrs["Conventions"] = "CF-1.7"
+        new_ds.attrs["creator"] = creator
+        new_ds.attrs["creation_time"] = creation_time.strftime("%Y-%m-%dT%H:%M:%S")
         return new_ds
 
     def _render_variable_attributes(self, var_config, input_metadata):
@@ -1112,9 +1103,17 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             attrs["units"] = attrs["units"][:26]
         return attrs
 
-    def render(self, dataset_or_data_arrays, area_def,
-               tile_info, sector_id, creator=None, creation_time=None,
-               shared_attrs=None, extra_global_attrs=None):
+    def render(  # type: ignore[override]
+            self,
+            dataset_or_data_arrays: xr.Dataset | list[xr.DataArray],
+            area_def: AreaDefinition,
+            tile_info: TileInfo,
+            sector_id: str,
+            creator: str | None = None,
+            creation_time: dt.datetime | None = None,
+            shared_attrs: dict[str, Any] | None = None,
+            extra_global_attrs: dict[str, Any] | None = None,
+    ) -> xr.Dataset:
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays, shared_attrs=shared_attrs)
         new_ds = self.apply_area_def(new_ds, area_def)
@@ -1128,7 +1127,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
 def _notnull(data_arr, check_categories=True):
     is_int = np.issubdtype(data_arr.dtype, np.integer)
-    fill_value = data_arr.encoding.get('_FillValue', data_arr.attrs.get('_FillValue'))
+    fill_value = data_arr.encoding.get("_FillValue", data_arr.attrs.get("_FillValue"))
     if is_int and fill_value is not None:
         # some DQF datasets are always valid
         if check_categories:
@@ -1159,7 +1158,7 @@ def _copy_to_existing(dataset_to_save, output_filename):
     #   only sometimes. Limiting dask to 1 worker seems to fix this.
     #   I (David Hoese) was unable to make a script that reproduces this
     #   without using this writer (makes it difficult to file a bug report).
-    existing_dataset = xr.open_dataset(output_filename)
+    existing_dataset = xr.open_dataset(output_filename, cache=False)
     # the below used to trick xarray into working, but this doesn't work
     # in newer versions. This was a hack in the first place so I'm keeping it
     # here for reference.
@@ -1178,7 +1177,7 @@ def _copy_to_existing(dataset_to_save, output_filename):
         new_data[valid_current] = var_data_arr.data[valid_current]
         var_data_arr.data[:] = new_data
         var_data_arr.encoding.update(existing_data_arr.encoding)
-        var_data_arr.encoding.pop('source', None)
+        var_data_arr.encoding.pop("source", None)
 
     return dataset_to_save
 
@@ -1187,10 +1186,10 @@ def _extract_factors(dataset_to_save):
     factors = {}
     for data_var in dataset_to_save.data_vars.values():
         enc = data_var.encoding
-        data_var.attrs.pop('valid_range', None)
-        factor_set = (enc.pop('scale_factor', None),
-                      enc.pop('add_offset', None),
-                      enc.pop('_FillValue', None))
+        data_var.attrs.pop("valid_range", None)
+        factor_set = (enc.pop("scale_factor", None),
+                      enc.pop("add_offset", None),
+                      enc.pop("_FillValue", None))
         factors[data_var.name] = factor_set
     return factors
 
@@ -1199,19 +1198,18 @@ def _reapply_factors(dataset_to_save, factors):
     for var_name, factor_set in factors.items():
         data_arr = dataset_to_save[var_name]
         if factor_set[0] is not None:
-            data_arr.encoding['scale_factor'] = factor_set[0]
+            data_arr.encoding["scale_factor"] = factor_set[0]
         if factor_set[1] is not None:
-            data_arr.encoding['add_offset'] = factor_set[1]
+            data_arr.encoding["add_offset"] = factor_set[1]
         if factor_set[2] is not None:
-            data_arr.encoding['_FillValue'] = factor_set[2]
+            data_arr.encoding["_FillValue"] = factor_set[2]
     return dataset_to_save
 
 
 def to_nonempty_netcdf(dataset_to_save: xr.Dataset,
-                       factors: dict,
                        output_filename: str,
                        update_existing: bool = True,
-                       check_categories: bool = True):
+                       check_categories: bool = True) -> None:
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
 
     In addition to checking certain Dataset variables for fill values,
@@ -1219,25 +1217,26 @@ def to_nonempty_netcdf(dataset_to_save: xr.Dataset,
     new valid data provided.
 
     """
-    dataset_to_save = _reapply_factors(dataset_to_save, factors)
     if _is_empty_tile(dataset_to_save, check_categories):
         LOG.debug("Skipping tile creation for %s because it would be "
                   "empty.", output_filename)
-        return None, None, None
+        return
 
     # TODO: Allow for new variables to be created
     if update_existing and os.path.isfile(output_filename):
         dataset_to_save = _copy_to_existing(dataset_to_save, output_filename)
-        mode = 'a'
+        mode = "a"
     else:
-        mode = 'w'
-    return dataset_to_save, output_filename, mode
-    # return dataset_to_save.to_netcdf(output_filename, mode=mode)
-    # if fix_awips:
-    #     fix_awips_file(output_filename)
-
-
-delayed_to_notempty_netcdf = dask.delayed(to_nonempty_netcdf, pure=True)
+        mode = "w"
+    with warnings.catch_warnings():
+        # this is an expected warning as CF convention tells us not to have a _FillValue for coordinate variables
+        warnings.filterwarnings(
+            "ignore",
+            message="saving variable [xy] with .* without any _FillValue.*",
+            category=xr.SerializationWarning,
+        )
+        LOG.info(f"Saving AWIPS tile {output_filename}...")
+        dataset_to_save.to_netcdf(output_filename, mode=mode)
 
 
 def tile_filler(data_arr_data, tile_shape, tile_slices, fill_value):
@@ -1255,31 +1254,22 @@ class AWIPSTiledWriter(Writer):
 
     """
 
-    def __init__(self, compress=False, fix_awips=False, **kwargs):
+    def __init__(self, compress=False, **kwargs):
         """Initialize writer and decision trees."""
         super(AWIPSTiledWriter, self).__init__(default_config_filename="writers/awips_tiled.yaml", **kwargs)
-        self.base_dir = kwargs.get('base_dir', '')
-        self.awips_sectors = self.config['sectors']
-        self.templates = self.config['templates']
+        self.base_dir = kwargs.get("base_dir", "")
+        self.awips_sectors = self.config["sectors"]
+        self.templates = self.config["templates"]
         self.compress = compress
-        self.fix_awips = fix_awips
         self._fill_sector_info()
         self._enhancer = None
-
-        if self.fix_awips:
-            warnings.warn(
-                "'fix_awips' flag no longer has any effect and is "
-                "deprecated. Modern versions of AWIPS should not "
-                "require this hack.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-            self.fix_awips = False
 
     @property
     def enhancer(self):
         """Get lazy loaded enhancer object only if needed."""
         if self._enhancer is None:
+            from satpy.enhancements.enhancer import Enhancer
+
             self._enhancer = Enhancer()
         return self._enhancer
 
@@ -1289,7 +1279,7 @@ class AWIPSTiledWriter(Writer):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(AWIPSTiledWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ['compress', 'fix_awips']:
+        for kw in ["compress"]:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
@@ -1298,16 +1288,16 @@ class AWIPSTiledWriter(Writer):
     def _fill_sector_info(self):
         """Convert sector extents if needed."""
         for sector_info in self.awips_sectors.values():
-            sector_info['projection'] = CRS.from_user_input(sector_info['projection'])
-            p = Proj(sector_info['projection'])
-            if 'lower_left_xy' in sector_info:
-                sector_info['lower_left_lonlat'] = p(*sector_info['lower_left_xy'], inverse=True)
+            sector_info["projection"] = CRS.from_user_input(sector_info["projection"])
+            p = Proj(sector_info["projection"])
+            if "lower_left_xy" in sector_info:
+                sector_info["lower_left_lonlat"] = p(*sector_info["lower_left_xy"], inverse=True)
             else:
-                sector_info['lower_left_xy'] = p(*sector_info['lower_left_lonlat'])
-            if 'upper_right_xy' in sector_info:
-                sector_info['upper_right_lonlat'] = p(*sector_info['upper_right_xy'], inverse=True)
+                sector_info["lower_left_xy"] = p(*sector_info["lower_left_lonlat"])
+            if "upper_right_xy" in sector_info:
+                sector_info["upper_right_lonlat"] = p(*sector_info["upper_right_xy"], inverse=True)
             else:
-                sector_info['upper_right_xy'] = p(*sector_info['upper_right_lonlat'])
+                sector_info["upper_right_xy"] = p(*sector_info["upper_right_lonlat"])
 
     def _get_lettered_sector_info(self, sector_id):
         """Get metadata for the current sector if configured.
@@ -1334,9 +1324,9 @@ class AWIPSTiledWriter(Writer):
             sector_info = self._get_lettered_sector_info(sector_id)
             tile_gen = LetteredTileGenerator(
                 area_def,
-                sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
-                sector_crs=sector_info['projection'],
-                cell_size=sector_info['resolution'],
+                sector_info["lower_left_xy"] + sector_info["upper_right_xy"],
+                sector_crs=sector_info["projection"],
+                cell_size=sector_info["resolution"],
                 num_subtiles=num_subtiles,
                 use_sector_reference=use_sector_reference,
                 )
@@ -1356,18 +1346,18 @@ class AWIPSTiledWriter(Writer):
         # get all of the datasets stored by area
         area_datasets = {}
         for x in datasets:
-            area_id = _area_id(x.attrs['area'])
-            area, ds_list = area_datasets.setdefault(area_id, (x.attrs['area'], []))
+            area_id = _area_id(x.attrs["area"])
+            area, ds_list = area_datasets.setdefault(area_id, (x.attrs["area"], []))
             ds_list.append(x)
         return area_datasets
 
     def _split_rgbs(self, ds):
         """Split a single RGB dataset in to multiple."""
-        for component in 'RGB':
+        for component in "RGB":
             band_data = ds.sel(bands=component)
-            band_data.attrs['name'] += '_{}'.format(component)
-            band_data.attrs['valid_min'] = 0.0
-            band_data.attrs['valid_max'] = 1.0
+            band_data.attrs["name"] += "_{}".format(component)
+            band_data.attrs["valid_min"] = 0.0
+            band_data.attrs["valid_max"] = 1.0
             yield band_data
 
     def _enhance_and_split_rgbs(self, datasets):
@@ -1377,11 +1367,13 @@ class AWIPSTiledWriter(Writer):
             if ds.ndim == 2:
                 new_datasets.append(ds)
                 continue
-            elif ds.ndim > 3 or ds.ndim < 1 or (ds.ndim == 3 and 'bands' not in ds.coords):
+            elif ds.ndim > 3 or ds.ndim < 1 or (ds.ndim == 3 and "bands" not in ds.coords):
                 LOG.error("Can't save datasets with more or less than 2 dimensions "
                           "that aren't RGBs to AWIPS Tiled format: %s", ds.name)
             else:
                 # this is an RGB
+                from satpy.enhancements.enhancer import get_enhanced_image
+
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]
                 new_datasets.extend(self._split_rgbs(res_data))
@@ -1389,31 +1381,32 @@ class AWIPSTiledWriter(Writer):
         return new_datasets
 
     def _tile_filler(self, tile_info, data_arr):
-        fill = np.nan if np.issubdtype(data_arr.dtype, np.floating) else data_arr.attrs.get('_FillValue', 0)
+        fill = np.nan if np.issubdtype(data_arr.dtype, np.floating) else data_arr.attrs.get("_FillValue", 0)
         data_arr_data = data_arr.data[tile_info.data_slices]
         data_arr_data = data_arr_data.rechunk(data_arr_data.shape)
+        # NOTE: Later steps assume this step produces tiles as a single dask chunks
         new_data = da.map_blocks(tile_filler, data_arr_data,
                                  tile_info.tile_shape, tile_info.tile_slices,
                                  fill, dtype=data_arr.dtype, chunks=tile_info.tile_shape)
-        return xr.DataArray(new_data, dims=('y', 'x'),
+        return xr.DataArray(new_data, dims=("y", "x"),
                             attrs=data_arr.attrs.copy())
 
     def _slice_and_update_coords(self, tile_info, data_arrays):
-        new_x = xr.DataArray(tile_info.x, dims=('x',))
-        if 'x' in data_arrays[0].coords:
-            old_x = data_arrays[0].coords['x']
+        new_x = xr.DataArray(tile_info.x, dims=("x",))
+        if "x" in data_arrays[0].coords:
+            old_x = data_arrays[0].coords["x"]
             new_x.attrs.update(old_x.attrs)
             new_x.encoding = old_x.encoding
-        new_y = xr.DataArray(tile_info.y, dims=('y',))
-        if 'y' in data_arrays[0].coords:
-            old_y = data_arrays[0].coords['y']
+        new_y = xr.DataArray(tile_info.y, dims=("y",))
+        if "y" in data_arrays[0].coords:
+            old_y = data_arrays[0].coords["y"]
             new_y.attrs.update(old_y.attrs)
             new_y.encoding = old_y.encoding
 
         for data_arr in data_arrays:
             new_data_arr = self._tile_filler(tile_info, data_arr)
-            new_data_arr.coords['x'] = new_x
-            new_data_arr.coords['y'] = new_y
+            new_data_arr.coords["x"] = new_x
+            new_data_arr.coords["y"] = new_y
             yield new_data_arr
 
     def _iter_tile_info_and_datasets(self, tile_gen, data_arrays, single_variable=True):
@@ -1474,45 +1467,40 @@ class AWIPSTiledWriter(Writer):
         if os.path.isfile(output_filename):
             LOG.info("AWIPS file already exists, will update with new data: %s", output_filename)
 
-    def _save_nonempty_mfdatasets(self, datasets_to_save, output_filenames, **kwargs):
-        for dataset_to_save, output_filename in zip(datasets_to_save, output_filenames):
-            factors = _extract_factors(dataset_to_save)
-            delayed_res = delayed_to_notempty_netcdf(
-                dataset_to_save, factors, output_filename, **kwargs)
-            yield delayed_res
-
     def _adjust_metadata_times(self, ds_info):
         debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
         if debug_shift_time:
-            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
-            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
+            ds_info["start_time"] += dt.timedelta(minutes=debug_shift_time)
+            ds_info["end_time"] += dt.timedelta(minutes=debug_shift_time)
 
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
         ds_info = data_arrs[0].attrs.copy()
+        for possible_dask_attr in ("valid_range", "valid_min", "valid_max"):
+            ds_info.pop(possible_dask_attr, None)  # remove variable-specific metadata that may contain dask arrays
         # we want to use our own creation_time
-        ds_info['creation_time'] = creation_time
+        ds_info["creation_time"] = creation_time
         if source_name is not None:
-            ds_info['source_name'] = source_name
+            ds_info["source_name"] = source_name
         self._adjust_metadata_times(ds_info)
         return ds_info
 
     # TODO: Add additional untiled variable support
-    def save_datasets(self, datasets, sector_id=None,
+    def save_datasets(self, datasets, sector_id=None,  # noqa: D417
                       source_name=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
                       use_end_time=False, use_sector_reference=False,
-                      template='polar', check_categories=True,
-                      extra_global_attrs=None, environment_prefix='DR',
+                      template="polar", check_categories=True,
+                      extra_global_attrs=None, environment_prefix="DR",
                       compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 Tile files.
 
         Args:
-            datasets (iterable): Series of gridded :class:`~xarray.DataArray`
+            datasets (Iterable): Series of gridded :class:`~xarray.DataArray`
                 objects with the necessary metadata to be converted to a valid
                 tile product file.
-            sector_id (str): Name of the region or sector that the provided
+            sector_id (str, Optional): Name of the region or sector that the provided
                 data is on. This name will be written to the NetCDF file and
                 will be used as the sector in the AWIPS client for the 'polar'
                 template. For lettered
@@ -1520,53 +1508,53 @@ class AWIPSTiledWriter(Writer):
                 YAML. This is required for some templates (ex. default 'polar'
                 template) but is defined as a keyword argument
                 for better error handling in Satpy.
-            source_name (str): Name of producer of these files (ex. "SSEC").
+            source_name (str, Optional): Name of producer of these files (ex. "SSEC").
                 This name is used to create the output filename for some
                 templates.
-            environment_prefix (str): Prefix of filenames for some templates.
+            environment_prefix (str, Optional): Prefix of filenames for some templates.
                 For operational real-time data this is usually "OR", "OT" for
                 test data, "IR" for test system real-time data, and "IT" for
                 test system test data. This defaults to "DR" for "Developer
                 Real-time" to avoid anyone accidentally producing files that
                 could be mistaken for the operational system.
-            tile_count (tuple): For numbered tiles only, how many tile rows
+            tile_count (tuple, Optional): For numbered tiles only, how many tile rows
                 and tile columns to produce. Default to ``(1, 1)``, a single
                 giant tile. Either ``tile_count``, ``tile_size``, or
                 ``lettered_grid`` should be specified.
-            tile_size (tuple): For numbered tiles only, how many pixels each
+            tile_size (tuple, Optional): For numbered tiles only, how many pixels each
                 tile should be. This takes precedence over ``tile_count`` if
                 specified. Either ``tile_count``, ``tile_size``, or
                 ``lettered_grid`` should be specified.
-            lettered_grid (bool): Whether to use a preconfigured grid and
+            lettered_grid (bool, Optional): Whether to use a preconfigured grid and
                 label tiles with letters and numbers instead of only numbers.
                 For example, tiles will be named "A01", "A02", "B01", and so
                 on in the first row of data and continue on to "A03", "A04",
                 and "B03" in the default case where ``num_subtiles`` is (2, 2).
                 Letters start in the upper-left corner and will go from A up to
                 Z, if necessary.
-            num_subtiles (tuple): For lettered tiles only, how many rows and
+            num_subtiles (tuple, Optional): For lettered tiles only, how many rows and
                 columns to split each lettered tile in to. By default 2 rows
                 and 2 columns will be created. For example, the tile for
                 letter "A" will have "A01" and "A02" in the top row and "A03"
                 and "A04" in the second row.
-            use_end_time (bool): Instead of using the ``start_time`` for the
+            use_end_time (bool, Optional): Instead of using the ``start_time`` for the
                 product filename and time written to the file, use the
                 ``end_time``. This is useful for multi-day composites where
                 the ``end_time`` is a better representation of what data is
                 in the file.
-            use_sector_reference (bool): For lettered tiles only, whether to
+            use_sector_reference (bool, Optional): For lettered tiles only, whether to
                 shift the data locations to align with the preconfigured
                 grid's pixels. By default this is False meaning that the
                 grid's tiles will be shifted to align with the data locations.
                 If True, the data is shifted. At most the data will be shifted
                 by 0.5 pixels. See :mod:`satpy.writers.awips_tiled` for more
                 information.
-            template (str or dict): Name of the template configured in the
+            template (str or dict, Optional): Name of the template configured in the
                 writer YAML file. This can also be a dictionary with a full
                 template configuration. See the :mod:`satpy.writers.awips_tiled`
                 documentation for more information on templates. Defaults to
                 the 'polar' builtin template.
-            check_categories (bool): Whether category and flag products should
+            check_categories (bool, Optional): Whether category and flag products should
                 be included in the checks for empty or not empty tiles. In
                 some cases (ex. data quality flags) category products may look
                 like all valid data (a non-empty tile) but shouldn't be used
@@ -1574,21 +1562,21 @@ class AWIPSTiledWriter(Writer):
                 versus non-existent). Default is True. Set to False to ignore
                 category (integer dtype or "flag_meanings" defined) when
                 checking for valid data.
-            extra_global_attrs (dict): Additional global attributes to be
+            extra_global_attrs (dict, Optional): Additional global attributes to be
                 added to every produced file. These attributes are applied
                 at the end of template rendering and will therefore overwrite
                 template generated values with the same global attribute name.
-            compute (bool): Compute and write the output immediately using
+            compute (bool, Optional): Compute and write the output immediately using
                 dask. Default to ``False``.
 
         """
         if not isinstance(template, dict):
-            template = self.config['templates'][template]
+            template = self.config["templates"][template]
         template = AWIPSNetCDFTemplate(template, swap_end_time=use_end_time)
         area_data_arrs = self._group_by_area(datasets)
-        datasets_to_save = []
-        output_filenames = []
-        creation_time = datetime.utcnow()
+
+        arrays_to_compute = []
+        creation_time = dt.datetime.now(dt.timezone.utc)
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
             area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
@@ -1602,91 +1590,115 @@ class AWIPSTiledWriter(Writer):
                                                 environment_prefix=environment_prefix,
                                                 **ds_info)
             self.check_tile_exists(output_filename)
-            # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
-            new_ds = template.render(data_arrs, area_def,
-                                     tile_info, sector_id,
-                                     creation_time=creation_time,
-                                     shared_attrs=ds_info,
-                                     extra_global_attrs=extra_global_attrs)
-            if self.compress:
-                new_ds.encoding['zlib'] = True
-                for var in new_ds.variables.values():
-                    var.encoding['zlib'] = True
 
-            datasets_to_save.append(new_ds)
-            output_filenames.append(output_filename)
-        if not datasets_to_save:
+            render_kwargs = {
+                "area_def": area_def,
+                "tile_info": tile_info,
+                "sector_id": sector_id,
+                "creation_time": creation_time,
+                "shared_attrs": ds_info,
+                "extra_global_attrs": extra_global_attrs,
+            }
+            res = _save_tile_data_arrays(
+                data_arrs,
+                output_filename,
+                template,
+                self.compress,
+                check_categories,
+                render_kwargs,
+            )
+
+            arrays_to_compute.append(res)
+        if not arrays_to_compute:
             # no tiles produced
             return []
 
-        delayed_gen = self._save_nonempty_mfdatasets(datasets_to_save, output_filenames,
-                                                     check_categories=check_categories,
-                                                     update_existing=True)
-        delayeds = self._delay_netcdf_creation(delayed_gen)
-
         if not compute:
-            return delayeds
-        return dask.compute(delayeds)
-
-    def _delay_netcdf_creation(self, delayed_gen, precompute=True, use_distributed=False):
-        """Workaround random dask and xarray hanging executions.
-
-        In previous implementations this writer called 'to_dataset' directly
-        in a delayed function. This seems to cause random deadlocks where
-        execution would hang indefinitely.
-
-        """
-        delayeds = []
-        if precompute:
-            dataset_iter = self._get_delayed_iter(use_distributed)
-            for dataset_to_save, output_filename, mode in dataset_iter(delayed_gen):
-                delayed_save = dataset_to_save.to_netcdf(output_filename, mode, compute=False)
-                delayeds.append(delayed_save)
-        else:
-            for delayed_result in delayed_gen:
-                delayeds.append(delayed_result)
-        return delayeds
-
-    @staticmethod
-    def _get_delayed_iter(use_distributed=False):
-        if use_distributed:
-            def dataset_iter(_delayed_gen):
-                from dask.distributed import as_completed, get_client
-                client = get_client()
-                futures = client.compute(list(_delayed_gen))
-                for _, (dataset_to_save, output_filename, mode) in as_completed(futures, with_results=True):
-                    if dataset_to_save is None:
-                        continue
-                    yield dataset_to_save, output_filename, mode
-        else:
-            def dataset_iter(_delayed_gen):
-                # compute all datasets
-                results = dask.compute(_delayed_gen)[0]
-                for result in results:
-                    if result[0] is None:
-                        continue
-                    yield result
-        return dataset_iter
+            return arrays_to_compute
+        return dask.compute(arrays_to_compute)
 
 
-def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
+def _save_tile_data_arrays(
+        data_arrs: list[xr.DataArray],
+        output_filename: str,
+        template: NetCDFTemplate,
+        compress: bool,
+        check_categories: bool,
+        render_kwargs: dict[str, Any],
+) -> da.Array:
+    data_arr_dims_pairs = tuple(
+        elem for data_arr in data_arrs
+        for elem in
+        (
+            data_arr.data,
+            # mypy complains because ".dims" are defined as Hashable by xarray, not strings
+            "".join(str(dim) for dim in data_arr.dims),
+        )
+    )
+    # Convert xarray's internal dict-like objects to pure dicts so dask
+    # tokenizing doesn't try generic object tokenization
+    all_attrs = [dict(data_arr.attrs) for data_arr in data_arrs]
+    all_coords = [dict(data_arr.coords) for data_arr in data_arrs]
+    res = da.blockwise(
+        _save_tile_block,
+        "a",
+        *data_arr_dims_pairs,
+        new_axes={"a": 1},
+        meta=np.ndarray((), dtype=object),
+        dtype=object,
+        all_attrs=all_attrs,
+        all_coords=all_coords,
+        template=template,
+        compress=compress,
+        check_categories=check_categories,
+        output_filename=output_filename,
+        render_kwargs=render_kwargs,
+    )
+    return res
+
+
+def _save_tile_block(
+        *input_arrays: xr.DataArray,
+        output_filename: str,
+        template: NetCDFTemplate,
+        compress: bool,
+        check_categories: bool,
+        render_kwargs: dict[str, Any],
+        all_attrs: list[dict],
+        all_coords: list[dict],
+) -> str:
+    restruct_data_arrs = [
+        xr.DataArray(np_arr_list[0][0], attrs=all_attrs[idx], dims=("y", "x"), coords=all_coords[idx])
+        for idx, np_arr_list in enumerate(input_arrays)
+    ]
+    # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
+    new_ds = template.render(restruct_data_arrs, **render_kwargs)
+    if compress:
+        new_ds.encoding["zlib"] = True
+        for var in new_ds.variables.values():
+            var.encoding["zlib"] = True
+    to_nonempty_netcdf(new_ds, output_filename, update_existing=True, check_categories=check_categories)
+    return output_filename
+
+
+def _create_debug_array(sector_info, num_subtiles, font_path="Verdana.ttf"):
     from PIL import Image, ImageDraw, ImageFont
     from pkg_resources import resource_filename as get_resource_filename
     size = (1000, 1000)
     img = Image.new("L", size, 0)
     draw = ImageDraw.Draw(img)
 
-    if ':' in font_path:
+    if ":" in font_path:
         # load from a python package
-        font_path = get_resource_filename(*font_path.split(':'))
+        font_path = get_resource_filename(*font_path.split(":"))
     font = ImageFont.truetype(font_path, 25)
 
-    ll_extent = sector_info['lower_left_xy']
-    ur_extent = sector_info['upper_right_xy']
+    ll_extent = sector_info["lower_left_xy"]
+    ur_extent = sector_info["upper_right_xy"]
     total_meters_x = ur_extent[0] - ll_extent[0]
     total_meters_y = ur_extent[1] - ll_extent[1]
-    fcs_x = np.ceil(float(sector_info['resolution'][1]) / num_subtiles[1])
-    fcs_y = np.ceil(float(sector_info['resolution'][0]) / num_subtiles[0])
+    fcs_x = np.ceil(float(sector_info["resolution"][1]) / num_subtiles[1])
+    fcs_y = np.ceil(float(sector_info["resolution"][0]) / num_subtiles[0])
     total_cells_x = np.ceil(total_meters_x / fcs_x)
     total_cells_y = np.ceil(total_meters_y / fcs_y)
     total_cells_x = np.ceil(total_cells_x / num_subtiles[1]) * num_subtiles[1]
@@ -1735,10 +1747,10 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
         ur_extent[1],
     )
     grid_def = AreaDefinition(
-        'debug_grid',
-        'debug_grid',
-        'debug_grid',
-        sector_info['projection'],
+        "debug_grid",
+        "debug_grid",
+        "debug_grid",
+        sector_info["projection"],
         1000,
         1000,
         new_extents
@@ -1756,26 +1768,26 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
 
 def create_debug_lettered_tiles(**writer_kwargs):
     """Create tile files with tile identifiers "burned" in to the image data for debugging."""
-    writer_kwargs['lettered_grid'] = True
-    writer_kwargs['num_subtiles'] = (2, 2)  # default, don't use command line argument
+    writer_kwargs["lettered_grid"] = True
+    writer_kwargs["num_subtiles"] = (2, 2)  # default, don't use command line argument
 
     init_kwargs, save_kwargs = AWIPSTiledWriter.separate_init_kwargs(**writer_kwargs)
     writer = AWIPSTiledWriter(**init_kwargs)
 
-    sector_id = save_kwargs['sector_id']
+    sector_id = save_kwargs["sector_id"]
     sector_info = writer.awips_sectors[sector_id]
-    area_def, arr = _create_debug_array(sector_info, save_kwargs['num_subtiles'])
+    area_def, arr = _create_debug_array(sector_info, save_kwargs["num_subtiles"])
 
-    now = datetime.utcnow()
-    product = xr.DataArray(da.from_array(arr, chunks='auto'), attrs=dict(
-        name='debug_{}'.format(sector_id),
-        platform_name='DEBUG',
-        sensor='TILES',
+    now = dt.datetime.now(dt.timezone.utc)
+    product = xr.DataArray(da.from_array(arr, chunks="auto"), attrs=dict(
+        name="debug_{}".format(sector_id),
+        platform_name="DEBUG",
+        sensor="TILES",
         start_time=now,
         end_time=now,
         area=area_def,
         standard_name="toa_bidirectional_reflectance",
-        units='1',
+        units="1",
         valid_min=0,
         valid_max=255,
     ))
@@ -1790,12 +1802,12 @@ def main():
     """Command line interface mimicing CSPP Polar2Grid."""
     import argparse
     parser = argparse.ArgumentParser(description="Create AWIPS compatible NetCDF tile files")
-    parser.add_argument("--create-debug", action='store_true',
-                        help='Create debug NetCDF files to show tile locations in AWIPS')
-    parser.add_argument('-v', '--verbose', dest='verbosity', action="count", default=0,
-                        help='each occurrence increases verbosity 1 level through '
-                             'ERROR-WARNING-INFO-DEBUG (default INFO)')
-    parser.add_argument('-l', '--log', dest="log_fn", default=None,
+    parser.add_argument("--create-debug", action="store_true",
+                        help="Create debug NetCDF files to show tile locations in AWIPS")
+    parser.add_argument("-v", "--verbose", dest="verbosity", action="count", default=0,
+                        help="each occurrence increases verbosity 1 level through "
+                             "ERROR-WARNING-INFO-DEBUG (default INFO)")
+    parser.add_argument("-l", "--log", dest="log_fn", default=None,
                         help="specify the log filename")
 
     group_1 = parser.add_argument_group(title="Writer Initialization")
@@ -1812,17 +1824,17 @@ def main():
                          help="Specify how many pixels are in each tile (overrides '--tiles')")
     # group.add_argument('--tile-offset', nargs=2, default=(0, 0),
     #                    help="Start counting tiles from this offset ('row_offset col_offset')")
-    group_2.add_argument("--letters", dest="lettered_grid", action='store_true',
+    group_2.add_argument("--letters", dest="lettered_grid", action="store_true",
                          help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                         help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: 'row col'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                          help="output filenaming pattern")
-    group_2.add_argument("--source-name", default='SSEC',
+    group_2.add_argument("--source-name", default="SSEC",
                          help="specify processing source name used in attributes and filename (default 'SSEC')")
     group_2.add_argument("--sector-id", required=True,
                          help="specify name for sector/region used in attributes and filename (example 'LCC')")
-    group_2.add_argument("--template", default='polar',
+    group_2.add_argument("--template", default="polar",
                          help="specify the template name to use (default: polar)")
     args = parser.parse_args()
 
@@ -1838,5 +1850,5 @@ def main():
         raise NotImplementedError("Command line interface not implemented yet for AWIPS tiled writer")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -1,26 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2022 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for autogenerating reader table from config files."""
 
 from yaml import BaseLoader
 
-from satpy.readers import available_readers
+from satpy.readers.core.config import available_readers
 
 
 def rst_table_row(columns=None):
@@ -28,6 +10,7 @@ def rst_table_row(columns=None):
 
     Args:
         columns (list[str]): Content of each column.
+
     Returns:
         str
     """
@@ -38,16 +21,19 @@ def rst_table_row(columns=None):
     return row
 
 
-def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
+def rst_table_header(name=None, header=None, header_rows=1, widths="auto", class_name="datatable"):
     """Create header for rst table.
 
     Args:
         name (str): Name of the table
         header (list[str]): Column names
-        header-rows (int): Number of header rows
-        width (optional[list[int]]): Width of each column as a list. If not specified
+        header_rows (int): Number of header rows
+        widths (optional[list[int]]): Width of each column as a list. If not specified
             defaults to auto and will therefore determined by the backend
             (see <https://docutils.sourceforge.io/docs/ref/rst/directives.html#table>)
+        class_name (str): The CSS class name for the table. A corresponding js function should be in main.js in
+            in the "statis" directory.
+
     Returns:
         str
     """
@@ -59,7 +45,7 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
     table_header = (f".. list-table:: {name}\n"
                     f"    :header-rows: {header_rows}\n"
                     f"    :widths: {widths}\n"
-                    f"    :class: datatable\n\n"
+                    f"    :class: {class_name}\n\n"
                     f"{header}")
 
     return table_header
@@ -72,7 +58,7 @@ def generate_reader_table():
         str
     """
     table = [rst_table_header("Satpy Readers", header=["Description", "Reader name", "Status", "fsspec support"],
-                              widths=[45, 25, 30, 30])]
+                              widths="auto")]
 
     reader_configs = available_readers(as_dict=True, yaml_loader=BaseLoader)
     for rc in reader_configs:

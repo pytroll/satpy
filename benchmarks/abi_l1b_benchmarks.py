@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark ABI L1B operations."""
 from __future__ import annotations
 
@@ -43,7 +26,7 @@ class ABIL1B(GeoBenchmarks):
             if len(get_filenames(self.subdir)) != 16:
                 raise RuntimeError("Existing data files do not match the expected number of files.")
         download_rsr()
-        download_luts(aerosol_type='rayleigh_only')
+        download_luts(aerosol_types=["rayleigh_only"])
 
     def setup(self):
         """Set up the benchmarks."""

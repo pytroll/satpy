@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
 from satpy.utils import get_logger
@@ -62,7 +45,7 @@ class Node:
         """Flatten tree structure to a one level dictionary.
 
         Args:
-            d (dict, optional): output dictionary to update
+            d (dict, Optional): output dictionary to update
 
         Returns:
             dict: Node.name -> Node. The returned dictionary includes the
@@ -121,8 +104,8 @@ class Node:
         """Display the node."""
         no_data = " (No Data)" if self.data is None else ""
         return (
-            (" +" * previous) + str(self.name) + no_data + '\n' +
-            ''.join([child.display(previous + 1) for child in self.children]))
+            (" +" * previous) + str(self.name) + no_data + "\n" +
+            "".join([child.display(previous + 1) for child in self.children]))
 
     def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
@@ -204,12 +187,12 @@ class ReaderNode(Node):
 
     def __init__(self, unique_id, reader_name):
         """Set up the node."""
-        super().__init__(unique_id, data={'reader_name': reader_name})
+        super().__init__(unique_id, data={"reader_name": reader_name})
 
     def _copy_name_and_data(self, node_cache):
-        return ReaderNode(self.name, self.data['reader_name'])
+        return ReaderNode(self.name, self.data["reader_name"])
 
     @property
     def reader_name(self):
         """Get the name of the reader."""
-        return self.data['reader_name']
+        return self.data["reader_name"]

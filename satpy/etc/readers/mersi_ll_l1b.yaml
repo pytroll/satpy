@@ -1,8 +1,12 @@
 reader:
-  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
   name: mersi_ll_l1b
+  short_name: MERSI Low Light FY3E L1B
+  long_name: FY-3E MERSI Low Light Level 1B
+  description: FY-3E Medium Resolution Spectral Imager - Low Light (MERSI-LL) L1B Reader
+  status: Nominal
+  supports_fsspec: true
   sensors: [mersi-ll]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
 file_types:
   mersi_ll_l1b_1000:
@@ -10,52 +14,64 @@ file_types:
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_1000M_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_1000M_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_1000M_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_1000M_L1B.{ext:3s}"
 
   mersi_ll_l1b_250:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0250M_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_0250M_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_0250M_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_0250M_L1B.{ext:3s}"
 
   mersi_ll_l1b_1000_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEO1K_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEO1K_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}"
 
   mersi_ll_l1b_250_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
       # From National Meteorological Satellite Center
-      - '{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOQK_V0.{ext:3s}'
+      - "{platform_shortname}_MERSI_GRAN_L1_{start_time:%Y%m%d_%H%M}_GEOQK_V0.{ext:3s}"
       # Generic
-      - '{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}'
+      - "{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}"
 
 datasets:
-  '1':
-    name: '1'
+  "1":
+    name: "1"
     wavelength: [0.500, 0.700, 0.900]
     resolution:
       1000:
         file_type: mersi_ll_l1b_1000
         file_key: Data/EV_1KM_LL
+        calibration_key: Calibration/Solar_Irradiance_LL
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '2':
-    name: '2'
+      counts:
+        units: "1"
+        standard_name: counts
+  "2":
+    name: "2"
     wavelength: [3.710, 3.800, 3.890]
     resolution:
       1000:
@@ -70,10 +86,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '3':
-    name: '3'
+      counts:
+        units: "1"
+        standard_name: counts
+  "3":
+    name: "3"
     wavelength: [3.9725, 4.050, 4.1275]
     resolution:
       1000:
@@ -88,10 +107,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '4':
-    name: '4'
+      counts:
+        units: "1"
+        standard_name: counts
+  "4":
+    name: "4"
     wavelength: [6.950, 7.20, 7.450]
     resolution:
       1000:
@@ -106,10 +128,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '5':
-    name: '5'
+      counts:
+        units: "1"
+        standard_name: counts
+  "5":
+    name: "5"
     wavelength: [8.400, 8.550, 8.700]
     resolution:
       1000:
@@ -124,10 +149,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '6':
-    name: '6'
+      counts:
+        units: "1"
+        standard_name: counts
+  "6":
+    name: "6"
     wavelength: [10.300, 10.800, 11.300]
     resolution:
       1000:
@@ -147,10 +175,13 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-  '7':
-    name: '7'
+      counts:
+        units: "1"
+        standard_name: counts
+  "7":
+    name: "7"
     wavelength: [11.500, 12.000, 12.500]
     resolution:
       1000:
@@ -170,8 +201,11 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
 
   longitude:
     name: longitude
@@ -243,3 +277,27 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: mersi_ll_l1b_1000_geo
     file_key: Geolocation/MoonAzimuth
+  altitude:
+    name: altitude
+    units: degree
+    standard_name: altitude
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/Altitude
+  landcover:
+    name: landcover
+    units: degree
+    standard_name: landcover
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/LandCover
+  landseamask:
+    name: landseamask
+    units: degree
+    standard_name: landseamask
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi_ll_l1b_1000_geo
+    file_key: Geolocation/LandSeaMask

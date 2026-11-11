@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Demo data download helper functions.
 
 Each ``get_*`` function below downloads files to a local directory and returns
@@ -50,7 +33,7 @@ To use these functions, do:
 
 """
 
-from .abi_l1b import get_hurricane_florence_abi  # noqa: F401
+from .abi_l1b import get_hurricane_florence_abi  # noqa: F401, I001
 from .abi_l1b import get_us_midlatitude_cyclone_abi  # noqa: F401
 from .ahi_hsd import download_typhoon_surigae_ahi  # noqa: F401
 from .fci import download_fci_test_data  # noqa: F401

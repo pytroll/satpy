@@ -1,38 +1,26 @@
-# Copyright (c) 2009-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module defining various utilities."""
 
 from __future__ import annotations
 
 import contextlib
 import datetime
+import importlib.metadata
 import logging
 import os
 import pathlib
+import platform
 import warnings
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Mapping, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import urlparse
 
 import dask.utils
 import numpy as np
 import xarray as xr
 import yaml
+from numpy.typing import ArrayLike, DTypeLike
 from yaml import BaseLoader, UnsafeLoader
 
 _is_logging_on = False
@@ -130,12 +118,12 @@ def logging_on(level=logging.WARNING):
         console = logging.StreamHandler()
         console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
                                                " %(name)s] %(message)s",
-                                               '%Y-%m-%d %H:%M:%S'))
+                                               "%Y-%m-%d %H:%M:%S"))
         console.setLevel(level)
-        logging.getLogger('').addHandler(console)
+        logging.getLogger("").addHandler(console)
         _is_logging_on = True
 
-    log = logging.getLogger('')
+    log = logging.getLogger("")
     log.setLevel(level)
     for h in log.handlers:
         h.setLevel(level)
@@ -143,13 +131,13 @@ def logging_on(level=logging.WARNING):
 
 def logging_off():
     """Turn logging off."""
-    logging.getLogger('').handlers = [logging.NullHandler()]
+    logging.getLogger("").handlers = [logging.NullHandler()]
 
 
 def get_logger(name):
     """Return logger with null handler added if needed."""
-    if not hasattr(logging.Logger, 'trace'):
-        logging.addLevelName(TRACE_LEVEL, 'TRACE')
+    if not hasattr(logging.Logger, "trace"):
+        logging.addLevelName(TRACE_LEVEL, "TRACE")
 
         def trace(self, message, *args, **kwargs):
             if self.isEnabledFor(TRACE_LEVEL):
@@ -165,7 +153,7 @@ def get_logger(name):
 def in_ipynb():
     """Check if we are in a jupyter notebook."""
     try:
-        return 'ZMQ' in get_ipython().__class__.__name__
+        return "ZMQ" in get_ipython().__class__.__name__
     except NameError:
         return False
 
@@ -173,15 +161,18 @@ def in_ipynb():
 # Spherical conversions
 
 
-def lonlat2xyz(lon, lat):
+def lonlat2xyz(
+        lon: ArrayLike,
+        lat: ArrayLike,
+) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Convert lon lat to cartesian.
 
     For a sphere with unit radius, convert the spherical coordinates
     longitude and latitude to cartesian coordinates.
 
     Args:
-        lon (number or array of numbers): Longitude in °.
-        lat (number or array of numbers): Latitude in °.
+        lon: Longitude in °.
+        lat: Latitude in °.
 
     Returns:
         (x, y, z) Cartesian coordinates [1]
@@ -194,21 +185,26 @@ def lonlat2xyz(lon, lat):
     return x, y, z
 
 
-def xyz2lonlat(x, y, z, asin=False):
+def xyz2lonlat(
+        x: ArrayLike,
+        y: ArrayLike,
+        z: ArrayLike,
+        asin: bool = False,
+) -> tuple[ArrayLike, ArrayLike]:
     """Convert cartesian to lon lat.
 
     For a sphere with unit radius, convert cartesian coordinates to spherical
     coordinates longitude and latitude.
 
     Args:
-        x (number or array of numbers): x-coordinate, unitless
-        y (number or array of numbers): y-coordinate, unitless
-        z (number or array of numbers): z-coordinate, unitless
-        asin (optional, bool): If true, use arcsin for calculations.
+        x: x-coordinate, unitless
+        y: y-coordinate, unitless
+        z: z-coordinate, unitless
+        asin: If true, use arcsin for calculations.
             If false, use arctan2 for calculations.
 
     Returns:
-        (lon, lat): Longitude and latitude in °.
+        Longitude and latitude in °.
     """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:
@@ -243,20 +239,20 @@ def proj_units_to_meters(proj_str):
     proj_parts = proj_str.split()
     new_parts = []
     for itm in proj_parts:
-        key, val = itm.split('=')
-        key = key.strip('+')
-        if key in ['a', 'b', 'h']:
+        key, val = itm.split("=")
+        key = key.strip("+")
+        if key in ["a", "b", "h"]:
             val = float(val)
             if val < 6e6:
                 val *= 1000.
-                val = '%.3f' % val
+                val = "%.3f" % val
 
-        if key == 'units' and val == 'km':
+        if key == "units" and val == "km":
             continue
 
-        new_parts.append('+%s=%s' % (key, val))
+        new_parts.append("+%s=%s" % (key, val))
 
-    return ' '.join(new_parts)
+    return " ".join(new_parts)
 
 
 def _get_sunz_corr_li_and_shibata(cos_zen):
@@ -333,7 +329,7 @@ def get_satpos(
             the dataset metadata contain the satellite position directly.
 
     Returns:
-        Geodetic longitude, latitude, altitude [km]
+        Geodetic longitude, latitude, altitude [m]
 
     """
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
@@ -371,9 +367,9 @@ def _get_sat_altitude(data_arr, key_prefixes):
     try:
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
-        alt = orb_params['projection_altitude']
+        alt = orb_params["projection_altitude"]
         warnings.warn(
-            'Actual satellite altitude not available, using projection altitude instead.',
+            "Actual satellite altitude not available, using projection altitude instead.",
             stacklevel=3
         )
     return alt
@@ -387,10 +383,10 @@ def _get_sat_lonlat(data_arr, key_prefixes):
         lon = _get_first_available_item(orb_params, lon_keys)
         lat = _get_first_available_item(orb_params, lat_keys)
     except KeyError:
-        lon = orb_params['projection_longitude']
-        lat = orb_params['projection_latitude']
+        lon = orb_params["projection_longitude"]
+        lat = orb_params["projection_latitude"]
         warnings.warn(
-            'Actual satellite lon/lat not available, using projection center instead.',
+            "Actual satellite lon/lat not available, using projection center instead.",
             stacklevel=3
         )
     return lon, lat
@@ -405,7 +401,7 @@ def _get_satpos_from_platform_name(cth_dataset):
 
     Needs pyorbital, skyfield, and astropy to be installed.
     """
-    from pyorbital.orbital import tlefile
+    from pyorbital import tlefile
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 
@@ -416,7 +412,7 @@ def _get_satpos_from_platform_name(cth_dataset):
     gc = es.at(ts.from_datetime(
         cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
     (lat, lon) = wgs84.latlon_of(gc)
-    height = wgs84.height_of(gc).to("km")
+    height = wgs84.height_of(gc).to("m")
     return (lon.degrees, lat.degrees, height.value)
 
 
@@ -429,7 +425,7 @@ def _get_first_available_item(data_dict, possible_keys):
     raise KeyError("None of the possible keys found: {}".format(", ".join(possible_keys)))
 
 
-def recursive_dict_update(d, u):
+def recursive_dict_update(d: MutableMapping, u: Mapping) -> None:
     """Recursive dictionary update.
 
     Copied from:
@@ -439,11 +435,11 @@ def recursive_dict_update(d, u):
     """
     for k, v in u.items():
         if isinstance(v, Mapping):
-            r = recursive_dict_update(d.get(k, {}), v)
+            r = d.get(k, {})
+            recursive_dict_update(r, v)
             d[k] = r
         else:
             d[k] = u[k]
-    return d
 
 
 def _check_yaml_configs(configs, key):
@@ -454,80 +450,128 @@ def _check_yaml_configs(configs, key):
     diagnostic = {}
     for i in configs:
         for fname in i:
-            msg = 'ok'
+            msg = "ok"
             res = None
-            with open(fname, 'r', encoding='utf-8') as stream:
+            with open(fname, "r", encoding="utf-8") as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     res = yaml.load(stream, Loader=BaseLoader)
-                    if err.context == 'while constructing a Python object':
+                    if err.context == "while constructing a Python object":
                         msg = err.problem
                     else:
-                        msg = 'error'
+                        msg = "error"
                 finally:
                     try:
-                        diagnostic[res[key]['name']] = msg
+                        diagnostic[res[key]["name"]] = msg
                     except (KeyError, TypeError):
                         # this object doesn't have a 'name'
                         pass
     return diagnostic
 
+def _check_package_version(package_name: str) -> Optional[str]:
+    """Check the version of `package_name`.
 
-def _check_import(module_names):
-    """Import the specified modules and provide status."""
-    diagnostics = {}
-    for module_name in module_names:
-        try:
-            __import__(module_name)
-            res = 'ok'
-        except ImportError as err:
-            res = str(err)
-        diagnostics[module_name] = res
-    return diagnostics
+    Args:
+        package_name (str): the distribution package name.
+
+    Returns:
+        the version number if available else `None`.
+    """
+    try:
+        return importlib.metadata.version(package_name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
-def check_satpy(readers=None, writers=None, extras=None):
+def show_versions(packages=None):
+    """Shows version for system, python and common packages (if installed).
+
+    Args:
+        packages (list or None): Limit packages to those specified.
+
+    Returns:
+        None.
+
+    """
+    packages = (
+        (
+            "cartopy",
+            "geoviews",
+            "numpy",
+            "dask",
+            "xarray",
+            "gdal",
+            "rasterio",
+            "pyproj",
+            "netcdf4",
+            "h5py",
+            "pyhdf",
+            "h5netcdf",
+            "fsspec",
+            "pyresample",
+            "trollimage",
+            "trollsift",
+            "pykdtree",
+            "pycoast",
+            "pydecorate",
+            "python-geotiepoints",
+        )
+        if packages is None
+        else packages
+    )
+
+    print("Versions")  # noqa: T201
+    print("======")  # noqa: T201
+    print(f"platform: {platform.platform()}")  # noqa: T201
+    print(f"python: {platform.python_version()}")  # noqa: T201
+    print()  # noqa: T201
+
+    for package_name in sorted(packages):
+        package_version = _check_package_version(package_name)
+        print( # noqa: T201
+            f"{package_name}: {package_version if package_version else 'not installed'}"
+        )
+
+    print()  # noqa: T201
+
+
+def check_satpy(readers=None, writers=None, packages=None):
     """Check the satpy readers and writers for correct installation.
 
     Args:
         readers (list or None): Limit readers checked to those specified
         writers (list or None): Limit writers checked to those specified
-        extras (list or None): Limit extras checked to those specified
+        packages (list or None): Limit packages checked to those specified
 
-    Returns: bool
-        True if all specified features were successfully loaded.
+    Returns:
+        None
 
     """
-    from satpy.readers import configs_for_reader
-    from satpy.writers import configs_for_writer
+    from satpy.readers.core.config import configs_for_reader
+    from satpy.writers.core.config import configs_for_writer
 
-    print('Readers')
-    print('=======')
-    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
-        print(reader + ': ', res)
-    print()
+    print("Readers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), "reader").items()):
+        print(reader + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
-    print('Writers')
-    print('=======')
-    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
-        print(writer + ': ', res)
-    print()
+    print("Writers")  # noqa: T201
+    print("=======")  # noqa: T201
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), "writer").items()):
+        print(writer + ": ", res)  # noqa: T201
+    print()  # noqa: T201
 
-    print('Extras')
-    print('======')
-    module_names = extras if extras is not None else ('cartopy', 'geoviews')
-    for module_name, res in sorted(_check_import(module_names).items()):
-        print(module_name + ': ', res)
-    print()
+    show_versions(packages=packages)
 
 
 def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
-    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
-    guard against running :func:`dask.array.core.map_blocks` with arrays of
+    This is mostly used in :class:`satpy.composites.core.CompositeBase` to safe
+    guard against running :func:`dask.array.map_blocks` with arrays of
     different chunk sizes. Doing so can cause unexpected results or errors.
     However, xarray's ``unify_chunks`` will raise an exception if dimensions
     of the provided DataArrays are different sizes. This is a common case for
@@ -571,6 +615,25 @@ def ignore_invalid_float_warnings():
     """
     with np.errstate(invalid="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
+        yield
+
+
+@contextlib.contextmanager
+def ignore_pyproj_proj_warnings():
+    """Wrap operations that we know will produce a PROJ.4 precision warning.
+
+    Only to be used internally to Pyresample when we have no other choice but
+    to use PROJ.4 strings/dicts. For example, serialization to YAML or other
+    human-readable formats or testing the methods that produce the PROJ.4
+    versions of the CRS.
+
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            "You will likely lose important projection information",
+            UserWarning,
+        )
         yield
 
 
@@ -619,7 +682,7 @@ def get_legacy_chunk_size():
 
 def _get_pytroll_chunk_size():
     try:
-        chunk_size = int(os.environ['PYTROLL_CHUNK_SIZE'])
+        chunk_size = int(os.environ["PYTROLL_CHUNK_SIZE"])
         warnings.warn(
             "The PYTROLL_CHUNK_SIZE environment variable is pending deprecation. "
             "You can use the dask config setting `array.chunk-size` (or the DASK_ARRAY__CHUNK_SIZE environment"
@@ -629,6 +692,83 @@ def _get_pytroll_chunk_size():
         return chunk_size
     except KeyError:
         return None
+
+
+def normalize_low_res_chunks(
+        chunks: tuple[int | Literal["auto"], ...],
+        input_shape: tuple[int, ...],
+        previous_chunks: tuple[int, ...],
+        low_res_multipliers: tuple[int, ...],
+        input_dtype: DTypeLike,
+) -> tuple[int, ...]:
+    """Compute dask chunk sizes based on data resolution.
+
+    First, chunks are computed for the highest resolution version of the data.
+    This is done by multiplying the input array shape by the
+    ``low_res_multiplier`` and then using Dask's utility functions and
+    configuration to produce a chunk size to fit into a specific number of
+    bytes. See :doc:`dask:array-chunks` for more information.
+    Next, the same multiplier is used to reduce the high resolution chunk sizes
+    to the lower resolution of the input data. The end result of reading
+    multiple resolutions of data is that each dask chunk covers the same
+    geographic region. This also means replicating or aggregating one
+    resolution and then combining arrays should not require any rechunking.
+
+    Args:
+        chunks: Requested chunk size for each dimension. This is passed
+            directly to dask. Use ``"auto"`` for dimensions that should have
+            chunks determined for them, ``-1`` for dimensions that should be
+            whole (not chunked), and ``1`` or any other positive integer for
+            dimensions that have a known chunk size beforehand.
+        input_shape: Shape of the array to compute dask chunk size for.
+        previous_chunks: Any previous chunking or structure of the data. This
+            can also be thought of as the smallest number of high (fine) resolution
+            elements that make up a single "unit" or chunk of data. This could
+            be a multiple or factor of the scan size for some instruments and/or
+            could be based on the on-disk chunk size. This value ensures that
+            chunks are aligned to the underlying data structure for best
+            performance. On-disk chunk sizes should be multiplied by the
+            largest low resolution multiplier if it is the same between all
+            files (ex. 500m file has 226 chunk size, 1km file has 226 chunk
+            size, etc).. Otherwise, the resulting low resolution chunks may
+            not be aligned to the on-disk chunks. For example, if dask decides
+            on a chunk size of 226 * 3 for 500m data, that becomes 226 * 3 / 2
+            for 1km data which is not aligned to the on-disk chunk size of 226.
+        low_res_multipliers: Number of high (fine) resolution pixels that fit
+            in a single low (coarse) resolution pixel.
+        input_dtype: Dtype for the final unscaled array. This is usually
+            32-bit float (``np.float32``) or 64-bit float (``np.float64``)
+            for non-category data. If this doesn't represent the final data
+            type of the data then the final size of chunks in memory will not
+            match the user's request via dask's ``array.chunk-size``
+            configuration. Sometimes it is useful to keep this as a single
+            dtype for all reading functionality (ex. ``np.float32``) in order
+            to keep all read variable chunks the same size regardless of dtype.
+
+    Returns:
+        A tuple where each element is the chunk size for that axis/dimension.
+
+    """
+    if any(len(input_shape) != len(param) for param in (low_res_multipliers, chunks, previous_chunks)):
+        raise ValueError("Input shape, low res multipliers, chunks, and previous chunks must all be the same size")
+    high_res_shape = tuple(dim_size * lr_mult for dim_size, lr_mult in zip(input_shape, low_res_multipliers))
+    chunks_for_high_res = dask.array.core.normalize_chunks(
+        chunks,
+        shape=high_res_shape,
+        dtype=input_dtype,
+        previous_chunks=previous_chunks,
+    )
+    low_res_chunks: list[int] = []
+    for req_chunks, hr_chunks, prev_chunks, lr_mult in zip(
+            chunks,
+            chunks_for_high_res,
+            previous_chunks, low_res_multipliers
+    ):
+        if req_chunks != "auto":
+            low_res_chunks.append(req_chunks)
+            continue
+        low_res_chunks.append(round(max(hr_chunks[0] / lr_mult, prev_chunks / lr_mult)))
+    return tuple(low_res_chunks)
 
 
 def convert_remote_files_to_fsspec(filenames, storage_options=None):
@@ -658,7 +798,7 @@ def _check_file_protocols(filenames, storage_options):
 
 
 def _sort_files_to_local_remote_and_fsfiles(filenames):
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     local_files = []
     remote_files = []
@@ -668,7 +808,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
             fs_files.append(f)
         elif isinstance(f, pathlib.Path):
             local_files.append(f)
-        elif urlparse(f).scheme in ('', 'file') or "\\" in f:
+        elif urlparse(f).scheme in ("", "file") or "\\" in f:
             local_files.append(f)
         else:
             remote_files.append(f)
@@ -678,7 +818,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
 def _filenames_to_fsfile(filenames, storage_options):
     import fsspec
 
-    from satpy.readers import FSFile
+    from satpy.readers.core.remote import FSFile
 
     if filenames:
         fsspec_files = fsspec.open_files(filenames, **storage_options)
@@ -709,7 +849,7 @@ def _get_storage_dictionary_options(reader_kwargs):
             # set base storage options if there are any
             storage_opt_dict[reader_name] = shared_storage_options.copy()
         if isinstance(rkwargs, dict) and "storage_options" in rkwargs:
-            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop('storage_options'))
+            storage_opt_dict.setdefault(reader_name, {}).update(rkwargs.pop("storage_options"))
     return storage_opt_dict
 
 
@@ -743,3 +883,51 @@ def find_in_ancillary(data, dataset):
             f"variables for dataset {data.attrs.get('name')!r}, "
             f"found {cnt:d}")
     return matches[0]
+
+
+def datetime64_to_pydatetime(dt64: np.datetime64) -> datetime.datetime:
+    """Convert numpy.datetime64 timestamp to Python datetime.
+
+    Discards nanosecond precision, because Python datetime only has microsecond
+    precision.
+
+    Args:
+        dt64: Timestamp to be converted
+    Returns:
+        Converted timestamp
+    """
+    return dt64.astype("datetime64[us]").astype(datetime.datetime)
+
+
+def _import_and_warn_new_location(new_module: str, name: str) -> Any:
+    import inspect
+    from importlib import import_module
+
+    frame = inspect.stack()[1]
+    old_module_name = inspect.getmodule(frame[0]).__name__  # type: ignore
+
+    mod = import_module(new_module)
+    obj = getattr(mod, name)
+
+    warnings.warn(
+        f"'{old_module_name}.{name}' has been moved to '{new_module}.{name}'. "
+        f"Import from the new location instead (ex. 'from {new_module} import {name}'). "
+        "The old import paths will be removed in Satpy 1.0",
+        stacklevel=3,
+    )
+    return obj
+
+
+def flatten_dict(d, parent_key="", sep="_"):
+    """Flatten a nested dictionary.
+
+    Based on https://stackoverflow.com/a/6027615/5703449
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)

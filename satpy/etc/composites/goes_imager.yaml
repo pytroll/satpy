@@ -3,7 +3,7 @@ sensor_name: visir/goes_imager
 
 composites:
   overview:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
       - '00_7'
       - '00_7'

@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Implementation of a dependency tree."""
 
 from __future__ import annotations
@@ -26,7 +9,10 @@ import numpy as np
 from satpy import DataID, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
+from satpy.node import EMPTY_LEAF_NAME, CompositorNode, MissingDependencies, Node, ReaderNode
+from satpy.utils import get_logger
+
+LOG = get_logger(__name__)
 
 
 class Tree:
@@ -327,7 +313,7 @@ class DependencyTree(Tree):
             LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node
 
-    def _find_reader_node(self, dataset_key, query):
+    def _find_reader_node(self, dataset_key, query):  # noqa: D417
         """Attempt to find a `DataID` in the available readers.
 
         Args:
@@ -431,7 +417,7 @@ class DependencyTree(Tree):
                 compositor = self.get_modifier(dataset_key)
             except KeyError:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-            compositor.attrs['prerequisites'] = [implicit_dependency_node] + list(compositor.attrs['prerequisites'])
+            compositor.attrs["prerequisites"] = [implicit_dependency_node] + list(compositor.attrs["prerequisites"])
         else:
             try:
                 compositor = self.get_compositor(dataset_key)
@@ -446,14 +432,14 @@ class DependencyTree(Tree):
         # Get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
         prereqs = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
-                   for prereq in compositor.attrs['prerequisites']]
+                   for prereq in compositor.attrs["prerequisites"]]
         prereqs = self._create_required_subtrees(root, prereqs, query=query)
         root.add_required_nodes(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optionals = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
-                     for prereq in compositor.attrs['optional_prerequisites']]
+                     for prereq in compositor.attrs["optional_prerequisites"]]
         optionals = self._create_optional_subtrees(root, optionals, query=query)
         root.add_optional_nodes(optionals)
 
@@ -501,7 +487,7 @@ class DependencyTree(Tree):
     def get_modifier(self, comp_id):
         """Get a modifer."""
         # create a DataID for the compositor we are generating
-        modifier = comp_id['modifiers'][-1]
+        modifier = comp_id["modifiers"][-1]
         for sensor_name in sorted(self.modifiers):
             modifiers = self.modifiers[sensor_name]
             compositors = self.compositors[sensor_name]
@@ -511,18 +497,18 @@ class DependencyTree(Tree):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            moptions['sensor'] = sensor_name
+            moptions["sensor"] = sensor_name
             compositors[comp_id] = mloader(_satpy_id=comp_id, **moptions)
             return compositors[comp_id]
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _create_required_subtrees(self, parent, prereqs, query=None):
+    def _create_required_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine required prerequisite Nodes for a composite.
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """
@@ -531,12 +517,12 @@ class DependencyTree(Tree):
             raise MissingDependencies(unknown_datasets)
         return prereq_nodes
 
-    def _create_optional_subtrees(self, parent, prereqs, query=None):
+    def _create_optional_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine optional prerequisite Nodes for a composite.
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths), or
+            prereqs (Sequence): Strings (names), floats (wavelengths), or
                                 DataQuerys to analyze.
 
         """
@@ -544,17 +530,17 @@ class DependencyTree(Tree):
 
         for prereq, unknowns in unknown_datasets.items():
             u_str = ", ".join([str(x) for x in unknowns])
-            LOG.debug('Skipping optional %s: Unknown dataset %s',
+            LOG.debug("Skipping optional %s: Unknown dataset %s",
                       str(prereq), u_str)
 
         return prereq_nodes
 
-    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):
+    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):  # noqa: D417
         """Determine prerequisite Nodes for a composite.
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereqs (sequence): Strings (names), floats (wavelengths),
+            prereqs (Sequence): Strings (names), floats (wavelengths),
                                 DataQuerys or Nodes to analyze.
 
         """
@@ -588,11 +574,6 @@ class _DataIDContainer(dict):
     Note: Internal dictionary keys are `DataID` objects.
 
     """
-
-    def keys(self):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        return sorted(super(_DataIDContainer, self).keys())
 
     def get_key(self, match_key):
         """Get multiple fully-specified keys that match the provided query.

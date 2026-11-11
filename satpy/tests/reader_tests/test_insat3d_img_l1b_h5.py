@@ -1,6 +1,7 @@
 """Tests for the Insat3D reader."""
+
+import datetime as dt
 import os
-from datetime import datetime
 
 import dask.array as da
 import h5netcdf
@@ -16,7 +17,7 @@ from satpy.readers.insat3d_img_l1b_h5 import (
     open_dataset,
     open_datatree,
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import RANDOM_GEN, make_dataid
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -30,10 +31,10 @@ rad_units = "mW.cm-2.sr-1.micron-1"
 alb_units = "%"
 temp_units = "K"
 chunks_1km = (1, 46, 1126)
-values_1km = np.random.randint(0, 1000, shape_1km, dtype=np.uint16)
+values_1km = RANDOM_GEN.integers(0, 1000, shape_1km, dtype=np.uint16)
 values_1km[0, 0, 0] = 0
-values_4km = np.random.randint(0, 1000, shape_4km, dtype=np.uint16)
-values_8km = np.random.randint(0, 1000, shape_8km, dtype=np.uint16)
+values_4km = RANDOM_GEN.integers(0, 1000, shape_4km, dtype=np.uint16)
+values_8km = RANDOM_GEN.integers(0, 1000, shape_8km, dtype=np.uint16)
 
 values_by_resolution = {1000: values_1km,
                         4000: values_4km,
@@ -72,8 +73,9 @@ calibrated_units = {"": "1",
                     "ALBEDO": "%",
                     "TEMP": "K"}
 
-start_time = datetime(2009, 6, 9, 9, 0)
-end_time = datetime(2009, 6, 9, 9, 30)
+start_time = dt.datetime(2009, 6, 9, 9, 0)
+end_time = dt.datetime(2009, 6, 9, 9, 30)
+subsatellite_longitude = 82
 
 time_pattern = "%d-%b-%YT%H:%M:%S"
 
@@ -81,12 +83,12 @@ global_attrs = {"Observed_Altitude(km)": 35778.490219,
                 "Field_of_View(degrees)": 17.973925,
                 "Acquisition_Start_Time": start_time.strftime(time_pattern),
                 "Acquisition_End_Time": end_time.strftime(time_pattern),
-                "Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude": [0.0, 82.0],
+                "Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude": [0.0, subsatellite_longitude],
                 "Nominal_Altitude(km)": 36000.0,
                 }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def insat_filename(tmp_path_factory):
     """Create a fake insat 3d l1b file."""
     filename = tmp_path_factory.mktemp("data") / "3DIMG_25OCT2022_0400_L1B_STD_V01R00.h5"
@@ -97,7 +99,16 @@ def insat_filename(tmp_path_factory):
             _create_channels(channels, h5f, resolution)
             _create_lonlats(h5f, resolution)
 
-    return filename
+    yield filename
+    import xarray as xr
+
+    # clean xarray cache
+    for key in xr.backends.file_manager.FILE_CACHE:
+        if os.fspath(filename) in key[1]:
+            ds = xr.backends.file_manager.FILE_CACHE.pop(key)
+            ds.close()
+
+    os.unlink(filename)
 
 
 def mask_array(array):
@@ -138,7 +149,7 @@ def test_insat3d_backend_has_1km_channels(insat_filename):
     assert res["IMG_SWIR"].shape == shape_1km
 
 
-@pytest.mark.parametrize("resolution,name,shape,expected_values,expected_name,expected_units",
+@pytest.mark.parametrize(("resolution", "name", "shape", "expected_values", "expected_name", "expected_units"),
                          [(1000, "IMG_VIS_RADIANCE", shape_1km, mask_array(values_1km * 2),
                            "Visible Radiance", rad_units),
                           (1000, "IMG_VIS_ALBEDO", shape_1km, mask_array(values_1km * 3),
@@ -173,7 +184,7 @@ def test_insat3d_has_dask_arrays(insat_filename):
 
 def test_insat3d_only_has_3_resolutions(insat_filename):
     """Test that we only accept 1000, 4000, 8000."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Resolution 1024 not available. Available resolutions: 1000, 4000, 8000"):
         _ = open_dataset(insat_filename, resolution=1024)
 
 
@@ -208,10 +219,10 @@ def test_insat3d_datatree_has_global_attributes(insat_filename):
     assert res.attrs.keys() >= global_attrs.keys()
 
 
-@pytest.mark.parametrize("calibration,expected_values",
+@pytest.mark.parametrize(("calibration", "expected_values"),
                          [("counts", values_1km),
                           ("radiance", mask_array(values_1km * 2)),
-                          ("reflectance", mask_array(values_1km * 3))])
+                          ("unnormalized_reflectance", mask_array(values_1km * 3))])
 def test_filehandler_returns_data_array(insat_filehandler, calibration, expected_values):
     """Test that the filehandler can get dataarrays."""
     fh = insat_filehandler
@@ -223,12 +234,19 @@ def test_filehandler_returns_data_array(insat_filehandler, calibration, expected
     assert darr.dims == ("y", "x")
 
 
+def test_reflectance_warns(insat_filehandler):
+    """Test that asking for reflectance issues a warning."""
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="reflectance")
+    with pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle"):
+        _ = insat_filehandler.get_dataset(ds_id, {})
+
+
 def test_filehandler_returns_masked_data_in_space(insat_filehandler):
     """Test that the filehandler masks space pixels."""
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="unnormalized_reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
     assert np.isnan(darr[0, 0])
 
@@ -238,11 +256,12 @@ def test_insat3d_has_orbital_parameters(insat_filehandler):
     fh = insat_filehandler
     ds_info = None
 
-    ds_id = make_dataid(name="VIS", resolution=1000, calibration='reflectance')
+    ds_id = make_dataid(name="VIS", resolution=1000, calibration="unnormalized_reflectance")
     darr = fh.get_dataset(ds_id, ds_info)
 
     assert "orbital_parameters" in darr.attrs
     assert "satellite_nominal_longitude" in darr.attrs["orbital_parameters"]
+    assert darr.attrs["orbital_parameters"]["satellite_nominal_longitude"] == subsatellite_longitude
     assert "satellite_nominal_latitude" in darr.attrs["orbital_parameters"]
     assert "satellite_nominal_altitude" in darr.attrs["orbital_parameters"]
     assert "satellite_actual_altitude" in darr.attrs["orbital_parameters"]
@@ -260,7 +279,7 @@ def test_filehandler_returns_coords(insat_filehandler):
     np.testing.assert_allclose(darr, values_1km.squeeze() / 100)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def insat_filehandler(insat_filename):
     """Instantiate a Filehandler."""
     fileinfo = {}
@@ -275,7 +294,10 @@ def test_filehandler_returns_area(insat_filehandler):
 
     ds_id = make_dataid(name="MIR", resolution=4000, calibration="brightness_temperature")
     area_def = fh.get_area_def(ds_id)
-    lons, lats = area_def.get_lonlats(chunks=1000)
+    _ = area_def.get_lonlats(chunks=1000)
+    assert subsatellite_longitude == area_def.crs.to_cf()["longitude_of_projection_origin"]
+    np.testing.assert_allclose(area_def.area_extent, [-5620072.101427, -5640108.009097,
+                                                      5620072.101427, 5644115.190631])
 
 
 def test_filehandler_has_start_and_end_time(insat_filehandler):
@@ -289,7 +311,7 @@ def test_filehandler_has_start_and_end_time(insat_filehandler):
 def test_satpy_load_array(insat_filename):
     """Test that satpy can load the VIS array."""
     scn = Scene(filenames=[os.fspath(insat_filename)], reader="insat3d_img_l1b_h5")
-    scn.load(["VIS"])
+    scn.load(["VIS"], calibration="unnormalized_reflectance")
     expected = mask_array(values_1km * 3).squeeze()
     np.testing.assert_allclose(scn["VIS"], expected)
 

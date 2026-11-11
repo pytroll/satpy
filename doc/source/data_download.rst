@@ -72,7 +72,8 @@ NASA VIIRS Atmosphere SIPS
 * `Resource Description <https://sips.ssec.wisc.edu/>`__
 * Associated Readers: ``viirs_l1b``
 
-EUMETSAT Data Center
---------------------
+EUMETSAT Data Store and Data Center
+-----------------------------------
 
-* `Data Ordering <https://eoportal.eumetsat.int>`__
+* EUMETSAT's primary source for data is the `Data Store <https://data.eumetsat.int/>`__
+* Some products remain available on the `Earth Observation Portal <https://eoportal.eumetsat.int>`__

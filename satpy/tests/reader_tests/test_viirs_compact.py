@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_compact module."""
 
 from contextlib import suppress
@@ -24,6 +7,7 @@ import numpy as np
 import pytest
 
 from satpy.tests.reader_tests.utils import fill_h5
+from satpy.tests.utils import RANDOM_GEN
 
 # NOTE:
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
@@ -647,13 +631,13 @@ def fake_dnb():
                         dtype=np.float32,
                     )
                 },
-                "Latitude": {"value": np.random.rand(96, 332).astype(np.float32)},
-                "Longitude": {"value": np.random.rand(96, 332).astype(np.float32)},
+                "Latitude": {"value": RANDOM_GEN.random((96, 332)).astype(np.float32)},
+                "Longitude": {"value": RANDOM_GEN.random((96, 332)).astype(np.float32)},
                 "LunarAzimuthAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "LunarZenithAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "MidTime": {
                     "value": np.array(
@@ -1170,16 +1154,16 @@ def fake_dnb():
                     )
                 },
                 "SatelliteAzimuthAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "SatelliteZenithAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "SolarAzimuthAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "SolarZenithAngle": {
-                    "value": np.random.rand(96, 332).astype(np.float32)
+                    "value": RANDOM_GEN.random((96, 332)).astype(np.float32)
                 },
                 "StartTime": {
                     "value": np.array(
@@ -1484,7 +1468,7 @@ def fake_dnb():
                 },
                 "PadByte1": {"value": np.array([0, 0, 0], dtype=np.uint8)},
                 "QF1_VIIRSDNBSDR": {
-                    "value": (np.random.rand(768, 4064) * 255).astype(np.uint8)
+                    "value": (RANDOM_GEN.random((768, 4064)) * 255).astype(np.uint8)
                 },
                 "QF2_SCAN_SDR": {
                     "value": np.array(
@@ -1596,7 +1580,7 @@ def fake_dnb():
                         dtype=np.uint8,
                     )
                 },
-                "Radiance": {"value": np.random.rand(768, 4064).astype(np.float32)},
+                "Radiance": {"value": RANDOM_GEN.random((768, 4064)).astype(np.float32)},
                 "attrs": {
                     "OriginalFilename": np.array(
                         [
@@ -2435,7 +2419,7 @@ class TestCompact:
     """Test class for reading compact viirs format."""
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, fake_dnb_file):
+    def _setup_method(self, fake_dnb_file):
         """Create a fake file from scratch."""
         self.filename = fake_dnb_file
         self.client = None
@@ -2445,17 +2429,17 @@ class TestCompact:
         from satpy.tests.utils import make_dataid
 
         filename_info = {}
-        filetype_info = {'file_type': 'compact_dnb'}
+        filetype_info = {"file_type": "compact_dnb"}
         test = VIIRSCompactFileHandler(self.filename, filename_info, filetype_info)
 
-        dsid = make_dataid(name='DNB', calibration='radiance')
+        dsid = make_dataid(name="DNB", calibration="radiance")
         ds1 = test.get_dataset(dsid, {})
-        dsid = make_dataid(name='longitude_dnb')
-        ds2 = test.get_dataset(dsid, {'standard_name': 'longitude'})
-        dsid = make_dataid(name='latitude_dnb')
-        ds3 = test.get_dataset(dsid, {'standard_name': 'latitude'})
-        dsid = make_dataid(name='solar_zenith_angle')
-        ds4 = test.get_dataset(dsid, {'standard_name': 'solar_zenith_angle'})
+        dsid = make_dataid(name="longitude_dnb")
+        ds2 = test.get_dataset(dsid, {"standard_name": "longitude"})
+        dsid = make_dataid(name="latitude_dnb")
+        ds3 = test.get_dataset(dsid, {"standard_name": "latitude"})
+        dsid = make_dataid(name="solar_zenith_angle")
+        ds4 = test.get_dataset(dsid, {"standard_name": "solar_zenith_angle"})
 
         for ds in [ds1, ds2, ds3, ds4]:
             yield ds
@@ -2466,7 +2450,7 @@ class TestCompact:
             assert ds.shape == (752, 4064)
             assert ds.dtype == np.float32
             assert ds.compute().shape == (752, 4064)
-            assert ds.attrs['rows_per_scan'] == 16
+            assert ds.attrs["rows_per_scan"] == 16
 
     def test_distributed(self):
         """Check that distributed computations work."""

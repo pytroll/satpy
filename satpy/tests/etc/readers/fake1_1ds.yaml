@@ -1,7 +1,7 @@
 reader:
   name: fake1_1ds
   description: Fake reader used for easier testing with only one dataset
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
   sensors: [fake_sensor]
 datasets:
   ds1:

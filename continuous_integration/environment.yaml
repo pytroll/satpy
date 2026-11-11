@@ -2,13 +2,15 @@ name: test-environment
 channels:
   - conda-forge
 dependencies:
-  - xarray!=2022.9.0
+  - xarray>=2025.9.0
   - dask
   - distributed
+  - dask-image
   - donfig
-  - appdirs
+  - platformdirs
   - toolz
-  - Cython
+  - cython
+  - numba
   - sphinx
   - cartopy
   - panel>=0.12.7
@@ -35,27 +37,33 @@ dependencies:
   - mock
   - libtiff
   - geoviews
+  - holoviews
+  - hvplot
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
   - eccodes>=2.20
-  - geoviews
   - pytest
   - pytest-cov
-  - pytest-lazy-fixture
   - fsspec
+  - universal_pathlib
+  - botocore>=1.33
   - s3fs
   - python-geotiepoints
   - pooch
   - pip
   - skyfield
   - astropy
-  - xarray-datatree
   - pint-xarray
   - ephem
-  - bokeh<3
+  - bokeh
+  - pytest-xdist
+  - cftime
   - pip:
-    - trollsift
-    - trollimage>=1.20
-    - pyspectral
-    - pyorbital
+      - pytest-lazy-fixtures
+      - trollsift
+      - trollimage>=1.24
+      - pyspectral
+      - pyorbital
+      - pyPublicDecompWT
+      - pygac

@@ -1,25 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the HDF-EOS base functionality."""
 
 import unittest
 
-nrt_mda = '''GROUP                  = INVENTORYMETADATA
+nrt_mda = """GROUP                  = INVENTORYMETADATA
   GROUPTYPE            = MASTERGROUP
 
   GROUP                  = ECSDATAGRANULE
@@ -439,175 +422,175 @@ nrt_mda = '''GROUP                  = INVENTORYMETADATA
 
 END_GROUP              = INVENTORYMETADATA
 
-END'''  # noqa: E501
+END"""  # noqa: E501
 
 nrt_mda_dict = {
-    'INVENTORYMETADATA': {
-        'ADDITIONALATTRIBUTES': {
-            'ADDITIONALATTRIBUTESCONTAINER': {
-                'ADDITIONALATTRIBUTENAME': {
-                    'VALUE': 'identifier_product_doi_authority'
+    "INVENTORYMETADATA": {
+        "ADDITIONALATTRIBUTES": {
+            "ADDITIONALATTRIBUTESCONTAINER": {
+                "ADDITIONALATTRIBUTENAME": {
+                    "VALUE": "identifier_product_doi_authority"
                 },
-                'INFORMATIONCONTENT': {
-                    'PARAMETERVALUE': {
-                        'VALUE': 'http://dx.doi.org'
+                "INFORMATIONCONTENT": {
+                    "PARAMETERVALUE": {
+                        "VALUE": "http://dx.doi.org"
                     }
                 }
             }
         },
-        'ASSOCIATEDPLATFORMINSTRUMENTSENSOR': {
-            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER': {
-                'ASSOCIATEDINSTRUMENTSHORTNAME': {
-                    'VALUE': 'MODIS'
+        "ASSOCIATEDPLATFORMINSTRUMENTSENSOR": {
+            "ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER": {
+                "ASSOCIATEDINSTRUMENTSHORTNAME": {
+                    "VALUE": "MODIS"
                 },
-                'ASSOCIATEDPLATFORMSHORTNAME': {
-                    'VALUE': 'Aqua'
+                "ASSOCIATEDPLATFORMSHORTNAME": {
+                    "VALUE": "Aqua"
                 },
-                'ASSOCIATEDSENSORSHORTNAME': {
-                    'VALUE': 'MODIS'
+                "ASSOCIATEDSENSORSHORTNAME": {
+                    "VALUE": "MODIS"
                 }
             }
         },
-        'COLLECTIONDESCRIPTIONCLASS': {
-            'SHORTNAME': {
-                'VALUE': 'MYD03'
+        "COLLECTIONDESCRIPTIONCLASS": {
+            "SHORTNAME": {
+                "VALUE": "MYD03"
             },
-            'VERSIONID': {
-                'VALUE': 61
+            "VERSIONID": {
+                "VALUE": 61
             }
         },
-        'ECSDATAGRANULE': {
-            'DAYNIGHTFLAG': {
-                'VALUE': 'Day'
+        "ECSDATAGRANULE": {
+            "DAYNIGHTFLAG": {
+                "VALUE": "Day"
             },
-            'LOCALGRANULEID': {
-                'VALUE': 'MYD03.A2019051.1225.061.2019051131153.NRT.hdf'
+            "LOCALGRANULEID": {
+                "VALUE": "MYD03.A2019051.1225.061.2019051131153.NRT.hdf"
             },
-            'LOCALVERSIONID': {
-                'VALUE': '6.0.4'
+            "LOCALVERSIONID": {
+                "VALUE": "6.0.4"
             },
-            'PRODUCTIONDATETIME': {
-                'VALUE': '2019-02-20T13:11:53.000Z'
+            "PRODUCTIONDATETIME": {
+                "VALUE": "2019-02-20T13:11:53.000Z"
             },
-            'REPROCESSINGACTUAL': {
-                'VALUE': 'Near '
-                'Real '
-                'Time'
+            "REPROCESSINGACTUAL": {
+                "VALUE": "Near "
+                "Real "
+                "Time"
             },
-            'REPROCESSINGPLANNED': {
-                'VALUE': 'further '
-                'update '
-                'is '
-                'anticipated'
+            "REPROCESSINGPLANNED": {
+                "VALUE": "further "
+                "update "
+                "is "
+                "anticipated"
             }
         },
-        'GROUPTYPE': 'MASTERGROUP',
-        'INPUTGRANULE': {
-            'INPUTPOINTER': {
-                'VALUE':
-                ('MYD01.61.2019-051T12:25:00.000000Z.NA.29878844.500100_1.hdf',
-                 'MYD03LUT.coeff_V6.1.4',
-                 'PM1EPHND_NRT.A2019051.1220.061.2019051125628',
-                 'PM1EPHND_NRT.A2019051.1225.061.2019051125628',
-                 'PM1EPHND_NRT.A2019051.1230.061.2019051125628', '          '
-                 'PM1ATTNR_NRT.A2019051.1220.061.2019051125628',
-                 'PM1ATTNR_NRT.A2019051.1225.061.2019051125628',
-                 'PM1ATTNR_NRT.A2019051.1230.061.2019051125628')
+        "GROUPTYPE": "MASTERGROUP",
+        "INPUTGRANULE": {
+            "INPUTPOINTER": {
+                "VALUE":
+                ("MYD01.61.2019-051T12:25:00.000000Z.NA.29878844.500100_1.hdf",
+                 "MYD03LUT.coeff_V6.1.4",
+                 "PM1EPHND_NRT.A2019051.1220.061.2019051125628",
+                 "PM1EPHND_NRT.A2019051.1225.061.2019051125628",
+                 "PM1EPHND_NRT.A2019051.1230.061.2019051125628", "          "
+                 "PM1ATTNR_NRT.A2019051.1220.061.2019051125628",
+                 "PM1ATTNR_NRT.A2019051.1225.061.2019051125628",
+                 "PM1ATTNR_NRT.A2019051.1230.061.2019051125628")
             }
         },
-        'MEASUREDPARAMETER': {
-            'MEASUREDPARAMETERCONTAINER': {
-                'PARAMETERNAME': {
-                    'VALUE': 'Geolocation'
+        "MEASUREDPARAMETER": {
+            "MEASUREDPARAMETERCONTAINER": {
+                "PARAMETERNAME": {
+                    "VALUE": "Geolocation"
                 },
-                'QAFLAGS': {
-                    'AUTOMATICQUALITYFLAG': {
-                        'VALUE': 'Passed'
+                "QAFLAGS": {
+                    "AUTOMATICQUALITYFLAG": {
+                        "VALUE": "Passed"
                     },
-                    'AUTOMATICQUALITYFLAGEXPLANATION': {
-                        'VALUE':
-                        'Set '
-                        'to '
+                    "AUTOMATICQUALITYFLAGEXPLANATION": {
+                        "VALUE":
+                        "Set "
+                        "to "
                         "'Failed' "
-                        'if '
-                        'processing '
-                        'error '
-                        'occurred, '
-                        'set '
-                        'to '
+                        "if "
+                        "processing "
+                        "error "
+                        "occurred, "
+                        "set "
+                        "to "
                         "'Passed' "
-                        'otherwise'
+                        "otherwise"
                     },
-                    'SCIENCEQUALITYFLAG': {
-                        'VALUE': 'Not '
-                        'Investigated'
+                    "SCIENCEQUALITYFLAG": {
+                        "VALUE": "Not "
+                        "Investigated"
                     }
                 },
-                'QASTATS': {
-                    'QAPERCENTMISSINGDATA': {
-                        'VALUE': 0
+                "QASTATS": {
+                    "QAPERCENTMISSINGDATA": {
+                        "VALUE": 0
                     },
-                    'QAPERCENTOUTOFBOUNDSDATA': {
-                        'VALUE': 0
+                    "QAPERCENTOUTOFBOUNDSDATA": {
+                        "VALUE": 0
                     }
                 }
             }
         },
-        'ORBITCALCULATEDSPATIALDOMAIN': {
-            'ORBITCALCULATEDSPATIALDOMAINCONTAINER': {
-                'EQUATORCROSSINGDATE': {
-                    'VALUE': '2019-02-20'
+        "ORBITCALCULATEDSPATIALDOMAIN": {
+            "ORBITCALCULATEDSPATIALDOMAINCONTAINER": {
+                "EQUATORCROSSINGDATE": {
+                    "VALUE": "2019-02-20"
                 },
-                'EQUATORCROSSINGLONGITUDE': {
-                    'VALUE': -151.260740805733
+                "EQUATORCROSSINGLONGITUDE": {
+                    "VALUE": -151.260740805733
                 },
-                'EQUATORCROSSINGTIME': {
-                    'VALUE': '12:49:52.965727'
+                "EQUATORCROSSINGTIME": {
+                    "VALUE": "12:49:52.965727"
                 },
-                'ORBITNUMBER': {
-                    'VALUE': 89393
+                "ORBITNUMBER": {
+                    "VALUE": 89393
                 }
             }
         },
-        'PGEVERSIONCLASS': {
-            'PGEVERSION': {
-                'VALUE': '6.1.4'
+        "PGEVERSIONCLASS": {
+            "PGEVERSION": {
+                "VALUE": "6.1.4"
             }
         },
-        'RANGEDATETIME': {
-            'RANGEBEGINNINGDATE': {
-                'VALUE': '2019-02-20'
+        "RANGEDATETIME": {
+            "RANGEBEGINNINGDATE": {
+                "VALUE": "2019-02-20"
             },
-            'RANGEBEGINNINGTIME': {
-                'VALUE': '12:25:00.000000'
+            "RANGEBEGINNINGTIME": {
+                "VALUE": "12:25:00.000000"
             },
-            'RANGEENDINGDATE': {
-                'VALUE': '2019-02-20'
+            "RANGEENDINGDATE": {
+                "VALUE": "2019-02-20"
             },
-            'RANGEENDINGTIME': {
-                'VALUE': '12:30:00.000000'
+            "RANGEENDINGTIME": {
+                "VALUE": "12:30:00.000000"
             }
         },
-        'SPATIALDOMAINCONTAINER': {
-            'HORIZONTALSPATIALDOMAINCONTAINER': {
-                'GPOLYGON': {
-                    'GPOLYGONCONTAINER': {
-                        'GRING': {
-                            'EXCLUSIONGRINGFLAG': {
-                                'VALUE': 'N'
+        "SPATIALDOMAINCONTAINER": {
+            "HORIZONTALSPATIALDOMAINCONTAINER": {
+                "GPOLYGON": {
+                    "GPOLYGONCONTAINER": {
+                        "GRING": {
+                            "EXCLUSIONGRINGFLAG": {
+                                "VALUE": "N"
                             }
                         },
-                        'GRINGPOINT': {
-                            'GRINGPOINTLATITUDE': {
-                                'VALUE': (29.5170117594673, 26.1480434828114,
+                        "GRINGPOINT": {
+                            "GRINGPOINTLATITUDE": {
+                                "VALUE": (29.5170117594673, 26.1480434828114,
                                           43.2445462598877, 47.7959787025408)
                             },
-                            'GRINGPOINTLONGITUDE': {
-                                'VALUE': (25.3839329817764, 1.80418778807854,
+                            "GRINGPOINTLONGITUDE": {
+                                "VALUE": (25.3839329817764, 1.80418778807854,
                                           -6.50842421663422, 23.0260060198343)
                             },
-                            'GRINGPOINTSEQUENCENO': {
-                                'VALUE': (1, 2, 3, 4)
+                            "GRINGPOINTSEQUENCENO": {
+                                "VALUE": (1, 2, 3, 4)
                             }
                         }
                     }
@@ -671,18 +654,18 @@ class TestReadMDA(unittest.TestCase):
 
     def test_read_mda(self):
         """Test reading basic metadata."""
-        from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
+        from satpy.readers.core.hdfeos import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
-        self.assertDictEqual(res, nrt_mda_dict)
+        assert res == nrt_mda_dict
 
     def test_read_mda_geo_resolution(self):
         """Test reading geo resolution."""
-        from satpy.readers.hdfeos_base import HDFEOSGeoReader
+        from satpy.readers.core.hdfeos import HDFEOSGeoReader
         resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl1b)
             )
-        self.assertEqual(resolution_l1b, 1000)
+        assert resolution_l1b == 1000
         resolution_l2 = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl2)
         )
-        self.assertEqual(resolution_l2, 5000)
+        assert resolution_l2 == 5000

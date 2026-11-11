@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
 import os
@@ -32,7 +15,7 @@ LOG = logging.getLogger(__name__)
 def is_google_cloud_instance():
     """Check if we are on a GCP virtual machine."""
     try:
-        return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
+        return urlopen("http://metadata.google.internal").headers.get("Metadata-Flavor") == "Google"  # nosec
     except URLError:
         return False
 
@@ -68,7 +51,7 @@ def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=None):
     if isinstance(glob_pattern, str):
         glob_pattern = [glob_pattern]
 
-    fs = gcsfs.GCSFileSystem(token='anon')
+    fs = gcsfs.GCSFileSystem(token="anon")  # nosec
     filenames = []
     for gp in glob_pattern:
         # handle multiple glob patterns being treated as one pattern
@@ -98,5 +81,5 @@ def _download_gcs_files(globbed_files, fs, base_dir, force):
             LOG.info("Found existing: {}".format(ondisk_pathname))
             continue
         LOG.info("Downloading: {}".format(ondisk_pathname))
-        fs.get('gs://' + fn, ondisk_pathname)
+        fs.get("gs://" + fn, ondisk_pathname)
     return filenames

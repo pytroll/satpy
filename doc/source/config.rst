@@ -35,7 +35,7 @@ locations:
 3. ``~/.satpy/satpy.yaml``
 4. ``<SATPY_CONFIG_PATH>/satpy.yaml`` (see :ref:`config_path_setting` below)
 
-The above ``user_config_dir`` is provided by the ``appdirs`` package and
+The above ``user_config_dir`` is provided by the ``platformdirs`` package and
 differs by operating system. Typical user config directories are:
 
 * Mac OSX: ``~/Library/Preferences/satpy``
@@ -51,7 +51,11 @@ value. For example:
 
     cache_dir: "/tmp"
     data_dir: "/tmp"
+    readers:
+      clip_negative_radiances: True
 
+Note that a dotted configuration key (such as ``readers.clip_negative_radiances``)
+should be written into ``satpy.yaml`` as a nested dictionary, such as in the example above.
 Lastly, it is possible to specify an additional config path to the above
 options by setting the environment variable ``SATPY_CONFIG``. The file
 specified with this environment variable will be added last after all of the
@@ -90,7 +94,7 @@ Directory where any files cached by Satpy will be stored. This
 directory is not necessarily cleared out by Satpy, but is rarely used without
 explicitly being enabled by the user. This
 defaults to a different path depending on your operating system following
-the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+the `platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user cache dir".
 
 .. _config_cache_lonlats_setting:
@@ -214,7 +218,7 @@ Data Directory
 Directory where any data Satpy needs to perform certain operations will be
 stored. This replaces the legacy ``SATPY_ANCPATH`` environment variable. This
 defaults to a different path depending on your operating system following the
-`appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+`platformdirs <https://github.com/platformdirs/platformdirs#example-output>`_
 "user data dir".
 
 .. _download_aux_setting:
@@ -242,6 +246,45 @@ will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
 
+.. _scene_iter_keys_setting:
+
+Scene Iteration Keys
+^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SCENE_ITER_KEYS``
+* **YAML/Config Key**: ``scene_iter_keys``
+* **Default**: ``None``
+
+Whether iterating over a :class:`~satpy.scene.Scene` (ex. ``for x in scn``) should
+produce the :class:`~satpy.dataset.dataid.DataID` keys of the datasets it contains.
+Historically a ``Scene`` produced the ``xarray.DataArray`` objects it contained, which
+is inconsistent with the dictionary-like behavior of the rest of the ``Scene``
+interface (``scn["my_data"]``, ``"my_data" in scn``, ``scn.keys()``, ``scn.values()``).
+Starting in Satpy 1.0 iteration will produce ``DataID`` keys instead.
+
+The accepted values are:
+
+* ``None`` (default): Produce ``DataArray`` objects (the historical behavior) and issue
+  a warning that this is going to change.
+* ``True``: Produce ``DataID`` keys. This is the behavior that becomes the default in
+  Satpy 1.0.
+* ``False``: Produce ``DataArray`` objects (the historical behavior) without any
+  warning.
+
+Use :meth:`Scene.values() <satpy.scene.Scene.values>` if you want the ``DataArray``
+objects regardless of this setting; it is unaffected by this option and is the
+recommended replacement for the historical iteration behavior.
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+.. warning::
+
+    This option exists only to ease the transition. The default becomes ``True`` in
+    Satpy 1.0 and the option will be removed in a later release. After that ``False``
+    will no longer be honored and iterating over a ``Scene`` will always produce
+    ``DataID`` keys.
+
 Sensor Angles Position Preference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -257,6 +300,23 @@ as part of the :func:`~satpy.modifiers.angles.get_angles` and
 :func:`~satpy.modifiers.angles.get_satellite_zenith_angle` functions which is
 used by multiple modifiers and composites including the default rayleigh
 correction.
+
+Clipping Negative Infrared Radiances
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_READERS__CLIP_NEGATIVE_RADIANCES``
+* **YAML/Config Key**: ``readers.clip_negative_radiances``
+* **Default**: False
+
+Whether to clip negative infrared radiances to the minimum allowable value before
+computing the brightness temperature.
+If ``clip_negative_radiances=False``, pixels with negative radiances will have
+``np.nan`` brightness temperatures.
+
+Clipping of negative radiances is currently implemented for the following readers:
+
+* ``abi_l1b``, ``ami_l1b``, ``fci_l1c_nc``
+
 
 Temporary Directory
 ^^^^^^^^^^^^^^^^^^^
@@ -287,6 +347,8 @@ To create and use your own custom component configuration you should:
 1. Create a directory to store your new custom YAML configuration files.
    The files for each component will go in a subdirectory specific to that
    component (ex. ``composites``, ``enhancements``, ``readers``, ``writers``).
+   A custom ``areas.yaml`` to configure area definitions can also be placed in
+   the root of this directory.
 2. Set the Satpy :ref:`config_path <config_path_setting>` to point to your new
    directory. This could be done by setting the environment variable
    ``SATPY_CONFIG_PATH`` to your custom directory (don't include the

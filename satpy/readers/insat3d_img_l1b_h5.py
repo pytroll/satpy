@@ -1,18 +1,15 @@
 """File handler for Insat 3D L1B data in hdf5 format."""
+
+import datetime as dt
 from contextlib import suppress
-from datetime import datetime
 from functools import cached_property
 
 import dask.array as da
 import numpy as np
 import xarray as xr
+from xarray.core.datatree import DataTree
 
-from satpy.utils import import_error_helper
-
-with import_error_helper("xarray-datatree"):
-    from datatree import DataTree
-
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.core.file_handlers import BaseFileHandler
 
 LUT_SUFFIXES = {"vis": ("RADIANCE", "ALBEDO"),
                 "swir": ("RADIANCE",),
@@ -120,13 +117,15 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get the start time."""
-        start_time = datetime.strptime(self.datatree.attrs['Acquisition_Start_Time'], '%d-%b-%YT%H:%M:%S')
+        start_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_Start_Time"], "%d-%b-%YT%H:%M:%S")
         return start_time
 
     @property
     def end_time(self):
         """Get the end time."""
-        end_time = datetime.strptime(self.datatree.attrs['Acquisition_End_Time'], '%d-%b-%YT%H:%M:%S')
+        end_time = dt.datetime.strptime(
+            self.datatree.attrs["Acquisition_End_Time"], "%d-%b-%YT%H:%M:%S")
         return end_time
 
     @cached_property
@@ -136,6 +135,17 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get a data array."""
+        # 8< v1.0
+        import warnings
+        if ds_id.get("calibration") == "reflectance":
+            warnings.warn(
+                "The 'reflectance' calibration for INSAT3D L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remains identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         resolution = ds_id["resolution"]
         ds = self.datatree[str(resolution)]
         if ds_id["name"] in ["longitude", "latitude"]:
@@ -147,14 +157,18 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
             calibration = ""
         elif ds_id["calibration"] == "radiance":
             calibration = "_RADIANCE"
-        elif ds_id["calibration"] == "reflectance":
+        elif ds_id["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             calibration = "_ALBEDO"
         elif ds_id["calibration"] == "brightness_temperature":
             calibration = "_TEMP"
 
         darr = ds["IMG_" + ds_id["name"] + calibration]
 
-        nlat, nlon = ds.attrs['Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude']
+        nlat, nlon = ds.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"]
         darr.attrs["orbital_parameters"] = dict(satellite_nominal_longitude=float(nlon),
                                                 satellite_nominal_latitude=float(nlat),
                                                 satellite_nominal_altitude=float(ds.attrs["Nominal_Altitude(km)"]),
@@ -167,36 +181,46 @@ class Insat3DIMGL1BH5FileHandler(BaseFileHandler):
 
     def get_area_def(self, ds_id):
         """Get the area definition."""
-        from satpy.readers._geos_area import get_area_definition, get_area_extent
+        from satpy.readers.core._geos_area import get_area_definition, get_area_extent
         darr = self.get_dataset(ds_id, None)
         shape = darr.shape
         lines = shape[-2]
         cols = shape[-1]
 
-        fov = self.datatree.attrs["Field_of_View(degrees)"]
+        # From empirical analysis, hardcoding the view of view to 18 degrees
+        # produces better geolocation results.
+        # Uncommenting the line below will use the fov from the file instead,
+        # this line is kept for reference.
+        #fov = self.datatree.attrs["Field_of_View(degrees)"]
+        fov = 18
         cfac = 2 ** 16 / (fov / cols)
-        lfac = 2 ** 16 / (fov / lines)
+
+        # From reverse engineering metadata from a netcdf file, we discovered
+        # the lfac is actually the same as cfac, ie dependent on cols, not lines!
+        lfac = 2 ** 16 / (fov / cols)
 
         h = self.datatree.attrs["Observed_Altitude(km)"] * 1000
         # WGS 84
         a = 6378137.0
         b = 6356752.314245
 
+        subsatellite_longitude = self.datatree.attrs["Nominal_Central_Point_Coordinates(degrees)_Latitude_Longitude"][1]
+
         pdict = {
-            'cfac': cfac,
-            'lfac': lfac,
-            'coff': cols / 2,
-            'loff': lines / 2,
-            'ncols': cols,
-            'nlines': lines,
-            'scandir': 'N2S',
-            'a': a,
-            'b': b,
-            'h': h,
-            'ssp_lon': 82.0,
-            'a_name': "insat3d82",
-            'a_desc': "insat3d82",
-            'p_id': 'geosmsg'
+            "cfac": cfac,
+            "lfac": lfac,
+            "coff": cols // 2 + 1,
+            "loff": lines // 2,
+            "ncols": cols,
+            "nlines": lines,
+            "scandir": "N2S",
+            "a": a,
+            "b": b,
+            "h": h,
+            "ssp_lon": subsatellite_longitude,
+            "a_name": "insat3d82",
+            "a_desc": "insat3d82",
+            "p_id": "geosmsg"
         }
         area_extent = get_area_extent(pdict)
         adef = get_area_definition(pdict, area_extent)

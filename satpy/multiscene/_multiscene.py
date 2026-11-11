@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to work with multiple timesteps of satellite data."""
 from __future__ import annotations
 
@@ -31,7 +14,6 @@ import xarray as xr
 
 from satpy.dataset import DataID
 from satpy.scene import Scene
-from satpy.writers import get_enhanced_image, split_results
 
 try:
     import imageio
@@ -50,7 +32,7 @@ def _group_datasets_in_scenes(scenes, groups):
     """Group different datasets in multiple scenes by adding aliases.
 
     Args:
-        scenes (iterable): Scenes to be processed.
+        scenes (Iterable): Scenes to be processed.
         groups (dict): Groups of datasets that shall be treated equally by
             MultiScene. Keys specify the groups, values specify the dataset
             names to be grouped. For example::
@@ -87,12 +69,12 @@ class _GroupAliasGenerator:
                 alias_id=group_id,
             )
         elif len(member_ids) > 1:
-            raise ValueError('Cannot add multiple datasets from a scene '
-                             'to the same group')
+            raise ValueError("Cannot add multiple datasets from a scene "
+                             "to the same group")
 
     def _get_dataset_id_of_group_members_in_scene(self, group_members):
         return [
-            self.scene[member].attrs['_satpy_id']
+            self.scene[member].attrs["_satpy_id"]
             for member in group_members if member in self.scene
         ]
 
@@ -163,7 +145,7 @@ class MultiScene(object):
         """Initialize MultiScene and validate sub-scenes.
 
         Args:
-            scenes (iterable):
+            scenes (Iterable):
                 `Scene` objects to operate on (optional)
 
         .. note::
@@ -192,7 +174,7 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(
+    def from_files(  # noqa: D417
             cls,
             files_to_sort: Collection[str],
             reader: str | Collection[str] | None = None,
@@ -209,9 +191,9 @@ class MultiScene(object):
                 readers have at least one file.  If False (default), include
                 all scenes where at least one reader has at least one file.
             scene_kwargs: additional arguments to pass on to
-                :func:`Scene.__init__` for each created scene.
+                :func:`satpy.scene.Scene.__init__` for each created scene.
 
-        This uses the :func:`satpy.readers.group_files` function to group
+        This uses the :func:`satpy.readers.core.grouping.group_files` function to group
         files. See this function for more details on additional possible
         keyword arguments.  In particular, it is strongly recommended to pass
         `"group_keys"` when using multiple instruments.
@@ -219,7 +201,7 @@ class MultiScene(object):
         .. versionadded:: 0.12
 
         """
-        from satpy.readers import group_files
+        from satpy.readers.core.grouping import group_files
         if scene_kwargs is None:
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
@@ -281,7 +263,7 @@ class MultiScene(object):
                 ds = scn.get(ds_id)
                 if ds is None:
                     continue
-                all_areas.append(ds.attrs.get('area'))
+                all_areas.append(ds.attrs.get("area"))
         all_areas = [area for area in all_areas if area is not None]
         return all(all_areas[0] == area for area in all_areas[1:])
 
@@ -314,15 +296,15 @@ class MultiScene(object):
 
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
-        self._generate_scene_func(self._scenes, 'load', False, *args, **kwargs)
+        self._generate_scene_func(self._scenes, "load", False, *args, **kwargs)
 
     def crop(self, *args, **kwargs):
         """Crop the multiscene and return a new cropped multiscene."""
-        return self._generate_scene_func(self._scenes, 'crop', True, *args, **kwargs)
+        return self._generate_scene_func(self._scenes, "crop", True, *args, **kwargs)
 
     def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
-        return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
+        return self._generate_scene_func(self._scenes, "resample", True, destination=destination, **kwargs)
 
     def blend(
             self,
@@ -337,8 +319,9 @@ class MultiScene(object):
         dataset (:class:`xarray.DataArray` object).  The blend method
         then assigns those datasets to the blended scene.
 
-        Blending functions provided in this module are :func:`stack`
-        (the default) and :func:`timeseries`, but the Python built-in
+        Blending functions provided in this module are :func:`satpy.multiscene.blend_funcs.stack`
+        (the default), :func:`satpy.multiscene.blend_funcs.timeseries`, and
+        :func:`satpy.multiscene.blend_funcs.temporal_rgb`, but the Python built-in
         function :func:`sum` also works and may be appropriate for
         some types of data.
 
@@ -350,7 +333,7 @@ class MultiScene(object):
         """
         if blend_function is None:
             # delay importing blend funcs until now in case they aren't used
-            from ._blend_funcs import stack
+            from .blend_funcs import stack
             blend_function = stack
 
         new_scn = Scene()
@@ -379,6 +362,8 @@ class MultiScene(object):
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
+        from satpy.writers.core.compute import split_results
+
         def load_data(q):
             idx = 0
             while True:
@@ -400,7 +385,7 @@ class MultiScene(object):
 
         for scene in scenes_iter:
             delayeds = scene.save_datasets(compute=False, **kwargs)
-            sources, targets, delayeds = split_results(delayeds)
+            sources, targets, delayeds = split_results([delayeds])
             if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
@@ -435,7 +420,7 @@ class MultiScene(object):
                 will attempt to process all scenes at once. This option should
                 be used with care to avoid memory issues when trying to
                 improve performance.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
@@ -447,7 +432,7 @@ class MultiScene(object):
                     Note ``compute`` can not be provided.
 
         """
-        if 'compute' in kwargs:
+        if "compute" in kwargs:
             raise ValueError("The 'compute' keyword argument can not be provided.")
 
         client = self._get_client(client=client)
@@ -460,21 +445,23 @@ class MultiScene(object):
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
+        from satpy.enhancements.enhancer import get_enhanced_image
+
         valid_datasets = [ds for ds in all_datasets if ds is not None]
         first_dataset = valid_datasets[0]
         last_dataset = valid_datasets[-1]
         first_img = get_enhanced_image(first_dataset)
         first_img_data = first_img.finalize(fill_value=fill_value)[0]
         shape = tuple(first_img_data.sizes.get(dim_name)
-                      for dim_name in ('y', 'x', 'bands'))
-        if fill_value is None and filename.endswith('gif'):
+                      for dim_name in ("y", "x", "bands"))
+        if fill_value is None and filename.endswith("gif"):
             log.warning("Forcing fill value to '0' for GIF Luminance images")
             fill_value = 0
             shape = shape[:2]
 
         attrs = first_dataset.attrs.copy()
-        if 'end_time' in last_dataset.attrs:
-            attrs['end_time'] = last_dataset.attrs['end_time']
+        if "end_time" in last_dataset.attrs:
+            attrs["end_time"] = last_dataset.attrs["end_time"]
         this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
 
@@ -498,6 +485,8 @@ class MultiScene(object):
 
         Yet a single image frame from a dataset.
         """
+        from satpy.enhancements.enhancer import get_enhanced_image
+
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._format_decoration(
@@ -508,7 +497,7 @@ class MultiScene(object):
             # assume all other shapes are (y, x)
             # we need arrays grouped by pixel so
             # transpose if needed
-            data = data.transpose('y', 'x', 'bands')
+            data = data.transpose("y", "x", "bands")
         return data
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
@@ -603,7 +592,7 @@ class MultiScene(object):
         first_scene = self.first_scene
         scenes = iter(self._scene_gen)
         info_scenes = [first_scene]
-        if 'end_time' in filename:
+        if "end_time" in filename:
             # if we need the last scene to generate the filename
             # then compute all the scenes so we can figure it out
             log.debug("Generating scenes to compute end_time for filename")
@@ -676,7 +665,7 @@ class MultiScene(object):
                 ``(batch_size / 2)`` frames for the second dataset.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
-            client (bool or dask.distributed.Client): Dask distributed client
+            client (bool or distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
                 any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
@@ -684,7 +673,7 @@ class MultiScene(object):
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
             enh_args (Mapping): Optional, arguments passed to
-                :func:`satpy.writers.get_enhanced_image`.  If this includes a
+                :func:`satpy.enhancements.enhancer.get_enhanced_image`.  If this includes a
                 keyword "decorate", in any text added
                 to the image, string formatting will be applied based on
                 dataset attributes.  For example, passing

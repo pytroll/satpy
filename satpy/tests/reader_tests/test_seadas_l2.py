@@ -1,26 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'seadas_l2' reader."""
 
 import numpy as np
 import pytest
 from pyresample.geometry import SwathDefinition
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf as lazy_fixture
 
 from satpy import Scene, available_readers
 
@@ -112,13 +95,13 @@ def _create_seadas_chlor_a_hdf4_file(full_path, mission, sensor):
 
 
 def _add_variable_to_hdf4_file(h, var_name, var_info):
-    v = h.create(var_name, var_info['type'], var_info['data'].shape)
-    v[:] = var_info['data']
-    for dim_count, dimension_name in enumerate(var_info['dim_labels']):
+    v = h.create(var_name, var_info["type"], var_info["data"].shape)
+    v[:] = var_info["data"]
+    for dim_count, dimension_name in enumerate(var_info["dim_labels"]):
         v.dim(dim_count).setname(dimension_name)
-    if var_info.get('fill_value'):
-        v.setfillvalue(var_info['fill_value'])
-    for attr_key, attr_val in var_info['attrs'].items():
+    if var_info.get("fill_value"):
+        v.setfillvalue(var_info["fill_value"])
+    for attr_key, attr_val in var_info["attrs"].items():
         setattr(v, attr_key, attr_val)
 
 
@@ -190,15 +173,19 @@ def _create_seadas_chlor_a_netcdf_file(full_path, mission, sensor):
     geophys_group = nc.createGroup("geophysical_data")
     _add_variable_to_netcdf_file(geophys_group, "chlor_a", chlor_a_info)
     _add_variable_to_netcdf_file(geophys_group, "l2_flags", l2_flags_info)
+    nc.close()
     return [full_path]
 
 
 def _add_variable_to_netcdf_file(nc, var_name, var_info):
     v = nc.createVariable(var_name, var_info["data"].dtype.str[1:], dimensions=var_info["dim_labels"],
                           fill_value=var_info.get("fill_value"))
-    v[:] = var_info['data']
-    for attr_key, attr_val in var_info['attrs'].items():
+    v[:] = var_info["data"]
+    for attr_key, attr_val in var_info["attrs"].items():
+        if isinstance(attr_val, (int, float)):
+            attr_val = v.dtype.type(attr_val)
         setattr(v, attr_key, attr_val)
+
 
 
 class TestSEADAS:
@@ -206,7 +193,7 @@ class TestSEADAS:
 
     def test_available_reader(self):
         """Test that SEADAS L2 reader is available."""
-        assert 'seadas_l2' in available_readers()
+        assert "seadas_l2" in available_readers()
 
     @pytest.mark.parametrize(
         "input_files",
@@ -217,10 +204,10 @@ class TestSEADAS:
         ])
     def test_scene_available_datasets(self, input_files):
         """Test that datasets are available."""
-        scene = Scene(reader='seadas_l2', filenames=input_files)
+        scene = Scene(reader="seadas_l2", filenames=input_files)
         available_datasets = scene.all_dataset_names()
         assert len(available_datasets) > 0
-        assert 'chlor_a' in available_datasets
+        assert "chlor_a" in available_datasets
 
     @pytest.mark.parametrize(
         ("input_files", "exp_plat", "exp_sensor", "exp_rps"),
@@ -234,13 +221,13 @@ class TestSEADAS:
     def test_load_chlor_a(self, input_files, exp_plat, exp_sensor, exp_rps, apply_quality_flags):
         """Test that we can load 'chlor_a'."""
         reader_kwargs = {"apply_quality_flags": apply_quality_flags}
-        scene = Scene(reader='seadas_l2', filenames=input_files, reader_kwargs=reader_kwargs)
-        scene.load(['chlor_a'])
-        data_arr = scene['chlor_a']
+        scene = Scene(reader="seadas_l2", filenames=input_files, reader_kwargs=reader_kwargs)
+        scene.load(["chlor_a"])
+        data_arr = scene["chlor_a"]
         assert data_arr.dims == ("y", "x")
-        assert data_arr.attrs['platform_name'] == exp_plat
-        assert data_arr.attrs['sensor'] == exp_sensor
-        assert data_arr.attrs['units'] == 'mg m^-3'
+        assert data_arr.attrs["platform_name"] == exp_plat
+        assert data_arr.attrs["sensor"] == exp_sensor
+        assert data_arr.attrs["units"] == "mg m^-3"
         assert data_arr.dtype.type == np.float32
         assert isinstance(data_arr.attrs["area"], SwathDefinition)
         assert data_arr.attrs["rows_per_scan"] == exp_rps

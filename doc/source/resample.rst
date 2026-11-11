@@ -3,4 +3,6 @@ Resampling
 ==========
 
 .. automodule:: satpy.resample
-    :noindex:
+   :noindex:
+   :no-members:
+   :no-special-members:

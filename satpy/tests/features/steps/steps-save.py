@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Behave steps related to saving or showing datasets."""
 
 from unittest.mock import patch
@@ -36,7 +19,7 @@ def step_impl_create_scene_one_dataset(context):
 
     from satpy import Scene
     scn = Scene()
-    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=["y", "x"])
     context.scene = scn
 
 
@@ -48,7 +31,7 @@ def step_impl_scene_show(context):
         context (behave.runner.Context): Test context
 
     """
-    with patch('trollimage.xrimage.XRImage.show') as mock_show:
+    with patch("trollimage.xrimage.XRImage.show") as mock_show:
         context.scene.show("MyDataset")
         mock_show.assert_called_once_with()
 
@@ -100,8 +83,8 @@ def step_impl_create_scene_two_datasets(context):
 
     from satpy import Scene
     scn = Scene()
-    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
-    scn["MyDataset2"] = DataArray([[5, 6], [7, 8]], dims=['y', 'x'])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=["y", "x"])
+    scn["MyDataset2"] = DataArray([[5, 6], [7, 8]], dims=["y", "x"])
     context.scene = scn
 
 
