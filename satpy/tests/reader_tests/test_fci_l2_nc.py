@@ -2,10 +2,6 @@
 """The fci_cld_l2_nc reader tests package."""
 
 import datetime as dt
-import os
-import unittest
-import uuid
-from contextlib import suppress
 from unittest import mock
 
 import numpy as np
@@ -16,6 +12,10 @@ from pyresample import geometry
 
 from satpy.readers.fci_l2_nc import FciL2NCAMVFileHandler, FciL2NCFileHandler, FciL2NCSegmentFileHandler
 from satpy.tests.utils import make_dataid
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path_factory
 
 AREA_DEF = geometry.AreaDefinition(
     "mtg_fci_fdss_2km",
@@ -38,71 +38,68 @@ SEG_AREA_DEF = geometry.AreaDefinition(
 )
 
 
-class TestFciL2NCFileHandler(unittest.TestCase):
+@pytest.fixture(scope="module")
+def l2_file(tmp_path_factory):
+    """Create a test file for the FciL2NCFileHandler."""
+    test_file = tmp_path_factory.mktemp("data") / "fci_l2.nc"
+    with Dataset(test_file, "w") as nc:
+        # Create dimensions
+        nc.createDimension("number_of_columns", 10)
+        nc.createDimension("number_of_rows", 100)
+        nc.createDimension("maximum_number_of_layers", 2)
+
+        # add global attributes
+        nc.data_source = "TEST_DATA_SOURCE"
+        nc.platform = "TEST_PLATFORM"
+
+        # Add datasets
+        x = nc.createVariable("x", np.float32, dimensions=("number_of_columns",))
+        x.standard_name = "projection_x_coordinate"
+        x[:] = np.arange(10)
+
+        y = nc.createVariable("y", np.float32, dimensions=("number_of_rows",))
+        y.standard_name = "projection_y_coordinate"
+        y[:] = np.arange(100)
+
+        s = nc.createVariable("product_quality", np.int8)
+        s[:] = 99.
+
+        one_layer_dataset = nc.createVariable("test_one_layer", np.float32,
+                                              dimensions=("number_of_rows", "number_of_columns"))
+        one_layer_dataset[:] = np.arange(1000.0).reshape((100, 10))
+        one_layer_dataset.test_attr = "attr"
+        one_layer_dataset.units = "test_units"
+
+        two_layers_dataset = nc.createVariable("test_two_layers", np.float32,
+                                               dimensions=("maximum_number_of_layers",
+                                                           "number_of_rows",
+                                                           "number_of_columns"))
+        two_layers_dataset[0, :, :] = np.ones((100, 10))
+        two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
+        two_layers_dataset.unit = "test_unit"
+
+        mtg_geos_projection = nc.createVariable("mtg_geos_projection", int, dimensions=())
+        mtg_geos_projection.longitude_of_projection_origin = 0.0
+        mtg_geos_projection.semi_major_axis = 6378137.
+        mtg_geos_projection.inverse_flattening = 298.257223563
+        mtg_geos_projection.perspective_point_height = 35786400.
+
+        # Add enumerated type
+        enum_dict = {"False": 0, "True": 1}
+        bool_type = nc.createEnumType(np.uint8,"bool_t",enum_dict)
+        nc.createVariable("quality_flag", bool_type,
+                          dimensions=("number_of_rows", "number_of_columns"))
+    return test_file
+
+
+class TestFciL2NCFileHandler:
     """Test the FciL2NCFileHandler reader."""
 
-    def setUp(self):
-        """Set up the test by creating a test file and opening it with the reader."""
-        # Easiest way to test the reader is to create a test netCDF file on the fly
-        # Create unique filenames to prevent race conditions when tests are run in parallel
-        self.test_file = str(uuid.uuid4()) + ".nc"
-        with Dataset(self.test_file, "w") as nc:
-            # Create dimensions
-            nc.createDimension("number_of_columns", 10)
-            nc.createDimension("number_of_rows", 100)
-            nc.createDimension("maximum_number_of_layers", 2)
-
-            # add global attributes
-            nc.data_source = "TEST_DATA_SOURCE"
-            nc.platform = "TEST_PLATFORM"
-
-            # Add datasets
-            x = nc.createVariable("x", np.float32, dimensions=("number_of_columns",))
-            x.standard_name = "projection_x_coordinate"
-            x[:] = np.arange(10)
-
-            y = nc.createVariable("y", np.float32, dimensions=("number_of_rows",))
-            y.standard_name = "projection_y_coordinate"
-            y[:] = np.arange(100)
-
-            s = nc.createVariable("product_quality", np.int8)
-            s[:] = 99.
-
-            one_layer_dataset = nc.createVariable("test_one_layer", np.float32,
-                                                  dimensions=("number_of_rows", "number_of_columns"))
-            one_layer_dataset[:] = np.arange(1000.0).reshape((100, 10))
-            one_layer_dataset.test_attr = "attr"
-            one_layer_dataset.units = "test_units"
-
-            two_layers_dataset = nc.createVariable("test_two_layers", np.float32,
-                                                   dimensions=("maximum_number_of_layers",
-                                                               "number_of_rows",
-                                                               "number_of_columns"))
-            two_layers_dataset[0, :, :] = np.ones((100, 10))
-            two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
-            two_layers_dataset.unit = "test_unit"
-
-            mtg_geos_projection = nc.createVariable("mtg_geos_projection", int, dimensions=())
-            mtg_geos_projection.longitude_of_projection_origin = 0.0
-            mtg_geos_projection.semi_major_axis = 6378137.
-            mtg_geos_projection.inverse_flattening = 298.257223563
-            mtg_geos_projection.perspective_point_height = 35786400.
-
-            # Add enumerated type
-            enum_dict = {"False": 0, "True": 1}
-            bool_type = nc.createEnumType(np.uint8,"bool_t",enum_dict)
-            nc.createVariable("quality_flag", bool_type,
-                              dimensions=("number_of_rows", "number_of_columns"))
-
+    @pytest.fixture(autouse=True)
+    def _open_test_file(self, l2_file):
+        """Open the test file with the reader."""
+        self.test_file = str(l2_file)
         self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={})
-
-    def tearDown(self):
-        """Remove the previously created test file."""
-        # First delete the file handler, forcing the file to be closed if still open
-        del self.fh
-        # Then we can safely remove the file from the system
-        with suppress(OSError):
-            os.remove(self.test_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -253,59 +250,58 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         assert dataset.attrs["units"] is None
 
 
-class TestFciL2NCSegmentFileHandler(unittest.TestCase):
+@pytest.fixture(scope="module")
+def seg_file(tmp_path_factory):
+    """Create a test file for the FciL2NCSegmentFileHandler."""
+    test_file = tmp_path_factory.mktemp("data") / "fci_l2_segment.nc"
+    with Dataset(test_file, "w") as nc:
+        # Create dimensions
+        nc.createDimension("number_of_FoR_cols", 348)
+        nc.createDimension("number_of_FoR_rows", 348)
+        nc.createDimension("number_of_channels", 8)
+        nc.createDimension("number_of_categories", 6)
+
+        # add global attributes
+        nc.data_source = "TEST_FCI_DATA_SOURCE"
+        nc.platform = "TEST_FCI_PLATFORM"
+
+        # Add datasets
+        x = nc.createVariable("x", np.float32, dimensions=("number_of_FoR_cols",))
+        x.standard_name = "projection_x_coordinate"
+        x[:] = np.arange(348)
+
+        y = nc.createVariable("y", np.float32, dimensions=("number_of_FoR_rows",))
+        y.standard_name = "projection_y_coordinate"
+        y[:] = np.arange(348)
+
+        s = nc.createVariable("product_quality", np.int8)
+        s[:] = 99.
+
+        chans = nc.createVariable("channels", np.float32, dimensions=("number_of_channels",))
+        chans.standard_name = "fci_channels"
+        chans[:] = np.arange(8)
+
+        cats = nc.createVariable("categories", np.float32, dimensions=("number_of_categories",))
+        cats.standard_name = "product_categories"
+        cats[:] = np.arange(6)
+
+        test_dataset = nc.createVariable("test_values", np.float32,
+                                         dimensions=("number_of_FoR_rows", "number_of_FoR_cols",
+                                                     "number_of_channels", "number_of_categories"))
+
+        test_dataset[:] = TestFciL2NCSegmentFileHandler._get_unique_array(range(8), range(6))
+        test_dataset.test_attr = "attr"
+        test_dataset.units = "test_units"
+    return test_file
+
+
+class TestFciL2NCSegmentFileHandler:
     """Test the FciL2NCSegmentFileHandler reader."""
 
-    def setUp(self):
-        """Set up the test by creating a test file and opening it with the reader."""
-        # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.seg_test_file = str(uuid.uuid4()) + ".nc"
-        with Dataset(self.seg_test_file, "w") as nc:
-            # Create dimensions
-            nc.createDimension("number_of_FoR_cols", 348)
-            nc.createDimension("number_of_FoR_rows", 348)
-            nc.createDimension("number_of_channels", 8)
-            nc.createDimension("number_of_categories", 6)
-
-            # add global attributes
-            nc.data_source = "TEST_FCI_DATA_SOURCE"
-            nc.platform = "TEST_FCI_PLATFORM"
-
-            # Add datasets
-            x = nc.createVariable("x", np.float32, dimensions=("number_of_FoR_cols",))
-            x.standard_name = "projection_x_coordinate"
-            x[:] = np.arange(348)
-
-            y = nc.createVariable("y", np.float32, dimensions=("number_of_FoR_rows",))
-            y.standard_name = "projection_y_coordinate"
-            y[:] = np.arange(348)
-
-            s = nc.createVariable("product_quality", np.int8)
-            s[:] = 99.
-
-            chans = nc.createVariable("channels", np.float32, dimensions=("number_of_channels",))
-            chans.standard_name = "fci_channels"
-            chans[:] = np.arange(8)
-
-            cats = nc.createVariable("categories", np.float32, dimensions=("number_of_categories",))
-            cats.standard_name = "product_categories"
-            cats[:] = np.arange(6)
-
-            test_dataset = nc.createVariable("test_values", np.float32,
-                                             dimensions=("number_of_FoR_rows", "number_of_FoR_cols",
-                                                         "number_of_channels", "number_of_categories"))
-
-            test_dataset[:] = self._get_unique_array(range(8), range(6))
-            test_dataset.test_attr = "attr"
-            test_dataset.units = "test_units"
-
-    def tearDown(self):
-        """Remove the previously created test file."""
-        # First delete the fh, forcing the file to be closed if still open
-        del self.fh
-        # Then can safely remove it from the system
-        with suppress(OSError):
-            os.remove(self.seg_test_file)
+    @pytest.fixture(autouse=True)
+    def _get_test_file(self, seg_file):
+        """Get the test file, which each test opens with the reader."""
+        self.seg_test_file = str(seg_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -470,56 +466,54 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         return np.squeeze(array)
 
 
-class TestFciL2NCReadingByteData(unittest.TestCase):
+@pytest.fixture(scope="module")
+def byte_file(tmp_path_factory):
+    """Create a test file with byte data for the FciL2NCFileHandler."""
+    test_file = tmp_path_factory.mktemp("data") / "fci_l2_byte.nc"
+    with Dataset(test_file, "w") as nc_byte:
+        # Create dimensions
+        nc_byte.createDimension("number_of_columns", 2)
+        nc_byte.createDimension("number_of_rows", 2)
+
+        # add global attributes
+        nc_byte.data_source = "TEST_DATA_SOURCE"
+        nc_byte.platform = "TEST_PLATFORM"
+
+        # Add datasets
+        x = nc_byte.createVariable("x", np.float32, dimensions=("number_of_columns",))
+        x.standard_name = "projection_x_coordinate"
+        x[:] = np.arange(2.0).reshape((2,))
+
+        y = nc_byte.createVariable("y", np.float32, dimensions=("number_of_rows",))
+        x.standard_name = "projection_y_coordinate"
+        y[:] = np.arange(2.0).reshape((2,))
+
+        mtg_geos_projection = nc_byte.createVariable("mtg_geos_projection", int, dimensions=())
+        mtg_geos_projection.longitude_of_projection_origin = 0.0
+        mtg_geos_projection.semi_major_axis = 6378137.
+        mtg_geos_projection.inverse_flattening = 298.257223563
+        mtg_geos_projection.perspective_point_height = 35786400.
+
+        test_dataset = nc_byte.createVariable("cloud_mask_test_flag", np.float32,
+                                              dimensions=("number_of_rows", "number_of_columns",))
+
+        # This number was chosen as we know the expected byte values
+        test_dataset[:] = 4544767
+    return test_file
+
+
+class TestFciL2NCReadingByteData:
     """Test the FciL2NCFileHandler when reading and extracting byte data."""
 
-    def setUp(self):
-        """Set up the test by creating a test file and opening it with the reader."""
-        # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.test_byte_file = str(uuid.uuid4()) + ".nc"
-        with Dataset(self.test_byte_file, "w") as nc_byte:
-            # Create dimensions
-            nc_byte.createDimension("number_of_columns", 2)
-            nc_byte.createDimension("number_of_rows", 2)
-
-            # add global attributes
-            nc_byte.data_source = "TEST_DATA_SOURCE"
-            nc_byte.platform = "TEST_PLATFORM"
-
-            # Add datasets
-            x = nc_byte.createVariable("x", np.float32, dimensions=("number_of_columns",))
-            x.standard_name = "projection_x_coordinate"
-            x[:] = np.arange(2.0).reshape((2,))
-
-            y = nc_byte.createVariable("y", np.float32, dimensions=("number_of_rows",))
-            x.standard_name = "projection_y_coordinate"
-            y[:] = np.arange(2.0).reshape((2,))
-
-            mtg_geos_projection = nc_byte.createVariable("mtg_geos_projection", int, dimensions=())
-            mtg_geos_projection.longitude_of_projection_origin = 0.0
-            mtg_geos_projection.semi_major_axis = 6378137.
-            mtg_geos_projection.inverse_flattening = 298.257223563
-            mtg_geos_projection.perspective_point_height = 35786400.
-
-            test_dataset = nc_byte.createVariable("cloud_mask_test_flag", np.float32,
-                                                  dimensions=("number_of_rows", "number_of_columns",))
-
-            # This number was chosen as we know the expected byte values
-            test_dataset[:] = 4544767
-
+    @pytest.fixture(autouse=True)
+    def _open_test_file(self, byte_file):
+        """Open the test file with the reader."""
+        self.test_byte_file = str(byte_file)
         self.byte_reader = FciL2NCFileHandler(
             filename=self.test_byte_file,
             filename_info={},
             filetype_info={}
         )
-
-    def tearDown(self):
-        """Remove the previously created test file."""
-        # First delete the file handler, forcing the file to be closed if still open
-        del self.byte_reader
-        # Then can safely remove it from the system
-        with suppress(OSError):
-            os.remove(self.test_byte_file)
 
     def test_byte_extraction(self):
         """Test the execution of the get_dataset function."""
