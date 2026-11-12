@@ -16,8 +16,8 @@ Supported Data Variants
 
 This reader currently supports Full Disk High Spectral Resolution Imagery
 (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
-In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
-contains the masked full-disc of a single channel see `AF PUG`_.
+In addition, it also supports the L1C format for the African dissemination ("AF"), which is similar to the FD mode
+ but misses chunks 1-4 and 33-40 and has masked data around Africa; see `AF PUG`_.
 Experimental support for special scans, e.g. with coverage "xx", is also given.
 
 This reader supports data from both IDPF-I and IQT-I processing facilities.
@@ -256,11 +256,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             # quarter of the disc
             self.filename_info["count_in_repeat_cycle"] += 28
 
-        if self.filename_info["coverage"] == "AF":
-            # change number of chunk from 0 to 1 so that the padding is not activated (chunk 1 is present and only 1
-            # chunk is expected), as the African dissemination products come in one file per full disk.
-            self.filename_info["count_in_repeat_cycle"] = 1
-
         if self.filename_info["coverage"] == "xx":
             # add one to the chunk numbering to activate the padding mechanism for special scans (expected to have less
             # than 40 chunks, but still starting with 1)
@@ -346,7 +341,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
         of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
 
-        Note: This function is not used for the African data as it contains only one segment.
         """
         file_type = self.filetype_info["file_type"]
         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
@@ -521,12 +515,9 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
         else:
             actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_parameters_lon_lat_alt()
-        # The "try" is a temporary part of the code as long as the AF data are not fixed
-        try:
-            nominal_and_proj_subsat_lon = float(
-                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        except ValueError:
-            nominal_and_proj_subsat_lon = 0.0
+
+        nominal_and_proj_subsat_lon = float(
+            self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         nominal_and_proj_subsat_lat = 0.0
         nominal_and_proj_sat_alt = float(
             self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
@@ -675,11 +666,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
         h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
         rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
-        # The "try" is a temporary part of the code as long as the AF data are not modified
-        try:
-            lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        except ValueError:
-            lon_0 = 0.0
+        lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
         sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
