@@ -695,6 +695,36 @@ enhancements:
           - dataset: cmic_cot_pal
             color_scale: 255
 
+  cloud_water_path:
+    standard_name: cloud_water_path
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_cwp_pal
+            color_scale: 255
+
+  liquid_water_path:
+    standard_name: liquid_water_path
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_lwp_pal
+            color_scale: 255
+
+  ice_water_path:
+    standard_name: ice_water_path
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+          - dataset: cmic_iwp_pal
+            color_scale: 255
+
   cloud_liquid_water_path:
     standard_name: cloud_liquid_water_path
     operations:

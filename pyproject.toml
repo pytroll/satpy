@@ -20,17 +20,17 @@ dependencies = [
     "pyyaml>=5.1",
     "trollimage>=1.24",
     "trollsift",
-    "xarray>=0.14.1",
+    "xarray>=2025.9.0",
     "zarr",
     "universal_pathlib",
 ]
 readme = "README.rst"
 requires-python = ">=3.12"
-license = { text = "GPLv3" }
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering"

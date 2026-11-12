@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, 2022, 2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Test classes and functions in the readers/__init__.py module."""
 
@@ -233,15 +216,24 @@ class TestDatasetDict(unittest.TestCase):
         """Test keys method of DatasetDict."""
         from satpy.tests.utils import DataID
         d = self.test_dict
-        assert len(d.keys()) == len(self.regular_dict.keys())
+        assert d.keys() == self.regular_dict.keys()
+        assert list(d.keys()) == list(self.regular_dict.keys())
         assert all(isinstance(x, DataID) for x in d.keys())
-        name_keys = d.keys(names=True)
+
+    # 8< v1.0
+    def test_keys_names_wavelengths_deprecated(self):
+        """Test the deprecated names and wavelengths kwargs of the keys method."""
+        d = self.test_dict
+        with pytest.warns(UserWarning, match="'names' and 'wavelengths'"):
+            name_keys = d.keys(names=True)
         assert sorted(set(name_keys))[:4] == ["test", "test2", "test3", "test4"]
-        wl_keys = tuple(d.keys(wavelengths=True))
+        with pytest.warns(UserWarning, match="'names' and 'wavelengths'"):
+            wl_keys = tuple(d.keys(wavelengths=True))
         assert (0, 0.5, 1) in wl_keys
         assert (1, 1.5, 2, "µm") in wl_keys
         assert (1.2, 1.7, 2.2, "µm") in wl_keys
         assert None in wl_keys
+    # >8 v1.0
 
     def test_setitem(self):
         """Test setitem method of DatasetDict."""

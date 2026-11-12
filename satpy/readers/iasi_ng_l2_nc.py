@@ -1,18 +1,3 @@
-# Copyright (c) 2017-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """IASI-NG L2 reader implementation.
 
@@ -78,16 +63,6 @@ class IASINGL2NCFileHandler(NetCDF4FsspecFileHandler):
     def sensor_names(self):
         """List of sensors represented in this file."""
         return self.sensors
-
-    # Note: patching the collect_groups_info method below to
-    # also collect dimensions in sub groups.
-    def _collect_groups_info(self, base_name, obj):
-        for group_name, group_obj in obj.groups.items():
-            full_group_name = base_name + group_name
-            self.file_content[full_group_name] = group_obj
-            self._collect_attrs(full_group_name, group_obj)
-            self.collect_metadata(full_group_name, group_obj)
-            self.collect_dimensions(full_group_name, group_obj)
 
     def available_datasets(self, configured_datasets=None):
         """Determine automatically the datasets provided by this file.

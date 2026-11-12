@@ -1,24 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader."""
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import numpy as np
 
@@ -174,7 +158,23 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset = dataset.sel(y=slice(None, None, -1))
 
         dataset = self.calibrate(dataset, dataset_id)
-        is_calibration = dataset_id["calibration"] in ["radiance", "reflectance", "brightness_temperature"]
+        is_calibration = dataset_id["calibration"] in ["radiance",
+                                                       # 8< v1.0
+                                                       "reflectance",
+                                                       # >8 v1.0
+                                                       "unnormalized_reflectance",
+                                                       "brightness_temperature"]
+
+        # 8< v1.0
+        if dataset_id["calibration"] == "reflectance":
+            warn(
+                "The 'reflectance' calibration for SEVIRI L1b is missing Solar Zenith Angle (SZA) "
+                "normalization and is actually unnormalized reflectance. To reflect this, "
+                "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                "The underlying data remain identical.",
+                DeprecationWarning,
+                stacklevel=2)
+        # >8 v1.0
         if (is_calibration and self.mask_bad_quality_scan_lines):
             dataset = self._mask_bad_quality(dataset, dataset_info)
 

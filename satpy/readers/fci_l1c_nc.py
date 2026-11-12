@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Interface to MTG-FCI L1c NetCDF files.
 
@@ -181,8 +164,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime as dt
 import logging
 from functools import cached_property
+from warnings import warn
 
-import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -260,7 +243,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                  clip_negative_radiances=None, **kwargs):
         """Initialize file handler."""
         kwargs.setdefault("cache_var_size", 0)
-        kwargs.setdefault("cache_handle", True)
+        kwargs.setdefault("open_strategy", "file_handle")
         super().__init__(filename, filename_info,
                          filetype_info,
                          **kwargs)
@@ -415,7 +398,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         attrs = dict(data.attrs).copy()
         info = info.copy()
-        data = _ensure_dataarray(data)
 
         fv = attrs.pop(
             "_FillValue",
@@ -461,7 +443,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         resattrs.update(attrs)
 
         # remove unpacking parameters for calibrated data
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
+        if key["calibration"] in ["brightness_temperature",
+                                  # 8< v1.0
+                                  "reflectance",
+                                  # >8 v1.0
+                                  "unnormalized_reflectance",
+                                  "radiance"]:
             resattrs.pop("add_offset")
             resattrs.pop("warm_add_offset")
             resattrs.pop("scale_factor")
@@ -583,7 +570,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self.get_and_cache_npxr(AUX_DATA[aux_data_name])
-        lut = _ensure_dataarray(lut)
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
 
@@ -730,12 +716,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key["calibration"] in ["brightness_temperature", "reflectance", "radiance"]:
+        if key["calibration"] in ["brightness_temperature",
+                                  # 8< v1.0
+                                  "reflectance",
+                                  # >8 v1.0
+                                  "unnormalized_reflectance",
+                                  "radiance"]:
             data = self.calibrate_counts_to_physical_quantity(data, key)
         elif key["calibration"] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
+                "'brightness_temperature', "
+                # 8< v1.0
+                "'reflectance', "
+                # >8 v1.0
+                "'radiance', 'unnormalized_reflectance' or 'counts', got "
                 + key["calibration"] + ".")
 
         return data
@@ -748,7 +743,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         if key["calibration"] == "brightness_temperature":
             data = self.calibrate_rad_to_bt(data, key)
-        elif key["calibration"] == "reflectance":
+        elif key["calibration"] in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
+            # 8< v1.0
+            if key["calibration"] == "reflectance":
+                warn(
+                    "The 'reflectance' calibration for FCI L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
             data = self.calibrate_rad_to_refl(data, key)
 
         return data
@@ -819,7 +828,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
                 "_FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
-                "cannot produce reflectance for {:s}.".format(measured))
+                f"cannot produce {key['calibration'].name} for {measured}.")
             return radiance * np.float32(np.nan)
         sun_earth_distance = self._compute_sun_earth_distance
         res = 100 * radiance * np.float32(np.pi) * np.float32(sun_earth_distance) ** np.float32(2) / cesi
@@ -837,10 +846,3 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = np.nanmean(
                 self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
         return sun_earth_distance
-
-
-def _ensure_dataarray(arr):
-    if not isinstance(arr, xr.DataArray):
-        attrs = dict(arr.attrs).copy()
-        arr = xr.DataArray(da.from_array(arr), dims=arr.dimensions, attrs=attrs, name=arr.name)
-    return arr

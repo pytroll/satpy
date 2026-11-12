@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """EUMETSAT EPS-SG METimage (VII) Level 1B products reader.
 
 The ``metimage_l1b_nc`` reader reads and calibrates EPS-SG METimage L1b image data in netCDF format. The format is
@@ -22,6 +5,19 @@ explained in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
 Note that METimage is the official name of the instrument, while VII is the old name used during the mission (design).
 The name VII is currently still used in the filenames as well as in official system documentation
 (e.g. the format specs).
+
+.. note::
+
+    The orthorectification (terrain) correction is activated by default.
+    If you do not want to have it applied to the data (e.g. because you are interested in matching it with L2 data that
+    is not corrected),
+    you need to deactivate it explicitly by setting the ``orthorect`` keyword argument to ``False``, e.g.:
+    .. code-block:: python
+
+        scn = Scene(filenames=filenames, reader='metimage_l1b_nc', reader_kwargs={'orthorect': False})
+
+    Note that L1b files generated locally from direct broadcast do not contain the terrain correction data and
+    hence the correction will not be applied.
 
 .. _EPS-SG VII Level 1B Product Format Specification V4A: https://user.eumetsat.int/s3/eup-strapi-media/EPS_SG_VII_Level_1_B_Product_Format_Specification_654c0b397a.pdf
 
@@ -43,16 +39,19 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Read the calibration data and prepare the class for dataset reading."""
+        kwargs.setdefault("orthorect", True)
         super().__init__(filename, filename_info, filetype_info, **kwargs)
 
         # Read the variables which are required for the calibration
         self._bt_conversion_a = self["data/calibration_data/bt_conversion_a"].values
         self._bt_conversion_b = self["data/calibration_data/bt_conversion_b"].values
         self._channel_cw_thermal = self["data/calibration_data/channel_cw_thermal"].values
-        self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
-        # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
-        # (the values in the product file are on tie points and in degrees,
-        # therefore interpolation and conversion to radians are required)
+        # Operational products name this variable in lowercase; pre-launch test
+        # data (2021-era "_T_" dissemination granules) used a leading capital B.
+        try:
+            self._integrated_solar_irradiance = self["data/calibration_data/band_averaged_solar_irradiance"].values
+        except KeyError:
+            self._integrated_solar_irradiance = self["data/calibration_data/Band_averaged_solar_irradiance"].values
 
     def _perform_calibration(self, variable: xr.DataArray, dataset_info: dict) -> xr.DataArray:
         """Perform the calibration.
@@ -84,6 +83,8 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == "radiance":
             calibrated_variable = variable
+        elif calibration_name == "counts":
+            calibrated_variable = self._calibrate_counts(variable)
         else:
             raise ValueError("Unknown calibration %s for dataset %s" % (calibration_name, dataset_info["name"]))
 
@@ -104,10 +105,44 @@ class METimageL1BNCFileHandler(METimageNCBaseFileHandler):
             orthorect_data = self[orthorect_data_name]
             # Convert the orthorectification delta values from meters to degrees
             # based on the simplified formula using mean Earth radius
-            variable += np.degrees(orthorect_data / MEAN_EARTH_RADIUS)
+            divisor = MEAN_EARTH_RADIUS
+            if orthorect_data_name == "data/measurement_data/delta_lon_E_dem":
+                divisor *= np.cos(np.radians(self.latitude))
+            correction = np.degrees(orthorect_data / divisor)
+
+            # Leave coordinates with invalid correction uncorrected.
+            # This covers files from direct broadcast that do not contain correction data.
+            variable += correction.fillna(0)
+
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)
         return variable
+
+    @staticmethod
+    def _calibrate_counts(variable: xr.DataArray) -> xr.DataArray:
+        """Recover the digital numbers stored in the file.
+
+        The channels are stored as scaled integers with a _FillValue. xarray applies
+        scale_factor and add_offset when reading the netCDF and masks the fill pixels
+        to NaN, so reverse the scaling, restore the fill value at the masked pixels and
+        cast back to the stored integer type.
+
+        Args:
+            variable: xarray DataArray containing the scaled (radiance) values.
+
+        Returns:
+            array containing the counts, with ``_FillValue`` in its attributes.
+
+        """
+        encoding = variable.encoding
+        original_dtype = encoding["dtype"]
+        fill_value = encoding["_FillValue"]
+
+        counts = ((variable - encoding["add_offset"]) / encoding["scale_factor"]).round()
+        counts = counts.fillna(np.dtype(original_dtype).type(fill_value)).astype(original_dtype)
+        counts.attrs = variable.attrs
+        counts.attrs["_FillValue"] = int(fill_value)
+        return counts
 
     @staticmethod
     def _calibrate_bt(radiance: np.ndarray, cw: float, a: float, b: float) -> np.ndarray:

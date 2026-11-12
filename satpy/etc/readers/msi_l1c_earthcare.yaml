@@ -8,24 +8,27 @@ reader:
   sensors: [ec_msi]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
-
 file_types:
   msi_l1c_earthcare_rgr:
     file_reader: !!python/name:satpy.readers.msi_ec_l1c_h5.MSIECL1CFileHandler
     file_patterns:
-      - '{mission_id:s}_{processing_institute:s}_{sensor_id:s}_{file_id:s}_{proc_level:s}_{start_time:%Y%m%dT%H%M%S}Z_{end_time:%Y%m%dT%H%M%S}Z_{orbit_number:s}{frame_id:s}.h5'
-
+      - "{mission_id:s}_{processing_institute:s}_{sensor_id:s}_{file_id:s}_{proc_level:s}_{start_time:%Y%m%dT%H%M%S}Z_{end_time:%Y%m%dT%H%M%S}Z_{orbit_number:s}{frame_id:s}.h5"
 
 datasets:
-# Science measurement datasets
+  # Science measurement datasets
   VIS:
     name: VIS
     sensor: ec_msi
     wavelength: [0.66, 0.67, 0.68]
     resolution: 500
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -42,8 +45,13 @@ datasets:
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -60,8 +68,13 @@ datasets:
     wavelength: [1.64, 1.67, 1.70]
     resolution: 500
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -76,8 +89,13 @@ datasets:
     wavelength: [2.16, 2.21, 2.26]
     resolution: 500
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -121,7 +139,7 @@ datasets:
   TIR3:
     name: TIR3
     sensor: ec_msi
-    wavelength: [11.55,12.00,12.45]
+    wavelength: [11.55, 12.00, 12.45]
     resolution: 500
     calibration:
       brightness_temperature:
@@ -198,7 +216,7 @@ datasets:
     file_key: ScienceData/pixel_values_relative_error
     band_index: 6
 
-# Geolocation data
+  # Geolocation data
   longitude:
     name: longitude
     units: degrees_east
@@ -246,7 +264,7 @@ datasets:
     file_type: msi_l1c_earthcare_rgr
     file_key: ScienceData/solar_zenith_angle
 
-# Ancillary data
+  # Ancillary data
   land_flag:
     name: land_water_mask
     units: 1

@@ -7,7 +7,7 @@ from satpy.tests.reader_tests.utils import get_jit_methods
 from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
-    import satpy.readers.gms.gms5_vissr_navigation as nav
+    import satpy.readers.gms.gms_vissr_navigation as nav
 except ImportError as err:
     if skip_numba_unstable_if_missing():
         pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)

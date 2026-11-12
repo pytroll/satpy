@@ -13,29 +13,29 @@ file_types:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
-      - 'FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_1000M_MS.{ext:3s}'
+      - "FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_1000M_MS.{ext:3s}"
 
   fy3c_mersi1_l1b_250:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
-      - 'FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_0250M_MS.{ext:3s}'
+      - "FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_0250M_MS.{ext:3s}"
 
   fy3c_mersi1_l1b_1000_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 10
     file_patterns:
-      - 'FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEO1K_MS.{ext:3s}'
+      - "FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEO1K_MS.{ext:3s}"
 
   fy3c_mersi1_l1b_250_geo:
     file_reader: !!python/name:satpy.readers.mersi_l1b.MERSIL1B
     rows_per_scan: 40
     file_patterns:
-      - 'FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEOQK_MS.{ext:3s}'
+      - "FY3C_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEOQK_MS.{ext:3s}"
 
 datasets:
-  '1':
-    name: '1'
+  "1":
+    name: "1"
     wavelength: [0.445, 0.470, 0.495]
     resolution:
       1000:
@@ -51,15 +51,20 @@ datasets:
         calibration_index: 0
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '2':
-    name: '2'
+  "2":
+    name: "2"
     wavelength: [0.525, 0.550, 0.575]
     resolution:
       1000:
@@ -75,15 +80,20 @@ datasets:
         calibration_index: 1
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '3':
-    name: '3'
+  "3":
+    name: "3"
     wavelength: [0.625, 0.650, 0.675]
     resolution:
       1000:
@@ -99,15 +109,20 @@ datasets:
         calibration_index: 2
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '4':
-    name: '4'
+  "4":
+    name: "4"
     wavelength: [0.840, 0.865, 0.890]
     resolution:
       1000:
@@ -123,15 +138,20 @@ datasets:
         calibration_index: 3
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '5':
-    name: '5'
+  "5":
+    name: "5"
     wavelength: [10, 11.25, 12.5]
     resolution:
       1000:
@@ -146,14 +166,14 @@ datasets:
         units: "K"
         standard_name: toa_brightness_temperature
       radiance:
-        units: 'mW/ (m2 cm-1 sr)'
+        units: "mW/ (m2 cm-1 sr)"
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
         units: "1"
         standard_name: counts
 
-  '6':
-    name: '6'
+  "6":
+    name: "6"
     wavelength: [1.615, 1.640, 1.665]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -163,15 +183,20 @@ datasets:
     calibration_index: 4
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '7':
-    name: '7'
+  "7":
+    name: "7"
     wavelength: [2.105, 2.130, 2.155]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -181,15 +206,20 @@ datasets:
     calibration_index: 5
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '8':
-    name: '8'
+  "8":
+    name: "8"
     wavelength: [0.402, 0.412, 0.422]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -199,15 +229,20 @@ datasets:
     calibration_index: 6
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '9':
-    name: '9'
+  "9":
+    name: "9"
     wavelength: [0.433, 0.443, 0.453]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -217,15 +252,20 @@ datasets:
     calibration_index: 7
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '10':
-    name: '10'
+  "10":
+    name: "10"
     wavelength: [0.480, 0.490, 0.500]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -235,15 +275,20 @@ datasets:
     calibration_index: 8
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '11':
-    name: '11'
+  "11":
+    name: "11"
     wavelength: [0.510, 0.520, 0.530]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -253,15 +298,20 @@ datasets:
     calibration_index: 9
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '12':
-    name: '12'
+  "12":
+    name: "12"
     wavelength: [0.555, 0.565, 0.575]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -271,15 +321,20 @@ datasets:
     calibration_index: 10
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '13':
-    name: '13'
+  "13":
+    name: "13"
     wavelength: [0.640, 0.650, 0.660]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -289,15 +344,20 @@ datasets:
     calibration_index: 11
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '14':
-    name: '14'
+  "14":
+    name: "14"
     wavelength: [0.675, 0.685, 0.695]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -307,15 +367,20 @@ datasets:
     calibration_index: 12
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '15':
-    name: '15'
+  "15":
+    name: "15"
     wavelength: [0.755, 0.765, 0.775]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -325,15 +390,20 @@ datasets:
     calibration_index: 13
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '16':
-    name: '16'
+  "16":
+    name: "16"
     wavelength: [0.855, 0.865, 0.875]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -343,15 +413,20 @@ datasets:
     calibration_index: 14
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '17':
-    name: '17'
+  "17":
+    name: "17"
     wavelength: [0.895, 0.905, 0.915]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -361,15 +436,20 @@ datasets:
     calibration_index: 15
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '18':
-    name: '18'
+  "18":
+    name: "18"
     wavelength: [0.930, 0.940, 0.950]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -379,15 +459,20 @@ datasets:
     calibration_index: 16
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '19':
-    name: '19'
+  "19":
+    name: "19"
     wavelength: [0.970, 0.980, 0.990]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -397,15 +482,20 @@ datasets:
     calibration_index: 17
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts
 
-  '20':
-    name: '20'
+  "20":
+    name: "20"
     wavelength: [1.020, 1.030, 1.040]
     resolution: 1000
     file_type: fy3c_mersi1_l1b_1000
@@ -415,9 +505,14 @@ datasets:
     calibration_index: 18
     coordinates: [longitude, latitude]
     calibration:
+      # 8< v1.0
       reflectance:
-        units: "%"
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
+        units: "%"
       counts:
         units: "1"
         standard_name: counts

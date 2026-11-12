@@ -1,18 +1,3 @@
-# Copyright (c) 2010-2023 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for loading-related functionality in scene.py."""
 
 from unittest import mock
@@ -257,10 +242,7 @@ class TestLoadingReaderDatasets:
         scene.load(["ds5"], resolution=500)
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]["name"] == "ds5"
-        assert loaded_ids[0]["resolution"] == 500
-        assert loaded_ids[1]["name"] == "ds5"
-        assert loaded_ids[1]["resolution"] == 1000
+        assert {(ds_id["name"], ds_id["resolution"]) for ds_id in loaded_ids} == {("ds5", 500), ("ds5", 1000)}
 
     def test_load_ds6_wl(self):
         """Test loading a dataset by wavelength."""
@@ -326,10 +308,7 @@ class TestLoadingComposites:
 
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 2
-        assert loaded_ids[0]["name"] == "comp25"
-        assert loaded_ids[0]["resolution"] == 500
-        assert loaded_ids[1]["name"] == "comp25"
-        assert loaded_ids[1]["resolution"] == 1000
+        assert {(ds_id["name"], ds_id["resolution"]) for ds_id in loaded_ids} == {("comp25", 500), ("comp25", 1000)}
 
     def test_load_same_subcomposite(self):
         """Test loading a composite and one of it's subcomposites at the same time."""

@@ -8,11 +8,10 @@ reader:
   sensors: [msu_gsa]
   reader: !!python/name:satpy.readers.core.yaml_reader.FileYAMLReader
 
-
 file_types:
-    msu_gsa_l1b:
-        file_reader: !!python/name:satpy.readers.msu_gsa_l1b.MSUGSAFileHandler
-        file_patterns: ['ArcticaM{mission_id:1s}_{start_time:%Y%m%d%H%M}.h5']
+  msu_gsa_l1b:
+    file_reader: !!python/name:satpy.readers.msu_gsa_l1b.MSUGSAFileHandler
+    file_patterns: ["ArcticaM{mission_id:1s}_{start_time:%Y%m%d%H%M}.h5"]
 
 datasets:
   longitude:
@@ -45,8 +44,13 @@ datasets:
     wavelength: [0.5, 0.6, 0.65]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -60,8 +64,13 @@ datasets:
     wavelength: [0.65, 0.7, 0.8]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance
@@ -75,8 +84,13 @@ datasets:
     wavelength: [0.8, 0.9, 0.9]
     resolution: 1000
     calibration:
+      # 8< v1.0
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # >8 v1.0
+      unnormalized_reflectance:
+        standard_name: product_of_cosine_solar_zenith_angle_and_toa_bidirectional_reflectance
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance

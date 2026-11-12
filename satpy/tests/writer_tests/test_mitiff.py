@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018-2020 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the mitiff writer.
 
 Based on the test for geotiff writer
@@ -245,10 +228,10 @@ def _get_test_dataset_calibration(bands=6):
                               dims=("y", "x"),
                               attrs={"calibration": "reflectance"})
 
-    data = xr.concat(scene, "bands", coords="minimal")
+    data = xr.concat(scene.values(), "bands", coords="minimal")
     bands = []
     calibration = []
-    for p in scene:
+    for p in scene.values():
         calibration.append(p.attrs["calibration"])
         bands.append(p.attrs["name"])
     data["bands"] = list(bands)
@@ -315,7 +298,7 @@ def _get_test_dataset_calibration_one_dataset(bands=1):
 
     data = scene["4"]
     calibration = []
-    for p in scene:
+    for p in scene.values():
         calibration.append(p.attrs["calibration"])
     new_attrs = {"name": "datasets",
                  "start_time": dt.datetime.now(dt.timezone.utc),

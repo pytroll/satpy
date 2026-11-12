@@ -1,0 +1,262 @@
+"""Tests for the spectral modifiers."""
+import datetime as dt
+import unittest
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
+from pyresample.geometry import AreaDefinition
+
+from satpy.composites.core import IncompatibleAreas
+from satpy.tests.utils import RANDOM_GEN
+
+# NOTE:
+# The following fixtures are not defined in this file, but are used and injected by Pytest:
+# - tmp_path
+
+SUNZ_ATTRS = {"standard_name": "solar_zenith_angle"}
+CO2_ATTRS = {"wavelength": (12.0, 13.0, 14.0), "units": "K",
+             "start_time": dt.datetime(2020, 1, 1, 12, 0, 0)}
+
+
+def _bigger_area_def():
+    """Get area that is twice the size of the area the projectables use."""
+    bigger_area = AreaDefinition("test", "", "",
+                                 {"proj": "merc"}, 4, 4,
+                                 (-2000, -2000, 2000, 2000))
+    return bigger_area
+
+
+def _shifted_area_def():
+    """Get area with the same shape as the one the projectables use but a different extent."""
+    shifted_area = AreaDefinition("test", "", "",
+                                  {"proj": "merc"}, 2, 2,
+                                  (-1000, -1000, 1000, 1000))
+    return shifted_area
+
+
+def _optional_dataset(shape, attrs, area=None):
+    """Get an optional dataset for the NIR modifiers, with an area if one is given."""
+    data = da.arange(shape[0] * shape[1], dtype=np.float32).reshape(shape)
+    if area is not None:
+        attrs = dict(attrs, area=area)
+    return xr.DataArray(data, dims=["y", "x"], attrs=attrs)
+
+
+class TestNIRReflectance:
+    """Test the NIR reflectance modifier and, where behaviour is shared, its emissive subclass."""
+
+    def setup_method(self):
+        """Set up the test case for the NIRReflectance compositor."""
+        self.area = area = AreaDefinition(
+            "test", "", "",
+            {"proj": "merc"},
+            2,
+            2,
+            (-2000, -2000, 2000, 2000),
+        )
+
+        self.start_time = dt.datetime(2020, 1, 1, 12, 0, 0)
+        self.metadata = {"platform_name": "Meteosat-11",
+                         "sensor": "seviri",
+                         "name": "IR_039",
+                         "area": area,
+                         "start_time": self.start_time}
+
+        self.nir_arr = nir_arr = np.array([[283.15, 285.15], [287.15, 289.15]], dtype=np.float32)
+        self.nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
+        self.nir.attrs.update(self.metadata)
+
+        ir_arr = np.array([[273.15, 275.15], [277.15, 279.15]], dtype=np.float32)
+        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"], attrs={"area": area})
+
+        self.sunz_arr = np.array([[1.0, 20.0], [87.0, 89.0]], dtype=np.float32)
+        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=["y", "x"],
+                                 attrs={"standard_name": "solar_zenith_angle", "area": area})
+
+        co2_arr = np.array([[240.0, 241.0], [242.0, 243.0]], dtype=np.float32)
+        self.co2 = xr.DataArray(
+            da.from_array(co2_arr),
+            dims=("y", "x"),
+            attrs={
+                "area": self.area,
+                "start_time": self.start_time,
+                "wavelength": (12.0, 13.0, 14.0),
+                "units": "K",
+            })
+
+    @pytest.mark.parametrize(
+        ("include_sunz", "include_co2", "exp_res"),
+        [
+            (False, False, np.array([[4.251828, 4.639434], [5.0589, 5.514466]], dtype=np.float32)),
+            (True, False, np.array([[3.8915825, 4.5359993], [np.nan, np.nan]], dtype=np.float32)),
+            (False, True, np.array([[5.0192585, 5.5059953], [6.0353055, 6.6126623]], dtype=np.float32)),
+        ]
+    )
+    def test_basic_call(self, tmp_path, include_sunz, include_co2, exp_res):
+        """Test NIR reflectance compositor with various optional inputs."""
+        from pyspectral.testing import mock_tb_conversion
+
+        from satpy.modifiers.spectral import NIRReflectance
+
+        opt_datasets = []
+        if include_sunz:
+            opt_datasets.append(self.sunz)
+        if include_co2:
+            opt_datasets.append(self.co2)
+        comp = NIRReflectance(name="test")
+        info = {"modifiers": None}
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}):
+            res = comp([self.nir, self.ir_], optional_datasets=opt_datasets, **info)
+        res_da = res.data
+        res_np = res.data.compute()
+        assert res_np.dtype == res_da.dtype
+        assert res_np.dtype == self.nir.dtype
+
+        assert comp.sun_zenith_threshold == 85.0
+        assert comp.masking_limit == 88.0
+        assert self.metadata.items() <= res.attrs.items()
+        assert res.attrs["units"] == "%"
+        assert res.attrs["sun_zenith_threshold"] == 85.0
+        assert res.attrs["sun_zenith_masking_limit"] == 88.0
+        np.testing.assert_allclose(res_np, exp_res, atol=2e-6)
+
+    @pytest.mark.parametrize(
+        "comp_kwargs",
+        [
+            {"sunz_threshold": 84.0},
+            {"masking_limit": None},
+        ]
+    )
+    def test_provide_sunz_threshold_and_masking_limit(self, tmp_path, comp_kwargs):
+        """Test NIR reflectance compositor provided sunz and a sunz threshold."""
+        from pyspectral.near_infrared_reflectance import Calculator
+        from pyspectral.testing import mock_tb_conversion
+
+        from satpy.modifiers.spectral import NIRReflectance
+
+        comp = NIRReflectance(name="test", **comp_kwargs)
+        exp_call_kwargs = {
+            "sunz_threshold": comp_kwargs.get("sunz_threshold", NIRReflectance.TERMINATOR_LIMIT),
+            "masking_limit": comp_kwargs.get("masking_limit", NIRReflectance.MASKING_LIMIT),
+        }
+        info = {"modifiers": None}
+
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}), \
+                mock.patch("satpy.modifiers.spectral.Calculator", wraps=Calculator) as calculator:
+            res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+
+        assert res.attrs["sun_zenith_threshold"] == exp_call_kwargs["sunz_threshold"]
+        assert res.attrs["sun_zenith_masking_limit"] == exp_call_kwargs["masking_limit"]
+        calculator.assert_called_with("Meteosat-11", "seviri", "IR_039", **exp_call_kwargs)
+
+    @pytest.mark.parametrize("modifier_name", ["NIRReflectance", "NIREmissivePartFromReflectance"])
+    @pytest.mark.parametrize(
+        ("optional", "exp_exception", "exp_match"),
+        [
+            (_optional_dataset((2, 4), SUNZ_ATTRS, _bigger_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((4, 4), CO2_ATTRS, _bigger_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((2, 2), SUNZ_ATTRS, _shifted_area_def()), IncompatibleAreas, None),
+            (_optional_dataset((2, 2), SUNZ_ATTRS), ValueError, "Missing 'area' attribute"),
+        ],
+        ids=["sunz_bigger_shape", "co2_bigger_shape", "sunz_shifted_area", "sunz_no_area"],
+    )
+    def test_nir_rejects_mismatched_optional_dataset(self, modifier_name, optional, exp_exception, exp_match):
+        """Check that an optional dataset that does not match the projectables is refused."""
+        from satpy.modifiers import spectral
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with pytest.raises(exp_exception, match=exp_match):
+            comp([self.nir, self.ir_], optional_datasets=[optional], **info)
+
+    @pytest.mark.parametrize(
+        ("modifier_name", "exp_res", "exp_units"),
+        [
+            ("NIRReflectance",
+             np.array([[4.251828, 4.639434], [5.0589, 5.514466]], dtype=np.float32), "%"),
+            ("NIREmissivePartFromReflectance",
+             np.array([[272.51868, 274.42377], [276.31915, 278.20343]], dtype=np.float32), "K"),
+        ]
+    )
+    def test_nir_no_optional_datasets(self, modifier_name, exp_res, exp_units, tmp_path):
+        """Check that omitting the optional datasets entirely still produces the right values."""
+        from pyspectral.testing import mock_tb_conversion
+
+        from satpy.modifiers import spectral
+
+        comp = getattr(spectral, modifier_name)(name="test")
+        info = {"modifiers": None}
+        with mock_tb_conversion(tb2rad_dir=tmp_path, central_wavelengths={"IR_039": 3.9}):
+            res = comp([self.nir, self.ir_], optional_datasets=None, **info)
+
+        res_np = res.data.compute()
+        assert res_np.dtype == self.nir.dtype
+        assert res.attrs["units"] == exp_units
+        np.testing.assert_allclose(res_np, exp_res, atol=2e-6)
+
+
+class TestNIREmissivePartFromReflectance(unittest.TestCase):
+    """Test the NIR Emissive part from reflectance compositor."""
+
+    @mock.patch("satpy.modifiers.spectral.sun_zenith_angle")
+    @mock.patch("satpy.modifiers.NIRReflectance.apply_modifier_info")
+    @mock.patch("satpy.modifiers.spectral.Calculator")
+    def test_compositor(self, calculator, apply_modifier_info, sza):
+        """Test the NIR emissive part from reflectance compositor."""
+        from satpy.modifiers.spectral import NIRReflectance
+
+        refl_arr = RANDOM_GEN.random((2, 2))
+        refl = da.from_array(refl_arr)
+
+        refl_from_tbs = mock.MagicMock()
+        refl_from_tbs.return_value = refl
+        calculator.return_value = mock.MagicMock(reflectance_from_tbs=refl_from_tbs)
+
+        emissive_arr = RANDOM_GEN.random((2, 2))
+        emissive = da.from_array(emissive_arr)
+        emissive_part = mock.MagicMock()
+        emissive_part.return_value = emissive
+        calculator.return_value = mock.MagicMock(emissive_part_3x=emissive_part)
+
+        from satpy.modifiers.spectral import NIREmissivePartFromReflectance
+
+        comp = NIREmissivePartFromReflectance(name="test", sunz_threshold=86.0)
+        info = {"modifiers": None}
+
+        platform = "NOAA-20"
+        sensor = "viirs"
+        chan_name = "M12"
+
+        get_lonlats = mock.MagicMock()
+        lons, lats = 1, 2
+        get_lonlats.return_value = (lons, lats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
+
+        nir_arr = RANDOM_GEN.random((2, 2))
+        nir = xr.DataArray(da.from_array(nir_arr), dims=["y", "x"])
+        nir.attrs["platform_name"] = platform
+        nir.attrs["sensor"] = sensor
+        nir.attrs["name"] = chan_name
+        nir.attrs["area"] = area
+        ir_arr = RANDOM_GEN.random((2, 2))
+        ir_ = xr.DataArray(da.from_array(ir_arr), dims=["y", "x"])
+        ir_.attrs["area"] = area
+
+        sunz_arr = 100 * RANDOM_GEN.random((2, 2))
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=["y", "x"])
+        sunz.attrs["standard_name"] = "solar_zenith_angle"
+        sunz.attrs["area"] = area
+        sunz2 = da.from_array(sunz_arr)
+        sza.return_value = sunz2
+
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        assert res.attrs["sun_zenith_threshold"] == 86.0
+        assert res.attrs["units"] == "K"
+        assert res.attrs["platform_name"] == platform
+        assert res.attrs["sensor"] == sensor
+        assert res.attrs["name"] == chan_name
+        calculator.assert_called_with("NOAA-20", "viirs", "M12", sunz_threshold=86.0,
+                                      masking_limit=NIRReflectance.MASKING_LIMIT)

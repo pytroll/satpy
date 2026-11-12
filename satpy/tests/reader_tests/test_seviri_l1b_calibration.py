@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the native msg reader."""
 
 import datetime as dt
@@ -281,7 +264,21 @@ class TestFileHandlerCalibrationBase:
                     dims=("y", "x")
                 )
             },
+            # 8< v1.0
             "reflectance": {
+                "NOMINAL": xr.DataArray(
+                    [[np.nan, 41.88985],
+                     [460.7884, 1182.2247]],
+                    dims=("y", "x")
+                ),
+                "EXTERNAL": xr.DataArray(
+                    [[np.nan, 418.89853],
+                     [4607.8843, 11822.249]],
+                    dims=("y", "x")
+                )
+            },
+            # >8 v1.0
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 41.88985],
                      [460.7884, 1182.2247]],
@@ -362,7 +359,21 @@ class TestFileHandlerCalibrationBase:
                     dims=("y", "x")
                 )
             },
+            # 8< v1.0
             "reflectance": {
+                "NOMINAL": xr.DataArray(
+                    [[np.nan, 415.26767],
+                     [4567.944, 11719.775]],
+                    dims=("y", "x")
+                ),
+                "EXTERNAL": xr.DataArray(
+                    [[np.nan, 173.02817],
+                     [1903.31, 4883.2397]],
+                    dims=("y", "x")
+                )
+            },
+            # >8 v1.0
+            "unnormalized_reflectance": {
                 "NOMINAL": xr.DataArray(
                     [[np.nan, 415.26767],
                      [4567.944, 11719.775]],

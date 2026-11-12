@@ -1,19 +1,3 @@
-#!/usr/bin/env python
-# Copyright (c) 2018-2025 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Tests for compositor core functionality."""
 
@@ -120,6 +104,49 @@ class TestMatchDataArrays:
         comp = CompositeBase("test_comp")
         ret_datasets = comp.match_data_arrays([ds, ds])
         assert "acq_time" not in ret_datasets[0].coords
+
+    @pytest.mark.parametrize(
+        ("data_dims", "data_shape", "coord_dims", "keep_coord"),
+        [
+            pytest.param(("y", "x"), (3, 4), ("y",), False, id="foreign-dim-no-time-dim"),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("y",),
+                False,
+                id="foreign-dim-with-time-dim",
+            ),
+            pytest.param(
+                ("time", "y", "x"),
+                (2, 3, 4),
+                ("time",),
+                True,
+                id="matching-dimension-coordinate",
+            ),
+        ],
+    )
+    def test_drop_coordinates_handles_time_coordinate_dimensions(
+        self, data_dims, data_shape, coord_dims, keep_coord
+    ):
+        """Keep only a true dimension coordinate among negligible coordinates."""
+        from satpy.composites.core import CompositeBase
+
+        coord_size = data_shape[data_dims.index(coord_dims[0])]
+        coord_values = np.arange(coord_size)
+        data = xr.DataArray(
+            np.arange(np.prod(data_shape)).reshape(data_shape),
+            dims=data_dims,
+            coords={"time": xr.DataArray(coord_values, dims=coord_dims)},
+        )
+
+        result = CompositeBase.drop_coordinates([data])[0]
+
+        assert result.dims == data_dims
+        assert result.shape == data_shape
+        assert ("time" in result.coords) is keep_coord
+        if keep_coord:
+            assert result.coords["time"].dims == ("time",)
+            np.testing.assert_array_equal(result.coords["time"], coord_values)
 
     def test_almost_equal_geo_coordinates(self):
         """Test that coordinates that are almost-equal still match.
@@ -399,6 +426,7 @@ def test_add_bands_sequence():
     with assert_maximum_dask_computes(0):
         res = add_bands(data_arr, new_bands)
     _check_add_band_results(res, exp_bands, np.float32)
+
 
 def test_add_bands_p_l():
     """Test failing P to L case."""

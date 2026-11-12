@@ -1,22 +1,16 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) Level 2 products reader."""
+"""EUMETSAT EPS-SG Visible/Infrared Imager (VII) Level 2 products reader.
+
+.. note::
+
+    The orthorectification + clouds parallax correction is deactivated by default. If you want to use it,
+    you need to activate it explicitly by setting the ``orthorect`` keyword argument to ``True``, e.g.:
+    .. code-block:: python
+
+        scn = Scene(filenames=filenames, reader='metimage_l2_nc', reader_kwargs={'orthorect': True})
+
+    Note that the correction is not available for the CLD, WVV and WVI products.
+"""
 
 import logging
 
@@ -29,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 class METimageL2NCFileHandler(METimageNCBaseFileHandler):
     """Reader class for VII L2 products in netCDF format."""
+
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Prepare the class for dataset reading."""
+        kwargs.setdefault("orthorect", False)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
 
     def _perform_orthorectification(self, variable: xr.DataArray, orthorect_data_name: str) -> xr.DataArray:
         """Perform the orthorectification.
@@ -43,6 +42,7 @@ class METimageL2NCFileHandler(METimageNCBaseFileHandler):
         """
         try:
             orthorect_data = self[orthorect_data_name]
+            # in the L2 case, the orthorectification correction data is already in degrees and can be applied directly
             variable += orthorect_data
         except KeyError:
             logger.warning("Required dataset %s for orthorectification not available, skipping", orthorect_data_name)

@@ -1,21 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to VIRR (Visible and Infra-Red Radiometer) level 1b format.
+"""Interface to FY-3 VIRR (Visible and Infra-Red Radiometer) level 1b format.
 
 The file format is HDF5. Important attributes:
 
@@ -30,10 +13,6 @@ The file format is HDF5. Important attributes:
     - RefSB_Effective_Wavelength
     - Emmisive_Centroid_Wave_Number
 
-Supported satellites:
-
-    - FY-3B and FY-3C.
-
 For more information:
 
     - https://www.wmo-sat.info/oscar/instruments/view/607.
@@ -42,6 +21,7 @@ For more information:
 
 import datetime as dt
 import logging
+from warnings import warn
 
 import dask.array as da
 import numpy as np
@@ -51,24 +31,25 @@ from satpy.readers.core.hdf5 import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
-# PROVIDED BY NIGEL ATKINSON - 2013
-# FY3B_REF_COEFFS = [
-#     0.12640, -1.43200,  #channel1#
-#     0.13530, -1.62360,  #channel2#
-#     0.09193, -2.48207,  #channel6#
-#     0.07480, -0.90980,  #channel7#
-#     0.07590, -0.91080,  #channel8#
-#     0.07460, -0.89520,  #channel9#
-#     0.06300, -0.76280]  #channel10#
-# CMA - 2015 - http://www.nsmc.org.cn/en/NSMC/Contents/100089.html
+# CMA - 2016 - https://www.nsmc.org.cn/nsmc/en/news/100159.html
+FY3A_REF_COEFFS = [
+    0.1598, -1.915,
+    0.1516, -1.819,
+    0.1043, -2.557,
+    0.1031, -1.350,
+    0.0854, -1.036,
+    0.0790, -0.960,
+    0.0455, -0.590]
+
+# CMA - 2016 - https://www.nsmc.org.cn/nsmc/en/news/100161.html
 FY3B_REF_COEFFS = [
-    0.1264, -1.4320,
-    0.1353, -1.6236,
-    0.0919, -2.4821,
-    0.0938, -1.1494,
-    0.0857, -1.0280,
-    0.0803, -0.9636,
-    0.0630, -0.7628]
+    0.1443, -1.798,
+    0.1474, -1.844,
+    0.1057, -2.750,
+    0.0907, -1.167,
+    0.0776, -0.931,
+    0.0741, -0.966,
+    0.0376, -0.479]
 
 
 class VIRR_L1B(HDF5FileHandler):
@@ -83,14 +64,14 @@ class VIRR_L1B(HDF5FileHandler):
         self.l1b_prefix = "Data/"
         self.wave_number = "Emissive_Centroid_Wave_Number"
         # Else filename_info['platform_id'] == FY3C.
-        if filename_info["platform_id"] == "FY3B":
+        if filename_info["platform_id"] in ("FY3A", "FY3B"):
             self.l1b_prefix = ""
             self.wave_number = "Emmisive_Centroid_Wave_Number"
 
     def get_dataset(self, dataset_id, ds_info):
         """Create DataArray from file content for `dataset_id`."""
         file_key = self.geolocation_prefix + ds_info.get("file_key", dataset_id["name"])
-        if self.platform_id == "FY3B":
+        if self.platform_id in ("FY3A", "FY3B"):
             file_key = file_key.replace("Data/", "")
         data = self[file_key]
         band_index = ds_info.get("band_index")
@@ -120,17 +101,37 @@ class VIRR_L1B(HDF5FileHandler):
         data.attrs.update({"platform_name": self["/attr/Satellite Name"],
                            "sensor": self["/attr/Sensor Identification Code"].lower()})
         data.attrs.update(ds_info)
+        self._fix_units(data, dataset_id, file_key)
+        return data
+
+    def _fix_units(self, data, dataset_id, file_key):
+        """Fix units."""
         units = self.get(file_key + "/attr/units")
         if units is not None and str(units).lower() != "none":
             data.attrs.update({"units": self.get(file_key + "/attr/units")})
-        elif data.attrs.get("calibration") == "reflectance":
+        elif data.attrs.get("calibration") in [
+                # 8< v1.0
+                "reflectance",
+                # >8 v1.0
+                "unnormalized_reflectance"]:
             data.attrs.update({"units": "%"})
+            # 8< v1.0
+            if dataset_id["calibration"] == "reflectance":
+                warn(
+                    "The 'reflectance' calibration for VIRR L1b is missing Solar Zenith Angle (SZA) "
+                    "normalization and is actually unnormalized reflectance. To reflect this, "
+                    "'reflectance' is deprecated; please use 'unnormalized_reflectance' instead. "
+                    "The underlying data remain identical.",
+                    DeprecationWarning,
+                    stacklevel=2)
+            # >8 v1.0
         else:
             data.attrs.update({"units": "1"})
-        return data
 
     def _calibrate_reflective(self, data, band_index):
-        if self.platform_id == "FY3B":
+        if self.platform_id == "FY3A":
+            coeffs = da.from_array(FY3A_REF_COEFFS, chunks=-1)
+        elif self.platform_id == "FY3B":
             coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
         else:
             coeffs = self["/attr/RefSB_Cal_Coefficients"]

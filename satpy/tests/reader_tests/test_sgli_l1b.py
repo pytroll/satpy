@@ -32,8 +32,8 @@ def sgli_vn_file(tmp_path_factory):
                                                              dtype="|S21")
 
         image_data = h5f.create_group("Image_data")
-        image_data.attrs["Number_of_lines"] = 1955
-        image_data.attrs["Number_of_pixels"] = 1250
+        image_data.attrs["Number_of_lines"] = np.array([1955], dtype=np.int32)
+        image_data.attrs["Number_of_pixels"] = np.array([1250], dtype=np.int32)
 
         vn01 = image_data.create_dataset("Lt_VN01", data=FULL_KM_ARRAY, chunks=(116, 157))
         vn01.attrs["Slope_reflectance"] = np.array([5e-05], dtype=np.float32)
@@ -60,8 +60,8 @@ def sgli_ir_file(tmp_path_factory):
                                                              dtype="|S21")
 
         image_data = h5f.create_group("Image_data")
-        image_data.attrs["Number_of_lines"] = 1854
-        image_data.attrs["Number_of_pixels"] = 1250
+        image_data.attrs["Number_of_lines"] = np.array([1854], dtype=np.int32)
+        image_data.attrs["Number_of_pixels"] = np.array([1250], dtype=np.int32)
 
         sw01 = image_data.create_dataset("Lt_SW01", data=FULL_KM_ARRAY, chunks=(116, 157))
         sw01.attrs["Slope_reflectance"] = np.array([5e-05], dtype=np.float32)
@@ -97,8 +97,8 @@ def sgli_pol_file(tmp_path_factory):
                                                              dtype="|S21")
 
         image_data = h5f.create_group("Image_data")
-        image_data.attrs["Number_of_lines"] = 1854
-        image_data.attrs["Number_of_pixels"] = 1250
+        image_data.attrs["Number_of_lines"] = np.array([1854], dtype=np.int32)
+        image_data.attrs["Number_of_pixels"] = np.array([1250], dtype=np.int32)
 
         p1_0 = image_data.create_dataset("Lt_P1_0", data=FULL_KM_ARRAY, chunks=(116, 157))
         p1_0.attrs["Slope_reflectance"] = np.array([5e-05], dtype=np.float32)
@@ -130,9 +130,9 @@ def sgli_pol_file(tmp_path_factory):
 
         geometry_data = h5f.create_group("Geometry_data")
         longitude = geometry_data.create_dataset("Longitude", data=FULL_KM_ARRAY.astype(np.float32), chunks=(47, 63))
-        longitude.attrs["Resampling_interval"] = 1
+        longitude.attrs["Resampling_interval"] = np.array([1], dtype=np.int32)
         latitude = geometry_data.create_dataset("Latitude", data=FULL_KM_ARRAY.astype(np.float32), chunks=(47, 63))
-        latitude.attrs["Resampling_interval"] = 1
+        latitude.attrs["Resampling_interval"] = np.array([1], dtype=np.int32)
 
         return filename
 
@@ -140,28 +140,28 @@ def add_downsampled_geometry_data(h5f):
     """Add downsampled geometry data to an h5py file instance."""
     geometry_data = h5f.create_group("Geometry_data")
     longitude = geometry_data.create_dataset("Longitude", data=LON_LAT_ARRAY, chunks=(47, 63))
-    longitude.attrs["Resampling_interval"] = 10
+    longitude.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
     latitude = geometry_data.create_dataset("Latitude", data=LON_LAT_ARRAY, chunks=(47, 63))
-    latitude.attrs["Resampling_interval"] = 10
+    latitude.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
 
     angles_slope = np.array([0.01], dtype=np.float32)
     angles_offset = np.array([0], dtype=np.float32)
 
     azimuth = geometry_data.create_dataset("Sensor_azimuth", data=AZI_ARRAY, chunks=(47, 63))
-    azimuth.attrs["Resampling_interval"] = 10
+    azimuth.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
     azimuth.attrs["Slope"] = angles_slope
     azimuth.attrs["Offset"] = angles_offset
     zenith = geometry_data.create_dataset("Sensor_zenith", data=ZEN_ARRAY, chunks=(47, 63))
-    zenith.attrs["Resampling_interval"] = 10
+    zenith.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
     zenith.attrs["Slope"] = angles_slope
     zenith.attrs["Offset"] = angles_offset
 
     sazimuth = geometry_data.create_dataset("Solar_azimuth", data=AZI_ARRAY, chunks=(47, 63))
-    sazimuth.attrs["Resampling_interval"] = 10
+    sazimuth.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
     sazimuth.attrs["Slope"] = angles_slope
     sazimuth.attrs["Offset"] = angles_offset
     szenith = geometry_data.create_dataset("Solar_zenith", data=ZEN_ARRAY, chunks=(47, 63))
-    szenith.attrs["Resampling_interval"] = 10
+    szenith.attrs["Resampling_interval"] = np.array([10], dtype=np.int32)
     szenith.attrs["Slope"] = angles_slope
     szenith.attrs["Offset"] = angles_offset
 

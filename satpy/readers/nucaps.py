@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2016-2021 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to NUCAPS Retrieval NetCDF files.
 
 NUCAPS stands for NOAA Unique Combined Atmospheric Processing System.
@@ -190,7 +173,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Load data array and metadata for specified dataset."""
         var_path = ds_info.get("file_key", "{}".format(dataset_id["name"]))
         metadata = self.get_metadata(dataset_id, ds_info)
-        valid_min, valid_max = self[var_path + "/attr/valid_range"]
+        valid_min, valid_max = self.get(var_path + "/attr/valid_range", (None, None))
         fill_value = self.get(var_path + "/attr/_FillValue")
 
         d_tmp = self[var_path]
@@ -302,6 +285,7 @@ class NUCAPSReader(FileYAMLReader):
 
         datasets_loaded = super(NUCAPSReader, self).load(
             dataset_keys, previous_datasets=previous_datasets)
+        dataset_keys &= set(datasets_loaded.keys())
 
         if pressure_levels is not None:
             if remove_plevels:

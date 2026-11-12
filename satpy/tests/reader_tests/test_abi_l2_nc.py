@@ -1,19 +1,3 @@
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2019 Satpy developers
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """The abi_l2_nc reader tests package."""
 
@@ -186,7 +170,10 @@ class TestMCMIPReading:
         ("product", "exp_metadata"),
         [
             ("C14", {"calibration": "brightness_temperature", "wavelength": (10.8, 11.2, 11.6), "units": "K"}),
+            # 8< v1.0
             ("C01", {"calibration": "reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
+            # >8 v1.0
+            # ("C01", {"calibration": "unnormalized_reflectance", "wavelength": (0.45, 0.47, 0.49), "units": "%"}),
         ]
     )
     @mock.patch("satpy.readers.core.abi.xr")
@@ -202,7 +189,13 @@ class TestMCMIPReading:
 
         fn = "OR_ABI-L2-MCMIPF-M6_G16_s20192600241149_e20192600243534_c20192600245360.nc"
         scn = Scene(reader="abi_l2_nc", filenames=[fn])
-        scn.load([product])
+        expected_warning = contextlib.nullcontext()
+        # 8< v1.0
+        if exp_metadata["calibration"] == "reflectance":
+            expected_warning = pytest.warns(DeprecationWarning, match="is missing Solar Zenith Angle")
+        # >8 v1.0
+        with expected_warning:
+            scn.load([product])
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])

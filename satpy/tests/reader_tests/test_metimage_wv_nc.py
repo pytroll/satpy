@@ -1,20 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2020 Satpy developers
-#
-# satpy is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# satpy is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """The vii_l2_nc reader tests package for VII/METimage water vapour products."""
 
@@ -46,12 +29,12 @@ class TestMETimageL2NCFileHandler(unittest.TestCase):
             # Create data group
             g1 = nc.createGroup("data")
 
-            # Add dimensions to data group
-            g1.createDimension("num_points_act", 100)
-            g1.createDimension("num_points_alt", 10)
-
             # Create measurement_data group
             g1_2 = g1.createGroup("measurement_data")
+
+            # Add dimensions to data/measurement_data group, where the real L2 products define them
+            g1_2.createDimension("num_points_act", 100)
+            g1_2.createDimension("num_points_alt", 10)
 
             # Add variables to data/measurement_data group
             delta_lat = g1_2.createVariable("delta_lat", np.float32, dimensions=("num_points_alt", "num_points_act"))

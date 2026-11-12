@@ -203,3 +203,25 @@ enhancements:
       method: !!python/name:satpy.enhancements.contrast.gamma
       kwargs:
         gamma: [4.0, 1.0, 0.85]
+
+  colorized_frp:
+    standard_name: colorized_frp
+    operations:
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colormap.colorize
+      kwargs:
+        palettes:
+        - values:
+            - 0
+            - 50
+            - 100
+            - 150
+            - 200
+            - 250
+          colors:
+            - [238, 238, 209] #LightYellow
+            - [255, 255, 0] #Yellow
+            - [255, 165, 0] #orange
+            - [255, 70, 0] #OrangeRed
+            - [255, 0, 0] #Red
+            - [140, 0, 0] #DarkRed
