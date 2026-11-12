@@ -17,7 +17,8 @@ Supported Data Variants
 This reader currently supports Full Disk High Spectral Resolution Imagery
 (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
 In addition, it also supports the L1C format for the African dissemination ("AF"), which is similar to the FD mode
- but misses chunks 1-4 and 33-40 and has masked data around Africa; see `AF PUG`_.
+but only chunks 5 to 32 are produced with masked data around Africa; see `AF PUG`_. The missing chunks are padded
+to the full-disc by default as in the normal format.
 Experimental support for special scans, e.g. with coverage "xx", is also given.
 
 This reader supports data from both IDPF-I and IQT-I processing facilities.
