@@ -216,7 +216,7 @@ datasets:
   bt_mean_all_ir38:
     name: bt_mean_all_ir38
     long_name: TOA Brightness Temperature segment mean at 3.8um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#19#brightnessTemperature'
@@ -231,7 +231,7 @@ datasets:
   bt_mean_clear_ir38:
     name: bt_mean_clear_ir38
     long_name: TOA Brightness Temperature segment mean at 3.8um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#20#brightnessTemperature'
@@ -246,7 +246,7 @@ datasets:
   bt_mean_cloudy_ir38:
     name: bt_mean_cloudy_ir38
     long_name: TOA Brightness Temperature segment mean at 3.8um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#21#brightnessTemperature'
@@ -261,7 +261,7 @@ datasets:
   bt_mean_all_wv63:
     name: bt_mean_all_wv63
     long_name: TOA Brightness Temperature segment mean at 6.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#25#brightnessTemperature'
@@ -276,7 +276,7 @@ datasets:
   bt_mean_clear_wv63:
     name: bt_mean_clear_wv63
     long_name: TOA Brightness Temperature segment mean at 6.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#26#brightnessTemperature'
@@ -291,7 +291,7 @@ datasets:
   bt_mean_cloudy_wv63:
     name: bt_mean_cloudy_wv63
     long_name: TOA Brightness Temperature segment mean at 6.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#27#brightnessTemperature'
@@ -306,7 +306,7 @@ datasets:
   bt_mean_all_wv73:
     name: bt_mean_all_wv73
     long_name: TOA Brightness Temperature segment mean at 7.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#31#brightnessTemperature'
@@ -321,7 +321,7 @@ datasets:
   bt_mean_clear_wv73:
     name: bt_mean_clear_wv73
     long_name: TOA Brightness Temperature segment mean at 7.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#32#brightnessTemperature'
@@ -336,7 +336,7 @@ datasets:
   bt_mean_cloudy_wv73:
     name: bt_mean_cloudy_wv73
     long_name: TOA Brightness Temperature segment mean at 7.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#33#brightnessTemperature'
@@ -351,7 +351,7 @@ datasets:
   bt_mean_all_ir87:
     name: bt_mean_all_ir87
     long_name: TOA Brightness Temperature segment mean at 8.7um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#37#brightnessTemperature'
@@ -366,7 +366,7 @@ datasets:
   bt_mean_clear_ir87:
     name: bt_mean_clear_ir87
     long_name: TOA Brightness Temperature segment mean at 8.7um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#38#brightnessTemperature'
@@ -381,7 +381,7 @@ datasets:
   bt_mean_cloudy_ir87:
     name: bt_mean_cloudy_ir87
     long_name: TOA Brightness Temperature segment mean at 8.7um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#39#brightnessTemperature'
@@ -396,7 +396,7 @@ datasets:
   bt_mean_all_ir97:
     name: bt_mean_all_ir97
     long_name: TOA Brightness Temperature segment mean at 9.7um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#43#brightnessTemperature'
@@ -411,7 +411,7 @@ datasets:
   bt_mean_clear_ir97:
     name: bt_mean_clear_ir97
     long_name: TOA Brightness Temperature segment mean at 9.7um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#44#brightnessTemperature'
@@ -426,7 +426,7 @@ datasets:
   bt_mean_cloudy_ir97:
     name: bt_mean_cloudy_ir97
     long_name: TOA Brightness Temperature segment mean at 9.7um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#45#brightnessTemperature'
@@ -441,7 +441,7 @@ datasets:
   bt_mean_all_ir105:
     name: bt_mean_all_ir105
     long_name: TOA Brightness Temperature segment mean at 10.5um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#49#brightnessTemperature'
@@ -456,7 +456,7 @@ datasets:
   bt_mean_clear_ir105:
     name: bt_mean_clear_ir105
     long_name: TOA Brightness Temperature segment mean at 10.5um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#50#brightnessTemperature'
@@ -471,7 +471,7 @@ datasets:
   bt_mean_cloudy_ir105:
     name: bt_mean_cloudy_ir105
     long_name: TOA Brightness Temperature segment mean at 10.5um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#51#brightnessTemperature'
@@ -486,7 +486,7 @@ datasets:
   bt_mean_all_ir123:
     name: bt_mean_all_ir123
     long_name: TOA Brightness Temperature segment mean at 12.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#55#brightnessTemperature'
@@ -501,7 +501,7 @@ datasets:
   bt_mean_clear_ir123:
     name: bt_mean_clear_ir123
     long_name: TOA Brightness Temperature segment mean at 12.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#56#brightnessTemperature'
@@ -516,7 +516,7 @@ datasets:
   bt_mean_cloudy_ir123:
     name: bt_mean_cloudy_ir123
     long_name: TOA Brightness Temperature segment mean at 12.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#57#brightnessTemperature'
@@ -531,7 +531,7 @@ datasets:
   bt_mean_all_ir133:
     name: bt_mean_all_ir133
     long_name: TOA Brightness Temperature segment mean at 13.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#61#brightnessTemperature'
@@ -546,7 +546,7 @@ datasets:
   bt_mean_clear_ir133:
     name: bt_mean_clear_ir133
     long_name: TOA Brightness Temperature segment mean at 13.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#62#brightnessTemperature'
@@ -561,7 +561,7 @@ datasets:
   bt_mean_cloudy_ir133:
     name: bt_mean_cloudy_ir133
     long_name: TOA Brightness Temperature segment mean at 13.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#63#brightnessTemperature'
@@ -912,7 +912,7 @@ datasets:
   std_bt_all_ir38:
     name: std_bt_all_ir38
     long_name: TOA Brightness Temperature standard deviation at 3.8um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#19#brightnessTemperature->firstOrderStatisticalValue'
@@ -927,7 +927,7 @@ datasets:
   std_bt_clear_ir38:
     name: std_bt_clear_ir38
     long_name: TOA Brightness Temperature standard deviation at 3.8um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#20#brightnessTemperature->firstOrderStatisticalValue'
@@ -942,7 +942,7 @@ datasets:
   std_bt_cloudy_ir38:
     name: std_bt_cloudy_ir38
     long_name: TOA Brightness Temperature standard deviation at 3.8um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#21#brightnessTemperature->firstOrderStatisticalValue'
@@ -957,7 +957,7 @@ datasets:
   std_bt_all_wv63:
     name: std_bt_all_wv63
     long_name: TOA Brightness Temperature standard deviation at 6.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#25#brightnessTemperature->firstOrderStatisticalValue'
@@ -972,7 +972,7 @@ datasets:
   std_bt_clear_wv63:
     name: std_bt_clear_wv63
     long_name: TOA Brightness Temperature standard deviation at 6.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#26#brightnessTemperature->firstOrderStatisticalValue'
@@ -987,7 +987,7 @@ datasets:
   std_bt_cloudy_wv63:
     name: std_bt_cloudy_wv63
     long_name: TOA Brightness Temperature standard deviation at 6.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#27#brightnessTemperature->firstOrderStatisticalValue'
@@ -1002,7 +1002,7 @@ datasets:
   std_bt_all_wv73:
     name: std_bt_all_wv73
     long_name: TOA Brightness Temperature standard deviation at 7.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#31#brightnessTemperature->firstOrderStatisticalValue'
@@ -1017,7 +1017,7 @@ datasets:
   std_bt_clear_wv73:
     name: std_bt_clear_wv73
     long_name: TOA Brightness Temperature standard deviation at 7.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#32#brightnessTemperature->firstOrderStatisticalValue'
@@ -1032,7 +1032,7 @@ datasets:
   std_bt_cloudy_wv73:
     name: std_bt_cloudy_wv73
     long_name: TOA Brightness Temperature standard deviation at 7.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#33#brightnessTemperature->firstOrderStatisticalValue'
@@ -1047,7 +1047,7 @@ datasets:
   std_bt_all_ir87:
     name: std_bt_all_ir87
     long_name: TOA Brightness Temperature standard deviation at 8.7um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#37#brightnessTemperature->firstOrderStatisticalValue'
@@ -1062,7 +1062,7 @@ datasets:
   std_bt_clear_ir87:
     name: std_bt_clear_ir87
     long_name: TOA Brightness Temperature standard deviation at 8.7um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#38#brightnessTemperature->firstOrderStatisticalValue'
@@ -1077,7 +1077,7 @@ datasets:
   std_bt_cloudy_ir87:
     name: std_bt_cloudy_ir87
     long_name: TOA Brightness Temperature standard deviation at 8.7um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#39#brightnessTemperature->firstOrderStatisticalValue'
@@ -1092,7 +1092,7 @@ datasets:
   std_bt_all_ir97:
     name: std_bt_all_ir97
     long_name: TOA Brightness Temperature standard deviation at 9.7um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#43#brightnessTemperature->firstOrderStatisticalValue'
@@ -1107,7 +1107,7 @@ datasets:
   std_bt_clear_ir97:
     name: std_bt_clear_ir97
     long_name: TOA Brightness Temperature standard deviation at 9.7um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#44#brightnessTemperature->firstOrderStatisticalValue'
@@ -1122,7 +1122,7 @@ datasets:
   std_bt_cloudy_ir97:
     name: std_bt_cloudy_ir97
     long_name: TOA Brightness Temperature standard deviation at 9.7um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#45#brightnessTemperature->firstOrderStatisticalValue'
@@ -1137,7 +1137,7 @@ datasets:
   std_bt_all_ir105:
     name: std_bt_all_ir105
     long_name: TOA Brightness Temperature standard deviation at 10.5um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#49#brightnessTemperature->firstOrderStatisticalValue'
@@ -1152,7 +1152,7 @@ datasets:
   std_bt_clear_ir105:
     name: std_bt_clear_ir105
     long_name: TOA Brightness Temperature standard deviation at 10.5um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#50#brightnessTemperature->firstOrderStatisticalValue'
@@ -1167,7 +1167,7 @@ datasets:
   std_bt_cloudy_ir105:
     name: std_bt_cloudy_ir105
     long_name: TOA Brightness Temperature standard deviation at 10.5um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#51#brightnessTemperature->firstOrderStatisticalValue'
@@ -1182,7 +1182,7 @@ datasets:
   std_bt_all_ir123:
     name: std_bt_all_ir123
     long_name: TOA Brightness Temperature standard deviation at 12.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#55#brightnessTemperature->firstOrderStatisticalValue'
@@ -1197,7 +1197,7 @@ datasets:
   std_bt_clear_ir123:
     name: std_bt_clear_ir123
     long_name: TOA Brightness Temperature standard deviation at 12.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#56#brightnessTemperature->firstOrderStatisticalValue'
@@ -1212,7 +1212,7 @@ datasets:
   std_bt_cloudy_ir123:
     name: std_bt_cloudy_ir123
     long_name: TOA Brightness Temperature standard deviation at 12.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#57#brightnessTemperature->firstOrderStatisticalValue'
@@ -1227,7 +1227,7 @@ datasets:
   std_bt_all_ir133:
     name: std_bt_all_ir133
     long_name: TOA Brightness Temperature standard deviation at 13.3um (all pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#61#brightnessTemperature->firstOrderStatisticalValue'
@@ -1242,7 +1242,7 @@ datasets:
   std_bt_clear_ir133:
     name: std_bt_clear_ir133
     long_name: TOA Brightness Temperature standard deviation at 13.3um (clear pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#62#brightnessTemperature->firstOrderStatisticalValue'
@@ -1257,7 +1257,7 @@ datasets:
   std_bt_cloudy_ir133:
     name: std_bt_cloudy_ir133
     long_name: TOA Brightness Temperature standard deviation at 13.3um (cloudy pixels)
-    standard_name: toa_brightess_temperature
+    standard_name: toa_brightness_temperature
     resolution: 32000
     file_type: fci_l2_bufr_asr
     key: '#63#brightnessTemperature->firstOrderStatisticalValue'
