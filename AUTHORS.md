@@ -59,6 +59,7 @@ The following people have made contributions to this project:
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Beke Kremmling (bkremmli)](https://github.com/bkremmli) - Deutscher Wetterdienst
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
+- [Diego Lafuente (Nine-Fingers)](https://github.com/Nine-Fingers)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Clement Laplace (ClementLaplace)](https://github.com/ClementLaplace)
 - [Jussi Leinonen (jleinonen)](https://github.com/jleinonen) - meteoswiss
