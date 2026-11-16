@@ -198,8 +198,8 @@ def get_acq_time_cds(start_time, nlines):
 def get_acq_time_exp(start_time, nlines):
     """Get expected scanline acquisition times."""
     tline_exp = np.zeros(464, dtype="datetime64[ms]")
-    tline_exp[0] = np.datetime64("NaT")
-    tline_exp[-1] = np.datetime64("NaT")
+    tline_exp[0] = np.datetime64("NaT", "ms")
+    tline_exp[-1] = np.datetime64("NaT", "ms")
     tline_exp[1:-1] = np.datetime64(start_time)
     tline_exp[1:-1] += np.arange(nlines - 2).astype("timedelta64[ms]")
 
