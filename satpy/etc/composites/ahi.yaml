@@ -458,17 +458,48 @@ composites:
       surface terrain layer with city lights (NASA Black Marble).
     references:
       Research Article: https://journals.ametsoc.org/view/journals/atot/37/3/JTECH-D-19-0134.1.xml
-    lim_low: 78
+    lim_low: 82
     lim_high: 88
     standard_name: geo_color_day_night_blend
     prerequisites:
       - true_color_ndvi_green
       - geo_color_night
 
+  geo_color_no_lights:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the background city lights (black marble).
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night_no_lights
+
+  geo_color_no_blue:
+    compositor: !!python/name:satpy.composites.fill.DayNightCompositor
+    description: >
+      Similar to geo_color, but without the blue colorization of low-level clouds.
+    lim_low: 82
+    lim_high: 88
+    standard_name: geo_color_day_night_blend
+    prerequisites:
+      - true_color_ndvi_green
+      - geo_color_night_no_blue
+
   # GeoColor Night-time
+  geo_color_city_lights:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    standard_name: geo_color_city_lights
+    prerequisites:
+      - name: _night_background_hires
+
   geo_color_high_clouds:
     standard_name: geo_color_high_clouds
-    compositor: !!python/name:satpy.composites.mask.HighCloudCompositor
+    compositor: !!python/name:satpy.composites.mask.CloudCompositor
+    transition_min: 190
+    transition_max: 300
+    transition_gamma: 1.0
     prerequisites:
       - name: B13
 
@@ -487,13 +518,19 @@ composites:
         standard_name: land_water_mask
         url: "https://zenodo.org/records/10076199/files/gshhs_land_water_mask_3km_i.tif"
         known_hash: "sha256:96df83c57416217e191f95dde3d3c1ce0373a8fc220e929228873db246ca3569"
+    optional_prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: B13
+          - name: B11
+      - satellite_zenith_angle
 
   geo_color_background_with_low_clouds:
     compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
     standard_name: night_ir_with_background
     prerequisites:
       - geo_color_low_clouds
-      - _night_background_hires
+      - geo_color_city_lights
 
   geo_color_night:
     compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
@@ -501,6 +538,33 @@ composites:
     prerequisites:
       - geo_color_high_clouds
       - geo_color_background_with_low_clouds
+
+  geo_color_black:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    standard_name: geo_color_black
+    prerequisites:
+      - B13
+
+  geo_color_black_with_low_clouds:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_low_clouds
+      - geo_color_black
+
+  geo_color_night_no_lights:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_black_with_low_clouds
+
+  geo_color_night_no_blue:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - geo_color_high_clouds
+      - geo_color_city_lights
 
   day_severe_storms:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
