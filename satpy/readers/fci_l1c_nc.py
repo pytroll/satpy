@@ -493,10 +493,9 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
-        actual_subsat_lon = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/"
-                                                          "longitude_of_projection_origin"))
+        actual_subsat_lon = self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin")
         actual_subsat_lat = 0.0
-        actual_sat_alt = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        actual_sat_alt = self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height")
         logger.info("For IQT data, the following parameter is hardcoded:"
                     f" satellite_actual_latitude = {actual_subsat_lat}. "
                     "The following parameters are taken from the projection dictionary: "
@@ -509,9 +508,12 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         Compute satellite_actual_longitude, satellite_actual_latitude, satellite_actual_altitude.
         """
-        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude")))
-        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude")))
-        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude")))
+        # The vectors are float32, averaged in float64 to avoid float32 rounding errors
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_longitude"),
+                                             dtype=np.float64))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector("subsatellite_latitude"),
+                                             dtype=np.float64))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector("platform_altitude"), dtype=np.float64))
         return actual_subsat_lon, actual_subsat_lat, actual_sat_alt
 
     @cached_property
@@ -521,15 +523,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_iqt_parameters_lon_lat_alt()
         else:
             actual_subsat_lon, actual_subsat_lat, actual_sat_alt = self.get_parameters_lon_lat_alt()
-        # The "try" is a temporary part of the code as long as the AF data are not fixed
-        try:
-            nominal_and_proj_subsat_lon = float(
-                self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        except ValueError:
-            nominal_and_proj_subsat_lon = 0.0
+        nominal_and_proj_subsat_lon = self.get_and_cache_npxr(
+            "data/mtg_geos_projection/attr/longitude_of_projection_origin")
         nominal_and_proj_subsat_lat = 0.0
-        nominal_and_proj_sat_alt = float(
-            self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        nominal_and_proj_sat_alt = self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height")
 
         orb_param_dict = {
             "orbital_parameters": {
@@ -615,7 +612,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         logger.debug("Row/Cols: {} / {}".format(nlines, ncols))
 
         # Calculate full globe line extent
-        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
+        h = self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height")
 
         extents = {}
         for coord in "xy":
@@ -672,14 +669,10 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         if key["resolution"] in self._cache:
             return self._cache[key["resolution"]]
 
-        a = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis"))
-        h = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height"))
-        rf = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening"))
-        # The "try" is a temporary part of the code as long as the AF data are not modified
-        try:
-            lon_0 = float(self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin"))
-        except ValueError:
-            lon_0 = 0.0
+        a = self.get_and_cache_npxr("data/mtg_geos_projection/attr/semi_major_axis")
+        h = self.get_and_cache_npxr("data/mtg_geos_projection/attr/perspective_point_height")
+        rf = self.get_and_cache_npxr("data/mtg_geos_projection/attr/inverse_flattening")
+        lon_0 = self.get_and_cache_npxr("data/mtg_geos_projection/attr/longitude_of_projection_origin")
         sweep = str(self.get_and_cache_npxr("data/mtg_geos_projection/attr/sweep_angle_axis"))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
@@ -843,6 +836,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             sun_earth_distance = sun_earth_distance_correction(utc_date)
             logger.info(f"The value sun_earth_distance is set to {sun_earth_distance} AU.")
         else:
+            # The distances are float32 values in km, which a float32 mean would be off by tens of km
             sun_earth_distance = np.nanmean(
-                self._get_aux_data_lut_vector("earth_sun_distance")) / 149597870.7  # [AU]
+                self._get_aux_data_lut_vector("earth_sun_distance"), dtype=np.float64) / 149597870.7  # [AU]
         return sun_earth_distance
