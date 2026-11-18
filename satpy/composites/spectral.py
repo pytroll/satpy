@@ -1,6 +1,7 @@
 """Composite classes for spectral adjustments."""
 
 import logging
+import warnings
 
 import numpy as np
 
@@ -96,19 +97,17 @@ class HybridGreen(SpectralBlender):
 class NDVIHybridGreen(SpectralBlender):
     """Construct a NDVI-weighted hybrid green channel.
 
-    This green band correction follows the same approach as the HybridGreen compositor, but with a dynamic blend
-    factor `f` that depends on the pixel-level Normalized Difference Vegetation Index (NDVI). The higher the NDVI, the
-    smaller the contribution from the nir channel will be, following a liner (default) or non-linear relationship
-    between the two ranges `[ndvi_min, ndvi_max]` and `limits`.
+    This green band correction method follows a similar approach as the HybridGreen compositor, but uses a dynamic blend
+    factor `f` that depends on the pixel-level Normalized Difference Vegetation Index (NDVI). The NIR contribution
+    decreases with increasing NDVI, following a third-order polynomial derived from one year of collocated FCI and OLCI
+    observations. Pixels with high NDVI (>= 0.9) have an NIR contribution of approximately 4%, while pixels with low
+    NDVI (<= 0.1) have an NIR contribution of approximately 28%. See Strandgren et al. (2026, in prep.) for details on
+    the NDVI-based hybrid green correction method.
 
-    As an example, a new green channel using e.g. FCI data and the NDVIHybridGreen compositor can be defined like::
+    As an example, a new green channel using e.g. FCI data can be defined like this::
 
       ndvi_hybrid_green:
         compositor: !!python/name:satpy.composites.spectral.NDVIHybridGreen
-        ndvi_min: 0.0
-        ndvi_max: 1.0
-        limits: [0.15, 0.05]
-        strength: 1.0
         prerequisites:
           - name: vis_05
             modifiers: [sunz_corrected, rayleigh_corrected]
@@ -118,34 +117,32 @@ class NDVIHybridGreen(SpectralBlender):
             modifiers: [sunz_corrected ]
         standard_name: toa_bidirectional_reflectance
 
-    In this example, pixels with NDVI=0.0 will be a weighted average with 15% contribution from the
-    near-infrared vis_08 channel and the remaining 85% from the native green vis_05 channel, whereas
-    pixels with NDVI=1.0 will be a weighted average with 5% contribution from the near-infrared
-    vis_08 channel and the remaining 95% from the native green vis_05 channel. For other values of
-    NDVI a linear interpolation between these values will be performed.
 
-    A strength larger or smaller than 1.0 will introduce a non-linear relationship between the two ranges
-    `[ndvi_min, ndvi_max]` and `limits`. Hence, a higher strength (> 1.0) will result in a slower transition
-    to higher/lower fractions at the NDVI extremes. Similarly, a lower strength (< 1.0) will result in a
-    faster transition to higher/lower fractions at the NDVI extremes.
     """
 
-    def __init__(self, *args, ndvi_min=0.0, ndvi_max=1.0, limits=(0.15, 0.05), strength=1.0, **kwargs):
-        """Initialize class and set the NDVI limits, blending fraction limits and strength."""
-        if strength <= 0.0:
-            raise ValueError(f"Expected strength greater than 0.0, got {strength}.")
+    def __init__(self, *args, **kwargs):
+        """Initialize class and set the NDVI limits and regression coefficients for the correction.
 
-        self.ndvi_min = ndvi_min
-        self.ndvi_max = ndvi_max
-        self.limits = limits
-        self.strength = strength
+        Also issue warning if any deprecated arguments from earlier implementation of the correction
+        are used.
+        """
+        deprecated_args = {"ndvi_min", "ndvi_max", "limits", "strength"}
+        for name in deprecated_args & kwargs.keys():
+            warnings.warn(
+                f"'{name}' has been deprecated for the NDVIHybridGreen Compositor and will be ignored.",
+                UserWarning,
+                stacklevel=2,
+            )
+            kwargs.pop(name)
+
+        self.ndvi_min = 0.1
+        self.ndvi_max = 0.9
+        self.poly_coefs = (-1.0349, 2.0206, -1.3701, 0.3940)
         super().__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
-        """Construct the hybrid green channel weighted by NDVI."""
-        LOG.info(f"Applying NDVI-weighted hybrid-green correction with limits [{self.limits[0]}, "
-                 f"{self.limits[1]}] and strength {self.strength}.")
-
+        """Construct the NDVI hybrid green channel."""
+        LOG.info("Applying NDVI hybrid green correction.")
         projectables = self.match_data_arrays(projectables)
 
         ndvi = (projectables[2] - projectables[1]) / (projectables[2] + projectables[1])
@@ -156,39 +153,15 @@ class NDVIHybridGreen(SpectralBlender):
         # Copy should remain `True` as dask operations require copies to be made
         ndvi.data = np.nan_to_num(ndvi.data, True, self.ndvi_min)
 
-        # Introduce non-linearity to ndvi for non-linear scaling to NIR blend fraction
-        if self.strength != 1.0:  # self._apply_strength() has no effect if strength = 1.0 -> no non-linear behaviour
-            ndvi = self._apply_strength(ndvi)
-
-        # Compute pixel-level NIR blend fractions from ndvi
-        fraction = self._compute_blend_fraction(ndvi)
+        # Compute pixel-level NIR blend fractions from NDVI using third-order polynomial
+        coef_3, coef_2, coef_1, coef_0 = self.poly_coefs
+        fraction = ((coef_3 * ndvi + coef_2) * ndvi + coef_1) * ndvi + coef_0
+        fraction = fraction.clip(0.0, 1.0)
 
         # Prepare input as required by parent class (SpectralBlender)
         self.fractions = (1 - fraction, fraction)
 
         return super().__call__([projectables[0], projectables[2]], **attrs)
-
-    def _apply_strength(self, ndvi):
-        """Introduce non-linearity by applying strength factor.
-
-        The method introduces non-linearity to the ndvi for a non-linear scaling from ndvi to blend fraction in
-        `_compute_blend_fraction`. This can be used for a slower or faster transition to higher/lower fractions
-        at the ndvi extremes. If strength equals 1.0, this operation has no effect on the ndvi.
-        """
-        ndvi = ndvi ** self.strength / (ndvi ** self.strength + (1 - ndvi) ** self.strength)
-
-        return ndvi
-
-    def _compute_blend_fraction(self, ndvi):
-        """Compute pixel-level fraction of NIR signal to blend with native green signal.
-
-        This method linearly scales the input ndvi values to pixel-level blend fractions within the range
-        `[limits[0], limits[1]]` following this implementation <https://stats.stackexchange.com/a/281164>.
-        """
-        fraction = (ndvi - self.ndvi_min) / (self.ndvi_max - self.ndvi_min) * (self.limits[1] - self.limits[0]) \
-            + self.limits[0]
-
-        return fraction
 
 
 # TODO: Turn this into a weighted RGB compositor
