@@ -12,241 +12,170 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition
 
+from satpy.composites.fill import DayNightCompositor
 from satpy.tests.utils import CustomScheduler
 
+# Solar zenith angles used when the SZA is given as an input. With the default limits (85 and 88 degrees)
+# these pixels are fully day, twilight, fully night, and fully night.
+SZA = [[80., 86.], [94., 100.]]
+# Blending weight (1 = day, 0 = night) of the twilight pixel
+TWILIGHT_WEIGHT = 0.6670401
+# When the SZA is computed instead, it is about 64 degrees over the whole area at START_TIME, so every
+# pixel is fully day.
+AREA = AreaDefinition("test", "", "", "+proj=longlat", 2, 2, (-95.0, 40.0, -92.0, 43.0))
+START_TIME = dt.datetime(2018, 1, 1, 18, 0, 0)
 
-class TestDayNightCompositor(unittest.TestCase):
-    """Test DayNightCompositor."""
+DAY = [[0.1, 0.2], [0.3, 0.4]]
+NIGHT = [[0.6, 0.7], [0.8, 0.9]]
+# DAY and NIGHT blended at the twilight pixel
+TWILIGHT_BLEND = 0.2 * TWILIGHT_WEIGHT + 0.7 * (1 - TWILIGHT_WEIGHT)
+# Alpha band value of LA and RGBA inputs
+INPUT_ALPHA = 0.5
 
-    def setUp(self):
-        """Create test data."""
-        bands = ["R", "G", "B"]
-        start_time = dt.datetime(2018, 1, 1, 18, 0, 0)
 
-        # RGB
-        a = np.zeros((3, 2, 2), dtype=np.float32)
-        a[:, 0, 0] = 0.1
-        a[:, 0, 1] = 0.2
-        a[:, 1, 0] = 0.3
-        a[:, 1, 1] = 0.4
-        a = da.from_array(a, a.shape)
-        self.data_a = xr.DataArray(a, attrs={"test": "a", "start_time": start_time},
-                                   coords={"bands": bands}, dims=("bands", "y", "x"))
-        b = np.zeros((3, 2, 2), dtype=np.float32)
-        b[:, 0, 0] = np.nan
-        b[:, 0, 1] = 0.25
-        b[:, 1, 0] = 0.50
-        b[:, 1, 1] = 0.75
-        b = da.from_array(b, b.shape)
-        self.data_b = xr.DataArray(b, attrs={"test": "b", "start_time": start_time},
-                                   coords={"bands": bands}, dims=("bands", "y", "x"))
+def _make_image(mode, values):
+    """Make an image with ``values`` in every color band and INPUT_ALPHA in the alpha band, if any."""
+    values = np.array(values, dtype=np.float32)
+    bands = [np.full_like(values, INPUT_ALPHA) if band == "A" else values for band in mode]
+    return xr.DataArray(da.from_array(np.stack(bands)), dims=("bands", "y", "x"), coords={"bands": list(mode)},
+                        attrs={"mode": mode, "area": AREA, "start_time": START_TIME})
 
-        sza = np.array([[80., 86.], [94., 100.]], dtype=np.float32)
-        sza = da.from_array(sza, sza.shape)
-        self.sza = xr.DataArray(sza, dims=("y", "x"))
 
-        # fake area
-        my_area = AreaDefinition(
-            "test", "", "",
-            "+proj=longlat",
-            2, 2,
-            (-95.0, 40.0, -92.0, 43.0),
-        )
-        self.data_a.attrs["area"] = my_area
-        self.data_b.attrs["area"] = my_area
-        # not used except to check that it matches the data arrays
-        self.sza.attrs["area"] = my_area
+def _make_sza():
+    """Make the SZA input."""
+    return xr.DataArray(da.from_array(np.array(SZA, dtype=np.float32)), dims=("y", "x"), attrs={"area": AREA})
 
-    def test_daynight_sza(self):
-        """Test compositor with both day and night portions when SZA data is included."""
-        from satpy.composites.fill import DayNightCompositor
 
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_night")
-            res = comp((self.data_a, self.data_b, self.sza))
-            res = res.compute()
-        expected = np.array([[0., 0.22122374], [0.5, 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
+def _enhance2dataset(dataset, convert_p=False):
+    """Mock the enhance2dataset to return the original data."""
+    return dataset
 
-    def test_daynight_sza_with_missing_data(self):
-        """Test that a given SZA does not keep pixels whose fully-weighted input has no data."""
-        from satpy.composites.fill import DayNightCompositor
 
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_night")
-            res = comp((self.data_b, self.data_a, self.sza))
-            res = res.compute()
-        # Top-left pixel is fully day (SZA 80) and the day input is missing there
-        expected = np.array([[np.nan, 0.11042609], [0.66835017, 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
-
-    def test_daynight_area(self):
-        """Test compositor both day and night portions when SZA data is not provided."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_night")
-            res = comp((self.data_a, self.data_b))
-            res = res.compute()
-        expected_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        for i in range(3):
-            np.testing.assert_allclose(res.values[i], expected_channel)
-
-    def test_night_only_sza_with_alpha(self):
-        """Test compositor with night portion with alpha band when SZA data is included."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
-            res = comp((self.data_b, self.sza))
-            res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[np.nan, 0.3329599], [1., 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_red_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_night_only_sza_without_alpha(self):
-        """Test compositor with night portion without alpha band when SZA data is included."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
-            res = comp((self.data_a, self.sza))
-            res = res.compute()
-        # The day pixel (SZA 80) is masked with NaN; night pixels keep their data
-        expected = np.array([[np.nan, 0.11042609], [0.6683502, 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected)
-        assert "A" not in res.bands
-
-    def test_night_only_area_with_alpha(self):
-        """Test compositor with night portion with alpha band when SZA data is not provided."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=True)
-            res = comp((self.data_b,))
-            res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[np.nan, 0.], [0., 0.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_l_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_night_only_area_without_alpha(self):
-        """Test compositor with night portion without alpha band when SZA data is not provided."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="night_only", include_alpha=False)
-            res = comp((self.data_b,))
-            res = res.compute()
-        # The test area is entirely in daylight at this time, so all pixels are masked
-        expected = np.array([[np.nan, np.nan], [np.nan, np.nan]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected)
-        assert "A" not in res.bands
-
-    def test_day_only_sza_with_alpha(self):
-        """Test compositor with day portion with alpha band when SZA data is included."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
-            res = comp((self.data_a, self.sza))
-            res = res.compute()
-        expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[1., 0.6670401], [0., 0.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_red_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_day_only_sza_with_alpha_and_missing_data(self):
-        """Test compositor with day portion with alpha band when SZA data is included and there is missing data."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
-            res = comp((self.data_b, self.sza))
-            res = res.compute()
-        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[np.nan, 0.6670401], [0., 0.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_red_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_day_only_sza_without_alpha(self):
-        """Test compositor with day portion without alpha band when SZA data is included."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-            res = comp((self.data_a, self.sza))
-            res = res.compute()
-        expected_channel_data = np.array([[0., 0.22122373], [np.nan, np.nan]], dtype=np.float32)
-        assert res.dtype == np.float32
-        for i in range(3):
-            np.testing.assert_allclose(res.values[i], expected_channel_data)
-        assert "A" not in res.bands
-
-    def test_day_only_sza_without_alpha_masks_night_pixels(self):
-        """Night pixels are masked (NaN) in day-only mode without alpha (#3003)."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-            res = comp((self.data_a, self.sza))
-            res = res.compute()
-        # Bottom row has SZA 94/100 -> night -> must be NaN, not 0
-        assert np.isnan(res.values[:, 1, :]).all()
-        # Top row has SZA 80/86 -> day -> data must be kept
-        assert not np.isnan(res.values[:, 0, :]).any()
-
-    def test_day_only_area_with_alpha(self):
-        """Test compositor with day portion with alpha_band when SZA data is not provided."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
-            res = comp((self.data_a,))
-            res = res.compute()
-        expected_l_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[1., 1.], [1., 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_l_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_day_only_area_with_alpha_and_missing_data(self):
-        """Test compositor with day portion with alpha_band when SZA data is not provided and there is missing data."""
-        from satpy.composites.fill import DayNightCompositor
-
-        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
-            res = comp((self.data_b,))
-            res = res.compute()
-        expected_l_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[np.nan, 1.], [1., 1.]], dtype=np.float32)
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected_l_channel)
-        np.testing.assert_allclose(res.values[-1], expected_alpha)
-
-    def test_day_only_area_without_alpha(self):
-        """Test compositor with day portion without alpha_band when SZA data is not provided."""
-        from satpy.composites.fill import DayNightCompositor
-
-        # with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
-        comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=False)
-        res_dask = comp((self.data_a,))
+def test_day_night_compositor_enhances_inputs():
+    """Test that both inputs are enhanced before they are blended."""
+    with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night="day_night")
+        res_dask = comp((_make_image("RGB", DAY), _make_image("RGB", NIGHT), _make_sza()))
         res = res_dask.compute()
-        expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
-        assert res_dask.dtype == res.dtype
-        assert res.dtype == np.float32
-        np.testing.assert_allclose(res.values[0], expected)
-        assert "A" not in res.bands
+    # The default linear stretch maps both inputs onto the same values
+    expected = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
+    assert res_dask.dtype == res.dtype
+    assert res.dtype == np.float32
+    for band in "RGB":
+        np.testing.assert_allclose(res.sel(bands=band).values, expected, rtol=1e-6)
+
+
+@mock.patch("satpy.composites.fill.enhance2dataset", _enhance2dataset)
+@pytest.mark.parametrize(
+    ("include_alpha", "sza_given", "day", "night", "expected"),
+    [
+        pytest.param(True, True, DAY, [[np.nan, 0.7], [0.8, 0.9]], [[0.1, TWILIGHT_BLEND], [0.8, 0.9]],
+                     id="sza-night-missing-on-day-side"),
+        pytest.param(True, True, DAY, [[0.6, np.nan], [0.8, 0.9]], [[0.1, 0.2 * TWILIGHT_WEIGHT], [0.8, 0.9]],
+                     id="sza-night-missing-in-twilight"),
+        pytest.param(True, True, [[np.nan, 0.2], [0.3, 0.4]], NIGHT, [[np.nan, TWILIGHT_BLEND], [0.8, 0.9]],
+                     id="sza-day-missing-on-day-side"),
+        pytest.param(False, True, [[np.nan, 0.2], [0.3, 0.4]], NIGHT, [[0., TWILIGHT_BLEND], [0.8, 0.9]],
+                     id="sza-day-missing-on-day-side-without-alpha"),
+        pytest.param(True, False, [[np.nan, 0.2], [0.3, 0.4]], NIGHT, [[np.nan, 0.2], [0.3, 0.4]],
+                     id="computed-day-missing"),
+        pytest.param(False, False, [[np.nan, 0.2], [0.3, 0.4]], NIGHT, [[0., 0.2], [0.3, 0.4]],
+                     id="computed-day-missing-without-alpha"),
+    ],
+)
+def test_day_night_compositor_day_night(include_alpha, sza_given, day, night, expected):
+    """Test blending a day and a night input, including pixels where one of them is missing."""
+    inputs = (_make_image("RGB", day), _make_image("RGB", night))
+    if sza_given:
+        inputs += (_make_sza(),)
+    with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night="day_night", include_alpha=include_alpha)
+        res_dask = comp(inputs)
+        res = res_dask.compute()
+    assert list(res["bands"].values) == ["R", "G", "B"]
+    assert res_dask.dtype == res.dtype
+    assert res.dtype == np.float32
+    for band in "RGB":
+        np.testing.assert_allclose(res.sel(bands=band).values, expected, rtol=1e-6)
+
+
+@mock.patch("satpy.composites.fill.enhance2dataset", _enhance2dataset)
+@pytest.mark.parametrize(
+    ("day_night", "mode", "sza_given", "values", "exp_weight"),
+    [
+        pytest.param("day_only", "RGB", True, DAY, [[1., TWILIGHT_WEIGHT], [0., 0.]],
+                     id="day_only-RGB-sza"),
+        pytest.param("day_only", "RGB", True, [[np.nan, 0.2], [0.3, 0.4]], [[np.nan, TWILIGHT_WEIGHT], [0., 0.]],
+                     id="day_only-RGB-sza-missing-on-day-side"),
+        pytest.param("day_only", "RGB", False, [[np.nan, 0.2], [0.3, 0.4]], [[np.nan, 1.], [1., 1.]],
+                     id="day_only-RGB-computed-missing-on-day-side"),
+        pytest.param("night_only", "RGB", True, [[0.6, 0.7], [np.nan, 0.9]],
+                     [[0., 1 - TWILIGHT_WEIGHT], [np.nan, 1.]],
+                     id="night_only-RGB-sza-missing-on-night-side"),
+        pytest.param("night_only", "RGB", False, [[np.nan, 0.7], [0.8, 0.9]], [[np.nan, 0.], [0., 0.]],
+                     id="night_only-RGB-computed-missing-on-day-side"),
+        pytest.param("day_only", "LA", True, DAY, [[1., TWILIGHT_WEIGHT], [0., 0.]],
+                     id="day_only-LA-sza"),
+        pytest.param("night_only", "RGBA", True, NIGHT, [[0., 1 - TWILIGHT_WEIGHT], [1., 1.]],
+                     id="night_only-RGBA-sza"),
+    ],
+)
+def test_day_night_compositor_single_side_with_alpha(day_night, mode, sza_given, values, exp_weight):
+    """Test that the alpha band is scaled by the weight of the kept side and the color bands are untouched.
+
+    The weight is NaN where the input is missing.
+    """
+    image = _make_image(mode, values)
+    inputs = (image, _make_sza()) if sza_given else (image,)
+    with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night=day_night, include_alpha=True)
+        res_dask = comp(inputs)
+        res = res_dask.compute()
+    exp_mode = mode if mode.endswith("A") else mode + "A"
+    assert list(res["bands"].values) == list(exp_mode)
+    assert res_dask.dtype == res.dtype
+    assert res.dtype == np.float32
+    input_alpha = image.sel(bands="A").values if mode.endswith("A") else 1.
+    np.testing.assert_allclose(res.sel(bands="A").values, input_alpha * np.array(exp_weight), rtol=1e-6)
+    for band in exp_mode[:-1]:
+        np.testing.assert_allclose(res.sel(bands=band).values, values)
+
+
+@mock.patch("satpy.composites.fill.enhance2dataset", _enhance2dataset)
+@pytest.mark.parametrize(
+    ("day_night", "mode", "sza_given", "values", "exp_weight"),
+    [
+        pytest.param("day_only", "RGB", True, DAY, [[1., TWILIGHT_WEIGHT], [np.nan, np.nan]],
+                     id="day_only-RGB-sza"),
+        pytest.param("day_only", "RGB", False, [[np.nan, 0.2], [0.3, 0.4]], [[1., 1.], [1., 1.]],
+                     id="day_only-RGB-computed-missing-on-day-side"),
+        pytest.param("night_only", "RGB", True, NIGHT, [[np.nan, 1 - TWILIGHT_WEIGHT], [1., 1.]],
+                     id="night_only-RGB-sza"),
+        pytest.param("night_only", "RGB", False, NIGHT, [[np.nan, np.nan], [np.nan, np.nan]],
+                     id="night_only-RGB-computed"),
+        pytest.param("day_only", "LA", True, DAY, [[1., TWILIGHT_WEIGHT], [np.nan, np.nan]],
+                     id="day_only-LA-sza"),
+        pytest.param("night_only", "RGBA", True, NIGHT, [[np.nan, 1 - TWILIGHT_WEIGHT], [1., 1.]],
+                     id="night_only-RGBA-sza"),
+    ],
+)
+def test_day_night_compositor_single_side_without_alpha(day_night, mode, sza_given, values, exp_weight):
+    """Test that every band, including an input alpha band, is scaled by the weight of the kept side.
+
+    The weight is NaN on the discarded side.
+    """
+    image = _make_image(mode, values)
+    inputs = (image, _make_sza()) if sza_given else (image,)
+    with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+        comp = DayNightCompositor(name="dn_test", day_night=day_night, include_alpha=False)
+        res_dask = comp(inputs)
+        res = res_dask.compute()
+    assert list(res["bands"].values) == list(mode)
+    assert res_dask.dtype == res.dtype
+    assert res.dtype == np.float32
+    for band in mode:
+        np.testing.assert_allclose(res.sel(bands=band).values,
+                                   image.sel(bands=band).values * np.array(exp_weight), rtol=1e-6)
 
 
 class TestFillingCompositor(unittest.TestCase):
@@ -284,11 +213,6 @@ class TestMultiFiller(unittest.TestCase):
         np.testing.assert_allclose(res.data, expected.data)
         assert "units" in res.attrs
         assert res.attrs["units"] == "K"
-
-
-def _enhance2dataset(dataset, convert_p=False):
-    """Mock the enhance2dataset to return the original data."""
-    return dataset
 
 
 class TestBackgroundCompositor:
