@@ -141,20 +141,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
     def _apply_correction(self, proj, coszen):
 
         use_legacy = satpy.config.get("use_legacy_sunz_correction")
-        if (self.correction_limit == "__default__" or self.max_sza == "__default__") and use_legacy:
-            warnings.warn(
-                "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
-                "be removed in Satpy v1.0 to allow computation of the true reflectance with the "
-                "'sunz_corrected' modifier. To avoid overcorrection at high angles in (RGB) imagery, it is "
-                "recommended to use the 'effective_solar_pathlength_corrected' modifier instead. "
-                "To retain the current reduction after upgrading to Satpy v1.0, either set "
-                "`satpy.config.set(use_legacy_sunz_correction=True)` or explicitly set `correction_limit: 88.0` "
-                "and `max_sza: 95.0` in a local definition of the modifier. To opt in to the new "
-                "behaviour before Satpy v1.0 and disable this warning, set "
-                "`satpy.config.set(use_legacy_sunz_correction=False)`.",
-                UserWarning,
-                stacklevel=2,
-            )
+        if use_legacy:
+            self._warn_legacy_sunz_correction_with_defaults()
 
         if self.correction_limit == "__default__":
             correction_limit = 88.0 if use_legacy else None
@@ -169,6 +157,22 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         res = proj.copy()
         res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=correction_limit, max_sza=max_sza)
         return res
+
+    def _warn_legacy_sunz_correction_with_defaults(self):
+        if self.correction_limit == "__default__" or self.max_sza == "__default__":
+            warnings.warn(
+                "The default reduction of the standard Sun zenith angle correction above 88 degrees will "
+                "be removed in Satpy v1.0 to allow computation of the true reflectance with the "
+                "'sunz_corrected' modifier. To avoid overcorrection at high angles in (RGB) imagery, it is "
+                "recommended to use the 'effective_solar_pathlength_corrected' modifier instead. "
+                "To retain the current reduction after upgrading to Satpy v1.0, either set "
+                "`satpy.config.set(use_legacy_sunz_correction=True)` or explicitly set `correction_limit: 88.0` "
+                "and `max_sza: 95.0` in a local definition of the modifier. To opt in to the new "
+                "behaviour before Satpy v1.0 and disable this warning, set "
+                "`satpy.config.set(use_legacy_sunz_correction=False)`.",
+                UserWarning,
+                stacklevel=2,
+            )
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):

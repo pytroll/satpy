@@ -540,38 +540,53 @@ def sunzen_corr_cos(data: da.Array,
 
     """
     # Check if any modification of the standard correction is requested and log accordingly
-    if correction_limit is None and max_sza is not None:
-        method = "cutoff"
-        logger.debug(
-            f"Applying the standard sun-zenith correction [1/cos(sunz)] but setting correction (and reflectance) "
-            f"to 0 for angles larger than {max_sza} degrees."
-        )
-    elif correction_limit is not None and max_sza is None:
-        method = "capped"
-        logger.debug(
-            f"Applying the standard sun-zenith correction [1/cos(sunz)] but capping the maximum correction "
-            f"for angles larger than {correction_limit} degrees."
-        )
-    elif correction_limit is not None and max_sza is not None:
-        method = "reduced"
-        logger.debug(
-            f"Applying the standard sun-zenith correction [1/cos(sunz)] but gradually reducing the correction "
-            f"for angles larger than {correction_limit} degrees up to {max_sza} degrees where the "
-            f"correction (and reflectance) becomes 0."
-        )
-        if max_sza <= correction_limit:
-            raise ValueError(
-                "`max_sza` must be larger than `correction_limit` for a gradual "
-                "reduction of the correction to work.")
+    if correction_limit is not None:
+        method, log_msg = _method_and_msg_for_valid_correction_limit(correction_limit, max_sza)
     else:
-        method = "standard"
-        logger.debug("Applying the standard sun-zenith correction [1/cos(sunz)].")
+        method, log_msg = _method_and_msg_for_unset_correction_limit(max_sza)
 
+    logger.debug(log_msg.format(correction_limit=correction_limit, max_sza=max_sza))
     return da.map_blocks(_sunzen_corr_cos_ndarray,
                          data, cos_zen, method, correction_limit, max_sza,
                          meta=np.array((), dtype=data.dtype),
                          dtype=data.dtype,
                          chunks=data.chunks)
+
+
+def _method_and_msg_for_valid_correction_limit(correction_limit: float, max_sza: Optional[float]) -> tuple[str, str]:
+    if max_sza is None:
+        method = "capped"
+        log_msg = (
+            "Applying the standard sun-zenith correction [1/cos(sunz)] but capping the maximum correction "
+            "for angles larger than {correction_limit} degrees."
+        )
+        return method, log_msg
+    if max_sza <= correction_limit:
+        raise ValueError(
+            "`max_sza` must be larger than `correction_limit` for a gradual "
+            "reduction of the correction to work.")
+    method = "reduced"
+    log_msg = (
+        "Applying the standard sun-zenith correction [1/cos(sunz)] but reducing the correction "
+        "for angles larger than {correction_limit} and setting it to 0 for angles "
+        "larger than {max_sza} degrees."
+    )
+    return method, log_msg
+
+
+def _method_and_msg_for_unset_correction_limit(max_sza: Optional[float]) -> tuple[str, str]:
+    if max_sza is None:
+        method = "standard"
+        log_msg = (
+            "Applying the standard sun-zenith correction [1/cos(sunz)] without any capping or reduction."
+        )
+        return method, log_msg
+    method = "cutoff"
+    log_msg = (
+        "Applying the standard sun-zenith correction [1/cos(sunz)] but setting it to 0 for angles "
+        "larger than {max_sza} degrees."
+    )
+    return method, log_msg
 
 
 def _sunzen_corr_cos_ndarray(data: np.ndarray,
