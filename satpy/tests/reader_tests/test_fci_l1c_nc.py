@@ -1,11 +1,8 @@
 """Tests for the 'fci_l1c_nc' reader."""
-import contextlib
 import datetime
-import functools
 import logging
 import os
 import shutil
-from unittest import mock
 
 import netCDF4
 import numpy as np
@@ -41,21 +38,12 @@ GRID_TYPE_INFO_FOR_TEST_CONTENT = {
         "scale_factor": 5.58871526031607e-05,
         "add_offset": 1.55617776423501e-01,
     },
-    "3km": {
-        "nrows": 67,
-        "ncols": 3712,
-        "scale_factor": 8.38307287956433e-05,
-        "add_offset": 0.155631748009112,
-    },
 }
 
 LIST_CHANNEL_SOLAR = ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
                       "nir_13", "nir_16", "nir_22"]
 LIST_CHANNEL_TERRAN = ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
                        "ir_123", "ir_133"]
-LIST_TOTAL_CHANNEL = LIST_CHANNEL_SOLAR + LIST_CHANNEL_TERRAN
-LIST_RESOLUTION_VIS06_AF = ["1km", "3km"]
-LIST_RESOLUTION_AF = ["3km"]
 EXPECTED_POS_INFO_FOR_FILETYPE = {
     "fdhsi": {"1km": {"start_position_row": 1,
                       "end_position_row": 200,
@@ -73,22 +61,6 @@ EXPECTED_POS_INFO_FOR_FILETYPE = {
                      "end_position_row": 200,
                      "grid_width": 11136,
                      "segment_height": 200}},
-    "fci_af": {"3km": {"start_position_row": 1,
-                       "end_position_row": 67,
-                       "segment_height": 67,
-                       "grid_width": 3712
-                       },
-               },
-    "fci_af_vis_06": {"3km": {"start_position_row": 1,
-                              "end_position_row": 67,
-                              "segment_height": 67,
-                              "grid_width": 3712
-                              },
-                      "1km": {"start_position_row": 1,
-                              "end_position_row": 200,
-                              "grid_width": 11136,
-                              "segment_height": 200}
-                      }
 }
 
 CHANS_FDHSI = {"solar": LIST_CHANNEL_SOLAR,
@@ -186,39 +158,6 @@ REQUIRED_ATTR_KEYS = {
     "sensor",
     "resolution",
 }
-
-def resolutions_AF_products(channel):
-    """Get the resolutions of the African products."""
-    if channel == "vis_06":
-        return LIST_RESOLUTION_VIS06_AF
-    else:
-        return LIST_RESOLUTION_AF
-
-
-def fill_chans_af():
-    """Fill the dict CHANS_AF and the list TEST_FILENAMES with the right channel and resolution."""
-    chans_af = {}
-    for channel in LIST_TOTAL_CHANNEL:
-        list_resol = resolutions_AF_products(channel)
-        if channel in ["wv_63", "wv_73"]:
-            ch_name_for_file = channel.replace("wv", "ir").replace("_", "").upper()
-        else:
-            ch_name_for_file = channel.replace("_", "").upper()
-        for resol in list_resol:
-            TEST_FILENAMES[f"af_{channel}_{resol}"] = [f"W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1-FCI-1C-RRAD"
-                                                       f"-{resol.upper()}-AF-{ch_name_for_file}-x-x---NC4E_C_EUMT_"
-                                                       f"20240125144655_DT_OPE"
-                                                       f"_20240109080007_20240109080924_N_JLS_T_0049_0000.nc"]
-            if channel.split("_")[0] in ["vis", "nir"]:
-                chans_af[f"{channel}_{resol}"] = {"solar": [channel],
-                                                  "solar_grid_type": [resol]}
-            elif channel.split("_")[0] in ["ir", "wv"]:
-                chans_af[f"{channel}_{resol}"] = {"terran": [channel],
-                                                  "terran_grid_type": [resol]}
-    return chans_af
-
-
-CHANS_AF = fill_chans_af()
 
 # Engines to read the test files with explicitly. Tests without an engine use the reader's default list of engines.
 ENGINES = ["netcdf4", "h5netcdf"]
@@ -550,16 +489,6 @@ def hrfi_iqti_file(fci_l1c_dir):
     return _write_test_file(_get_test_content_iqti(CHANS_HRFI, "_hr"), fci_l1c_dir / TEST_FILENAMES["hrfi_iqti"][0])
 
 
-@pytest.fixture(scope="module")
-def af_file_writer(fci_l1c_dir):
-    """Get a function returning the AF test file of a channel and resolution, which it writes the first time."""
-    @functools.cache
-    def get_af_file(channel, resolution):
-        return _write_test_file(_get_test_content(CHANS_AF[f"{channel}_{resolution}"]),
-                                fci_l1c_dir / TEST_FILENAMES[f"af_{channel}_{resolution}"][0])
-    return get_af_file
-
-
 # ----------------------------------------------------
 # Fixtures preparation -------------------------------
 # ----------------------------------------------------
@@ -581,26 +510,6 @@ def _get_reader_with_filehandlers(filenames, reader_configs, engine=None, **read
     reader.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
     return reader
 
-
-def get_list_channel_calibration(calibration):
-    """Get the channel's list according the calibration."""
-    if calibration == "unnormalized_reflectance":
-        return LIST_CHANNEL_SOLAR
-    # 8< v1.0
-    elif calibration == "reflectance":
-        return LIST_CHANNEL_SOLAR
-    # >8 v1.0
-    elif calibration == "brightness_temperature":
-        return LIST_CHANNEL_TERRAN
-    else:
-        return LIST_TOTAL_CHANNEL
-
-
-def generate_parameters(calibration):
-    """Generate dynamically the parameters."""
-    for channel in get_list_channel_calibration(calibration):
-        for resolution in resolutions_AF_products(channel):
-            yield channel, resolution
 
 
 def _get_fh_param(filetype, channels, path):
@@ -657,12 +566,6 @@ def FakeFCIFileHandlerHRFIQ4_fixture(hrfi_file):
     return _get_fh_param("fci_l1c_hrfi", CHANS_HRFI, _copy_test_file(hrfi_file, TEST_FILENAMES["hrfi_q4"][0]))
 
 
-@pytest.fixture
-def FakeFCIFileHandlerAF_fixture(af_file_writer, channel, resolution):
-    """Get the AF test file of a channel and resolution, including file type and channels."""
-    return _get_fh_param("fci_l1c_af", CHANS_AF[f"{channel}_{resolution}"], af_file_writer(channel, resolution))
-
-
 # ----------------------------------------------------
 # Tests ----------------------------------------------
 # ----------------------------------------------------
@@ -684,14 +587,6 @@ class ModuleTestFCIL1cNcReader:
                                           "filenames": TEST_FILENAMES["fdhsi_other_coverage"]},
                              "hrfi_other_coverage": {"channels": CHANS_HRFI,
                                          "filenames": TEST_FILENAMES["hrfi_other_coverage"]}}
-
-    @staticmethod
-    def _get_type_ter_AF(channel):
-        """Get the type_ter."""
-        if channel.split("_")[0] in ["vis", "nir"]:
-            return "solar"
-        elif channel.split("_")[0] in ["wv", "ir"]:
-            return "terran"
 
     @staticmethod
     def _get_assert_attrs(res, ch, attrs_dict):
@@ -752,16 +647,6 @@ class ModuleTestFCIL1cNcReader:
         else:
             self._other_calibration_test(res, ch, dict_arg)
 
-    def _get_res_AF(self, channel, fh_param, calibration, reader_configs):
-        """Load the reader for AF data.
-
-        The reader is returned too, as the loaded data can't be computed once it is deleted.
-        """
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        type_ter = self._get_type_ter_AF(channel)
-        res = reader.load([make_dataid(name=name, calibration=calibration)
-                           for name in fh_param["channels"][type_ter]], pad_data=False)
-        return reader, res
 
     @staticmethod
     def _compare_sun_earth_distance(filetype, fh_param, reader_configs):
@@ -938,32 +823,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         res = reader.load([did], pad_data=False)
         assert "_FillValue" in res["ir_105"].attrs
 
-    @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
-        (calibration, channel, resolution)
-        for calibration in ["counts",
-                            "radiance",
-                            "brightness_temperature",
-                            # 8< v1.0
-                            "reflectance",
-                            # >8 v1.0
-                            "unnormalized_reflectance"]
-        for channel, resolution in generate_parameters(calibration)
-    ])
-    def test_load_calibration_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, calibration, caplog):
-        """Test loading with counts, radiance, unnormalized_reflectance and bt for AF files."""
-        expected_res_n = 1
-        fh_param = FakeFCIFileHandlerAF_fixture
-        type_ter = self._get_type_ter_AF(channel)
-        with caplog.at_level(logging.WARNING):
-            _reader, res = self._get_res_AF(channel, fh_param, calibration, reader_configs)
-            assert caplog.text == ""
-        assert expected_res_n == len(res)
-        for ch, grid_type in zip(fh_param["channels"][type_ter],
-                                 fh_param["channels"][f"{type_ter}_grid_type"]):
-            self._shape_test(res, ch, grid_type, DICT_CALIBRATION[calibration])
-            self._get_assert_load(res, ch, DICT_CALIBRATION[calibration],
-                                  fh_param["filenames"][0])
-
     @pytest.mark.parametrize("fh_param", [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
                                           (lazy_fixture("FakeFCIFileHandlerHRFIQ4_fixture")),
@@ -1014,20 +873,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
             segpos_info = filetype_handler.get_segment_position_info()
             assert segpos_info == expected_pos_info
 
-    @pytest.mark.parametrize(("channel", "resolution"), generate_parameters("radiance"))
-    def test_not_get_segment_info_called_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, resolution):
-        """Test that checks that the get_segment_position_info has not been called for AF data."""
-        with mock.patch("satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info") as gspi:
-            fh_param = FakeFCIFileHandlerAF_fixture
-            reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-            with contextlib.suppress(KeyError):
-                # attempt to load the channel
-                # If get_segment_position_info is called, the code will fail with a KeyError because of the mocking.
-                # However, the point of the test is to check if the function has been called, not if the function
-                # would work with this case, so the expected KeyError is suppressed, and we assert_not_called below.
-                reader.load([channel])
-            gspi.assert_not_called()
-
     @pytest.mark.parametrize("calibration", ["index_map", "pixel_quality"])
     @pytest.mark.parametrize(("fh_param", "expected_res_n"), [
         (lazy_fixture("FakeFCIFileHandlerFDHSI_fixture"), 16),
@@ -1048,34 +893,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         for ch, grid_type in zip(fh_param["channels"]["solar"] + fh_param["channels"]["terran"],
                                  fh_param["channels"]["solar_grid_type"] +
                                  fh_param["channels"]["terran_grid_type"]):
-            assert res[f"{ch}_{calibration}"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
-                                                        GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
-            if calibration == "index_map":
-                numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 110)
-            elif calibration == "pixel_quality":
-                numpy.testing.assert_array_equal(res[f"{ch}_{calibration}"][1, 1], 3)
-                assert res[f"{ch}_{calibration}"].attrs["name"] == ch + "_pixel_quality"
-            # Verify that attributes are propagated/inserted
-            for attr_key in REQUIRED_ATTR_KEYS:
-                assert attr_key in res[f"{ch}_{calibration}"].attrs.keys(), f"Missing attribute: {attr_key}"
-            assert res[f"{ch}_{calibration}"].attrs["platform_name"] == "Meteosat-12"
-
-    @pytest.mark.parametrize(("calibration", "channel", "resolution"), [
-        (calibration, channel, resolution)
-        for calibration in ["index_map", "pixel_quality"]
-        for channel, resolution in generate_parameters(calibration)
-    ])
-    def test_load_map_and_pixel_af(self, FakeFCIFileHandlerAF_fixture, reader_configs, channel, calibration):
-        """Test loading with of index_map and pixel_quality for AF files."""
-        expected_res_n = 1
-        fh_param = FakeFCIFileHandlerAF_fixture
-        reader = _get_reader_with_filehandlers(fh_param["filenames"], reader_configs)
-        type_ter = self._get_type_ter_AF(channel)
-        res = reader.load([f"{name}_{calibration}"
-                           for name in fh_param["channels"][type_ter]], pad_data=False)
-        assert expected_res_n == len(res)
-        for ch, grid_type in zip(fh_param["channels"][type_ter],
-                                 fh_param["channels"][f"{type_ter}_grid_type"]):
             assert res[f"{ch}_{calibration}"].shape == (GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["nrows"],
                                                         GRID_TYPE_INFO_FOR_TEST_CONTENT[grid_type]["ncols"])
             if calibration == "index_map":
@@ -1206,23 +1023,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
         self._compare_rc_period_min_count_in_repeat_cycle(fh_param["filetype"], fh_param,
                                                           reader_configs, compare_tuples)
 
-    @pytest.mark.parametrize(("channel", "resolution", "compare_tuples"),
-                             [("vis_06", "3km", (1, 10,
-                                                 datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
-                                                 datetime.datetime.strptime("2024-01-09 08:10:00",
-                                                                            "%Y-%m-%d %H:%M:%S"))),
-                              ("vis_06", "1km", (1, 10,
-                                                 datetime.datetime.strptime("2024-01-09 08:00:00", "%Y-%m-%d %H:%M:%S"),
-                                                 datetime.datetime.strptime("2024-01-09 08:10:00",
-                                                                            "%Y-%m-%d %H:%M:%S")))
-                              ])
-    def test_count_in_repeat_cycle_rc_period_min_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                                    channel, resolution, compare_tuples):
-        """Test the rc_period_min value for each configuration."""
-        fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_rc_period_min_count_in_repeat_cycle(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param,
-                                                          reader_configs, compare_tuples)
-
     @pytest.mark.parametrize(("fh_param"),
                              [(lazy_fixture("FakeFCIFileHandlerFDHSI_fixture")),
                               (lazy_fixture("FakeFCIFileHandlerHRFI_fixture")),
@@ -1236,14 +1036,6 @@ class TestFCIL1cNCReader(ModuleTestFCIL1cNcReader):
     def test_compute_earth_sun_parameter(self, reader_configs, fh_param):
         """Test the computation of the sun_earth_parameter."""
         self._compare_sun_earth_distance(fh_param["filetype"], fh_param, reader_configs)
-
-    @pytest.mark.parametrize(("channel", "resolution"), [("vis_06", "3km"),
-                                                         ("vis_06", "1km")])
-    def test_compute_earth_sun_parameter_AF(self, FakeFCIFileHandlerAF_fixture, reader_configs,
-                                            channel, resolution):
-        """Test the rc_period_min value for each configuration."""
-        fh_param = FakeFCIFileHandlerAF_fixture
-        self._compare_sun_earth_distance(f"{fh_param['filetype']}_{channel}_{resolution}", fh_param, reader_configs)
 
     @pytest.mark.parametrize(("fh_param"), [ (lazy_fixture("FakeFCIFileHandlerFDHSIOtherCoverage_fixture")),
                                              (lazy_fixture("FakeFCIFileHandlerHRFIOtherCoverage_fixture"))])
