@@ -25,6 +25,7 @@ def _get_test_datasets_2d():
         da.arange(100 * 200, dtype=np.float32).reshape((100, 200)).rechunk(50),
         dims=("y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "units": "K",
                "area": adef}
@@ -55,6 +56,7 @@ def _get_test_datasets_3d():
         dims=("bands", "y", "x"),
         coords={"bands": ["R", "G", "B"]},
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "area": adef}
     )

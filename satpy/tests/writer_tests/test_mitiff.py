@@ -126,6 +126,7 @@ def _get_test_dataset(bands=3):
         _get_arange_test_data(bands=bands),
         dims=("bands", "y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "platform_name": "TEST_PLATFORM_NAME",
                "sensor": "TEST_SENSOR_NAME",
@@ -145,6 +146,7 @@ def _get_test_one_dataset():
         _get_arange_test_data(),
         dims=("y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "platform_name": "TEST_PLATFORM_NAME",
                "sensor": "avhrr",
@@ -161,6 +163,7 @@ def _get_test_one_dataset_sensor_set():
         _get_arange_test_data(),
         dims=("y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "platform_name": "TEST_PLATFORM_NAME",
                "sensor": {"avhrr"},
@@ -183,6 +186,7 @@ def _get_test_dataset_with_bad_values(bands=3):
     ds1 = xr.DataArray(rgb_data,
                        dims=("bands", "y", "x"),
                        attrs={"name": "test",
+                              "standard_name": "toa_bidirectional_reflectance",
                               "start_time": dt.datetime.now(dt.timezone.utc),
                               "platform_name": "TEST_PLATFORM_NAME",
                               "sensor": "TEST_SENSOR_NAME",
@@ -334,6 +338,7 @@ def _get_test_dataset_three_bands_two_prereq(bands=3):
         coords=[["R", "G", "B"], list(range(100)), list(range(200))],
         dims=("bands", "y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "platform_name": "TEST_PLATFORM_NAME",
                "sensor": "TEST_SENSOR_NAME",
@@ -354,6 +359,7 @@ def _get_test_dataset_three_bands_prereq(bands=3):
         coords=[["R", "G", "B"], list(range(100)), list(range(200))],
         dims=("bands", "y", "x"),
         attrs={"name": "test",
+               "standard_name": "image_ready",
                "start_time": dt.datetime.now(dt.timezone.utc),
                "platform_name": "TEST_PLATFORM_NAME",
                "sensor": "TEST_SENSOR_NAME",
@@ -703,8 +709,8 @@ def test_save_dataset_with_bad_value(tmp_path):
     """Test writer operation with bad values."""
     from satpy.writers.mitiff import MITIFFWriter
 
-    _expected = np.array([[0, 4, 1, 37, 73],
-                          [110, 146, 183, 219, 255]])
+    _expected = np.array([[0, 1, 1, 73, 120],
+                          [159, 193, 225, 254, 255]])
     expected = [_expected, _expected, _expected]
     dataset = _get_test_dataset_with_bad_values()
     w = MITIFFWriter(base_dir=tmp_path)

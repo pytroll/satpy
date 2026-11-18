@@ -736,6 +736,7 @@ class TestParallaxCorrectionSceneLoad:
                     modifiers=()),
                 "modifiers": (),
                 "sensor": "seviri",
+                "standard_name": "toa_bidirectional_reflectance",
                 "area": area})
         sc["ctth_alti"] = xr.DataArray(
             np.linspace(0, 99, 25).reshape(5, 5),

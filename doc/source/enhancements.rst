@@ -217,6 +217,32 @@ That is, remove the "name" from "abi_cmip_c01", then this DataArray from
 the "abi_l2_nc" reader would use the "abi_c01" section instead. This is due
 to the higher priority "name" key matching first.
 
+.. _default_enhancement_warning:
+
+The default enhancement warning
+-------------------------------
+
+The "default" section in Satpy's builtin ``generic.yaml`` is the wildcard
+section described above: it is what a ``DataArray`` gets when nothing more
+specific matches it. Because relying on it is almost always unintended, it
+emits a ``UserWarning`` before doing anything else::
+
+   UserWarning: No YAML enhancement found for 'my_product'. Falling back to a
+   dynamic linear stretch. See
+   https://satpy.readthedocs.io/en/stable/enhancements.html for documentation
+   on defining an enhancement.
+
+The warning is not a failure and the data is still enhanced. It is
+telling you that the scaling applied to your image was chosen from the data
+itself rather than from a configuration, so it will change from one set of
+input files to the next.
+
+To make the warning go away, define an enhancement section that matches the
+data, as described in `Configuring Enhancements`_. If the data really is
+already image-ready and needs no scaling at all, say so explicitly with a
+section that has an empty ``operations`` list or that matches
+``standard_name: image_ready``.
+
 Writing Enhancement Functions
 -----------------------------
 
@@ -333,7 +359,8 @@ The most basic operation is to stretch the image so that the data fits to
 the output format.  There are many different ways to stretch the data,
 which are configured by giving them in `kwargs` dictionary, like in the
 example above.  The default, if nothing else is defined, is to apply
-a linear stretch.  For more details, see
+a linear stretch (along with a warning, see
+:ref:`default_enhancement_warning`).  For more details, see
 :ref:`enhancing the images <enhancing-the-images>`.
 
 linear
