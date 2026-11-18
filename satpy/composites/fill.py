@@ -117,8 +117,7 @@ class DayNightCompositor(GenericCompositor):
                                   input already has one) and makes the discarded side transparent
                                   through it; False adds no band and sets the discarded side to NaN
                                   in every band.
-                                  For "day_night" no alpha band is added. When the solar zenith angle
-                                  is computed rather than given as an input, True sets pixels to NaN
+                                  For "day_night" no alpha band is added. True sets pixels to NaN
                                   where the input that fully covers them has no data, and False sets
                                   them to 0.
 
@@ -127,7 +126,6 @@ class DayNightCompositor(GenericCompositor):
         self.lim_high = lim_high
         self.day_night = day_night
         self.include_alpha = include_alpha
-        self._has_sza = False
         super().__init__(name, **kwargs)
 
     def __call__(
@@ -150,8 +148,8 @@ class DayNightCompositor(GenericCompositor):
         else:
             day_data, night_data, fg_attrs = self._get_data_for_combined_product(foreground_data, datasets[1])
 
-        # The computed coszen is for the full area, so it needs to be masked for missing and off-swath data
-        if self.include_alpha and not self._has_sza:
+        # The SZA covers pixels where the input data is missing or off-swath, so mask the weights with the data
+        if self.include_alpha:
             weights = self._mask_weights_with_data(weights, day_data, night_data)
 
         if "only" not in self.day_night:
@@ -175,7 +173,6 @@ class DayNightCompositor(GenericCompositor):
         lim_high = float(np.cos(np.deg2rad(self.lim_high)))
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
-            self._has_sza = True
         except IndexError:
             from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")

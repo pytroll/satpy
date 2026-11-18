@@ -210,8 +210,7 @@ They can be defined when initializing the compositor::
                          input already has one) and makes the discarded side transparent
                          through it; False adds no band and sets the discarded side to NaN
                          in every band.
-                         For "day_night" no alpha band is added. When the solar zenith angle
-                         is computed rather than given as an input, True sets pixels to NaN
+                         For "day_night" no alpha band is added. True sets pixels to NaN
                          where the input that fully covers them has no data, and False sets
                          them to 0.
 

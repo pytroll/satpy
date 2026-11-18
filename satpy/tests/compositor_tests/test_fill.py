@@ -69,6 +69,19 @@ class TestDayNightCompositor(unittest.TestCase):
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
 
+    def test_daynight_sza_with_missing_data(self):
+        """Test that a given SZA does not keep pixels whose fully-weighted input has no data."""
+        from satpy.composites.fill import DayNightCompositor
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_night")
+            res = comp((self.data_b, self.data_a, self.sza))
+            res = res.compute()
+        # Top-left pixel is fully day (SZA 80) and the day input is missing there
+        expected = np.array([[np.nan, 0.11042609], [0.66835017, 1.]], dtype=np.float32)
+        assert res.dtype == np.float32
+        np.testing.assert_allclose(res.values[0], expected, rtol=1e-6)
+
     def test_daynight_area(self):
         """Test compositor both day and night portions when SZA data is not provided."""
         from satpy.composites.fill import DayNightCompositor
@@ -91,7 +104,7 @@ class TestDayNightCompositor(unittest.TestCase):
             res = comp((self.data_b, self.sza))
             res = res.compute()
         expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
-        expected_alpha = np.array([[0., 0.3329599], [1., 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 0.3329599], [1., 1.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
@@ -148,6 +161,20 @@ class TestDayNightCompositor(unittest.TestCase):
             res = res.compute()
         expected_red_channel = np.array([[0., 0.33164983], [0.66835017, 1.]], dtype=np.float32)
         expected_alpha = np.array([[1., 0.6670401], [0., 0.]], dtype=np.float32)
+        assert res.dtype == np.float32
+        np.testing.assert_allclose(res.values[0], expected_red_channel)
+        np.testing.assert_allclose(res.values[-1], expected_alpha)
+
+    def test_day_only_sza_with_alpha_and_missing_data(self):
+        """Test compositor with day portion with alpha band when SZA data is included and there is missing data."""
+        from satpy.composites.fill import DayNightCompositor
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1)):
+            comp = DayNightCompositor(name="dn_test", day_night="day_only", include_alpha=True)
+            res = comp((self.data_b, self.sza))
+            res = res.compute()
+        expected_red_channel = np.array([[np.nan, 0.], [0.5, 1.]], dtype=np.float32)
+        expected_alpha = np.array([[np.nan, 0.6670401], [0., 0.]], dtype=np.float32)
         assert res.dtype == np.float32
         np.testing.assert_allclose(res.values[0], expected_red_channel)
         np.testing.assert_allclose(res.values[-1], expected_alpha)
