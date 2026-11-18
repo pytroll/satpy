@@ -144,15 +144,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         if use_legacy:
             self._warn_legacy_sunz_correction_with_defaults()
 
-        if self.correction_limit == "__default__":
-            correction_limit = 88.0 if use_legacy else None
-        else:
-            correction_limit = self.correction_limit
-
-        if self.max_sza == "__default__":
-            max_sza = 95.0 if use_legacy else None
-        else:
-            max_sza = self.max_sza
+        correction_limit = self._get_correction_limit(use_legacy)
+        max_sza = self._get_max_sza(use_legacy)
 
         res = proj.copy()
         res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=correction_limit, max_sza=max_sza)
@@ -173,6 +166,16 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 UserWarning,
                 stacklevel=2,
             )
+
+    def _get_correction_limit(self, use_legacy):
+        if self.correction_limit == "__default__":
+            return 88.0 if use_legacy else None
+        return self.correction_limit
+
+    def _get_max_sza(self, use_legacy):
+        if self.max_sza == "__default__":
+            return 95.0 if use_legacy else None
+        return self.max_sza
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
