@@ -205,10 +205,15 @@ They can be defined when initializing the compositor::
  - day_night (string): "day_night" means both day and night portions will be kept
                        "day_only" means only day portion will be kept
                        "night_only" means only night portion will be kept
- - include_alpha (bool): This only affects the "day only" or "night only" result.
-                         True means an alpha band will be added to the output image for transparency.
-                         False means the output is a single-band image with undesired pixels being masked out
-                         (replaced with NaNs).
+ - include_alpha (bool): What this does depends on ``day_night``. Default True.
+                         For "day_only"/"night_only", True appends an alpha band (unless the
+                         input already has one) and makes the discarded side transparent
+                         through it; False adds no band and sets the discarded side to NaN
+                         in every band.
+                         For "day_night" no alpha band is added. When the solar zenith angle
+                         is computed rather than given as an input, True sets pixels to NaN
+                         where the input that fully covers them has no data, and False sets
+                         them to 0.
 
 Usage (with default values)::
 
@@ -224,19 +229,23 @@ provides only a day product with night portion masked-out::
 
     >>> from satpy.composites.fill import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
-    >>> composite = compositor([local_scene['true_color'])
+    >>> composite = compositor([local_scene['true_color']])
 
-By default, the image under `day_only` or `night_only` flag will come out
+By default, the image under ``day_only`` or ``night_only`` flag will come out
 with an alpha band to display its transparency. It could be changed by
-setting `include_alpha` to False if there's no need for that alpha band.
-In such cases, it is recommended to use it together with `fill_value=0`
-when saving to geotiff to get a single-band image with black background.
-In the case below, the image shows its day portion and day/night
-transition with night portion blacked-out instead of transparent::
+setting ``include_alpha`` to False if there's no need for that alpha band.
+In that case the opposite portion is set to NaN in every band instead;
+most writers turn NaN into a transparent pixel unless a ``fill_value`` is
+given, so pass ``fill_value=0`` when saving to get an image without an
+alpha band and with a black background.
+See :class:`~satpy.composites.fill.DayNightCompositor`
+for the exact behaviour per input mode (L, RGB, LA, RGBA). In the case
+below, the image shows its day portion and day/night transition with the
+night portion set to NaN::
 
     >>> from satpy.composites.fill import DayNightCompositor
     >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only", include_alpha=False)
-    >>> composite = compositor([local_scene['true_color'])
+    >>> composite = compositor([local_scene['true_color']])
 
 RealisticColors
 ---------------

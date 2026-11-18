@@ -63,9 +63,42 @@ class MultiFiller(SingleBandCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends day data with night data.
 
-    Using the `day_night` flag it is also possible to provide only a day product
-    or only a night product and mask out (make transparent) the opposite portion
-    of the image (night or day). See the documentation below for more details.
+    Using the ``day_night`` flag it is also possible to provide only a day product
+    or only a night product and mask out the opposite portion of the image
+    (night or day), either through an alpha band or by setting it to NaN.
+    See the documentation below for more details.
+
+    Single-side products ("day_only" / "night_only")
+    ------------------------------------------------
+
+    Only the first input is used. Its pixels fall into three zones based on
+    solar zenith angle: kept (SZA below ``lim_low`` for day, above
+    ``lim_high`` for night), blending (between the limits), and discarded.
+
+    With ``include_alpha=True``:
+
+    * L or RGB input: an alpha band is appended (LA / RGBA output). The
+      data bands are left untouched in every zone; alpha is 1 in the kept
+      zone, the SZA weight in the blending zone, and 0 in the discarded zone.
+    * LA or RGBA input: no band is added. The existing alpha band is
+      multiplied by the SZA weight, so it is unchanged in the kept zone,
+      faded in the blending zone, and 0 in the discarded zone.
+
+    With ``include_alpha=False``:
+
+    * No alpha band is added and the output mode equals the input mode
+      (L -> L, RGB -> RGB, RGBA -> RGBA).
+    * Every band, including an existing alpha band, is multiplied by the
+      SZA weight: unchanged in the kept zone, fading towards 0 through the
+      blending zone, and NaN in the discarded zone.
+
+    In both cases pixels that are NaN in the input (for example space
+    pixels, or pixels where the solar zenith angle cannot be computed)
+    stay NaN.
+
+    The NaN output is what writers see: without a ``fill_value`` most
+    writers will turn it into a transparent pixel; pass ``fill_value=0``
+    to most writers to get an opaque black background instead.
     """
 
     def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", include_alpha=True, **kwargs):  # noqa: D417
@@ -79,10 +112,15 @@ class DayNightCompositor(GenericCompositor):
             day_night (str): "day_night" means both day and night portions will be kept
                                 "day_only" means only day portion will be kept
                                 "night_only" means only night portion will be kept
-            include_alpha (bool): This only affects the "day only" or "night only" result.
-                                  True means an alpha band will be added to the output image for transparency.
-                                  False means the output is a single-band image with undesired pixels being masked out
-                                  (replaced with NaNs).
+            include_alpha (bool): What this does depends on ``day_night``. Default True.
+                                  For "day_only"/"night_only", True appends an alpha band (unless the
+                                  input already has one) and makes the discarded side transparent
+                                  through it; False adds no band and sets the discarded side to NaN
+                                  in every band.
+                                  For "day_night" no alpha band is added. When the solar zenith angle
+                                  is computed rather than given as an input, True sets pixels to NaN
+                                  where the input that fully covers them has no data, and False sets
+                                  them to 0.
 
         """
         self.lim_low = lim_low
