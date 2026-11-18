@@ -209,8 +209,8 @@ class Scene:
         will be consulted.
 
         """
-        start_times = [data_arr.attrs["start_time"] for data_arr in self.values()
-                       if "start_time" in data_arr.attrs and data_arr.attrs["start_time"] is not None]
+        start_times = [start_time for data_arr in self.values()
+                       if (start_time := data_arr.attrs.get("start_time")) is not None]
         if not start_times:
             start_times = self._reader_times("start_time")
         if not start_times:
@@ -226,8 +226,8 @@ class Scene:
         :attr:`Scene.start_time` is returned.
 
         """
-        end_times = [data_arr.attrs["end_time"] for data_arr in self.values()
-                     if "end_time" in data_arr.attrs and data_arr.attrs["end_time"] is not None]
+        end_times = [end_time for data_arr in self.values()
+                     if (end_time := data_arr.attrs.get("end_time")) is not None]
         if not end_times:
             end_times = self._reader_times("end_time")
         if not end_times:
