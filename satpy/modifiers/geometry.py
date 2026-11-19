@@ -164,7 +164,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 "`satpy.config.set(use_legacy_sunz_correction=True)` or explicitly set `correction_limit: 88.0` "
                 "and `max_sza: 95.0` in a local definition of the modifier. To opt in to the new "
                 "behaviour before Satpy v1.0 and disable this warning, set "
-                "`satpy.config.set(use_legacy_sunz_correction=False)`. The 'use_legacy_sunz_correction' configuration" \
+                "`satpy.config.set(use_legacy_sunz_correction=False)`. The 'use_legacy_sunz_correction' configuration"
                 "key will be removed in Satpy 1.1.",
                 UserWarning,
                 stacklevel=2,
