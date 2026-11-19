@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 
@@ -109,8 +109,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
-        correction_limit: float | Literal["__default__"] | None = "__default__",
-        max_sza: float | Literal["__default__"] | None = "__default__",
+        correction_limit: int | float | Literal["__default__"] | None = "__default__",
+        max_sza: int | float | Literal["__default__"] | None = "__default__",
         **kwargs,
     ):
         """Collect custom configuration values.
@@ -200,8 +200,8 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
-        correction_limit: Optional[float] = None,
-        max_sza: Optional[float] = None,
+        correction_limit: int | float | None = None,
+        max_sza: int | float | None = None,
         **kwargs,
     ):
         """Collect custom configuration values.

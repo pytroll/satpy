@@ -519,8 +519,8 @@ def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt
 
 def sunzen_corr_cos(data: da.Array,
                     cos_zen: da.Array,
-                    correction_limit: Optional[float] = None,
-                    max_sza: Optional[float] = None) -> da.Array:
+                    correction_limit: int | float | None = None,
+                    max_sza: int | float | None = None) -> da.Array:
     """Perform standard Sun zenith angle correction.
 
     The correction is based on the provided cosine of the solar zenith angle
@@ -553,7 +553,9 @@ def sunzen_corr_cos(data: da.Array,
                          chunks=data.chunks)
 
 
-def _method_and_msg_for_valid_correction_limit(correction_limit: float, max_sza: Optional[float]) -> tuple[str, str]:
+def _method_and_msg_for_valid_correction_limit(
+    correction_limit: int | float,
+    max_sza: int | float | None) -> tuple[str, str]:
     if max_sza is None:
         method = "capped"
         log_msg = (
@@ -574,7 +576,7 @@ def _method_and_msg_for_valid_correction_limit(correction_limit: float, max_sza:
     return method, log_msg
 
 
-def _method_and_msg_for_unset_correction_limit(max_sza: Optional[float]) -> tuple[str, str]:
+def _method_and_msg_for_unset_correction_limit(max_sza: int | float | None) -> tuple[str, str]:
     if max_sza is None:
         method = "standard"
         log_msg = (
@@ -592,8 +594,8 @@ def _method_and_msg_for_unset_correction_limit(max_sza: Optional[float]) -> tupl
 def _sunzen_corr_cos_ndarray(data: np.ndarray,
                              cos_zen: np.ndarray,
                              method: str,
-                             correction_limit: float,
-                             max_sza: float) -> np.ndarray:
+                             correction_limit: int | float,
+                             max_sza: int | float) -> np.ndarray:
     sunz = np.rad2deg(np.arccos(cos_zen))
     corr_standard = (1. / cos_zen)
     corr_at_limit = (
