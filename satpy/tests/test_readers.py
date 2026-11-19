@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Iterator
 from unittest import mock
 
+import fsspec
+import fsspec.implementations.local
 import numpy as np
 import pytest
 import xarray as xr
@@ -26,6 +28,7 @@ from satpy.readers.core.remote import open_file_or_filename
 # The following fixtures are not defined in this file, but are used and injected by Pytest:
 # - monkeypatch
 # - tmp_path
+
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -606,6 +609,26 @@ class TestFindFilesAndReaders:
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
         with pytest.raises(ValueError, match="Reader name .* has been deprecated, use .* instead."):
             get_valid_reader_names([test_reader])
+
+
+def test_find_files_and_readers_fsspec_fsfile(tmp_path):
+    """Test that if an fsspec instance is passed, fsfile is returned."""
+    p = (tmp_path /
+         "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
+         "_c20152950029000.nc")
+    p.touch()
+
+    from satpy.readers import FSFile, find_files_and_readers
+
+    ri = find_files_and_readers(
+            base_dir=p.parent,
+            fs=fsspec.implementations.local.LocalFileSystem(),
+            reader="abi_l1b")
+
+    assert ri.keys() == {"abi_l1b"}
+    assert len(ri["abi_l1b"]) == 1
+    assert isinstance(ri["abi_l1b"][0], FSFile)
+    assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
 
 
 class TestYAMLFiles:
