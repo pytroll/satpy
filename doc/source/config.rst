@@ -206,6 +206,7 @@ merging of configuration files, they are merged in reverse order. This means
 "base" configuration paths should be at the end of the list and custom/user
 paths should be at the beginning of the list.
 
+.. 8< v1.1
 .. _legacy_sunz_correction_setting:
 
 Sun Zenith Angle Correction Reduction Configuration
@@ -232,6 +233,9 @@ or explicitly set ``correction_limit: 88.0`` and ``max_sza: 95`` in a local defi
 
     import satpy
     satpy.config.set(use_legacy_sunz_correction=False)
+
+The ``use_legacy_sunz_correction`` configuration key will be removed in Satpy v1.1.
+.. >8 v1.1
 
 .. _data_dir_setting:
 

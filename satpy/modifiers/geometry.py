@@ -109,8 +109,10 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
+        # 8< v1.1, change defaults to None and remove Literal["__default__"] as accepted type
         correction_limit: int | float | Literal["__default__"] | None = "__default__",
         max_sza: int | float | Literal["__default__"] | None = "__default__",
+        # >8 v1.1
         **kwargs,
     ):
         """Collect custom configuration values.
@@ -128,11 +130,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
             **kwargs:
                 Additional keyword arguments passed to the parent class.
-
-        TODO Once Satpy v1.0 has been around long enough we should:
-                1. Remove the config entry "use_legacy_sunz_correction"
-                2. Change defaults of correction_limit and max_sza to None
-                3. Change _apply_correction() accordingly (e.g. removing use_legacy)
         """
         self.correction_limit = correction_limit
         self.max_sza = max_sza
@@ -140,17 +137,22 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
 
+        # 8< v1.1
         use_legacy = satpy.config.get("use_legacy_sunz_correction")
         if use_legacy:
             self._warn_legacy_sunz_correction_with_defaults()
+        # >8 v1.1
 
+        # 8< v1.1, change to foo = self.foo instead
         correction_limit = self._get_correction_limit(use_legacy)
         max_sza = self._get_max_sza(use_legacy)
+        # >8 v1.1
 
         res = proj.copy()
         res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=correction_limit, max_sza=max_sza)
         return res
 
+    # 8< v1.1
     def _warn_legacy_sunz_correction_with_defaults(self):
         if self.correction_limit == "__default__" or self.max_sza == "__default__":
             warnings.warn(
@@ -162,7 +164,8 @@ class SunZenithCorrector(SunZenithCorrectorBase):
                 "`satpy.config.set(use_legacy_sunz_correction=True)` or explicitly set `correction_limit: 88.0` "
                 "and `max_sza: 95.0` in a local definition of the modifier. To opt in to the new "
                 "behaviour before Satpy v1.0 and disable this warning, set "
-                "`satpy.config.set(use_legacy_sunz_correction=False)`.",
+                "`satpy.config.set(use_legacy_sunz_correction=False)`. The 'use_legacy_sunz_correction' configuration" \
+                "key will be removed in Satpy 1.1.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -176,6 +179,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         if self.max_sza == "__default__":
             return 95.0 if use_legacy else None
         return self.max_sza
+    # >8 v1.1
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -200,26 +204,30 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
+        # 8< v1.0
         correction_limit: int | float | None = None,
         max_sza: int | float | None = None,
+        # >8 v1.0
         **kwargs,
     ):
         """Collect custom configuration values.
 
         Args:
+            # 8< v1.0
             correction_limit:
                 Solar zenith angle in degrees where correction limiting
                 begins. Deprecated.
 
             max_sza:
                 Maximum valid angle in degrees for solar zenith angle correction. Deprecated.
+            # >8 v1.0
 
             **kwargs:
                 Additional keyword arguments passed to the parent class.
 
         """
+        # 8< v1.0
         if correction_limit is not None or max_sza is not None:
-            # TODO Remove class init input variables and warning in satpy v1.0
             msg = "The ``correction_limit`` and ``max_sza`` parameters have been deprecated and are no " \
                 "longer used for the EffectiveSolarPathLengthCorrector and will be fully removed " \
                 "in satpy v1.0. This is done since the parameterization by Li and Shibata (2006) " \
@@ -227,12 +235,13 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
                 "reduction of the correction is still desirable it can be achieved by using the " \
                 "``SunZenithCorrector`` with the same ``correction_limit`` and ``max_sza`` parameters."
             warnings.warn(msg, UserWarning, stacklevel=2)
+        # >8 v1.0
 
         super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
         logger.debug("Applying the effective solar atmospheric path length correction using the parameterization "
-                 "by Li and Shibata (2006)")
+                     "by Li and Shibata (2006)")
         res = proj.copy()
         res.data = atmospheric_path_length_correction(proj.data, coszen.data)
         return res

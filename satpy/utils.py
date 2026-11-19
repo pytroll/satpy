@@ -254,10 +254,9 @@ def proj_units_to_meters(proj_str):
 
     return " ".join(new_parts)
 
-
+# 8< v1.0
 def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
     """Deprecated method to apply atmospheric path length correction following the Li and Shibata parameterization."""
-    # TODO Remove in Satpy v1.0
     name = "atmospheric_path_length_correction"
     new_module = "satpy.modifiers.angles"
     atmospheric_path_length_correction = _import_and_warn_new_location(new_module, name)
@@ -273,7 +272,7 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88, max_sza=95):
     res = data.copy()
     res.data = atmospheric_path_length_correction(data.data, cos_zen.data)
     return res
-
+# >8 v1.0
 
 def get_satpos(
         data_arr: xr.DataArray,
