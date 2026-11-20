@@ -11,7 +11,6 @@ import pytest
         "add_bands",
         "BackgroundCompositor",
         "CategoricalDataCompositor",
-        "check_times",
         "CloudCompositor",
         # 8< v1.0
         "ColorizeCompositor",
