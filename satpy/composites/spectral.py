@@ -26,11 +26,11 @@ class SpectralBlender(GenericCompositor):
         fractions: [0.63, 0.29, 0.08]
         prerequisites:
           - name: B02
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: B03
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: B04
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
         standard_name: toa_bidirectional_reflectance
 
     Other examples can be found in the``ahi.yaml`` composite file in the satpy distribution.
@@ -78,9 +78,9 @@ class HybridGreen(SpectralBlender):
         fraction: 0.15
         prerequisites:
           - name: B02
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: B04
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
         standard_name: toa_bidirectional_reflectance
 
     Other examples can be found in the ``ahi.yaml`` and ``ami.yaml`` composite
@@ -111,11 +111,11 @@ class NDVIHybridGreen(SpectralBlender):
         strength: 1.0
         prerequisites:
           - name: vis_05
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: vis_06
-            modifiers: [sunz_corrected, rayleigh_corrected]
+            modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
           - name: vis_08
-            modifiers: [sunz_corrected ]
+            modifiers: [effective_solar_pathlength_corrected ]
         standard_name: toa_bidirectional_reflectance
 
     In this example, pixels with NDVI=0.0 will be a weighted average with 15% contribution from the

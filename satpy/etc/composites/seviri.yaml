@@ -17,7 +17,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: VIS006
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -137,9 +137,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: IR_016
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: IR_039
       modifiers: [nir_reflectance]
     standard_name: snow
@@ -148,7 +148,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: IR_039
       modifiers: [nir_reflectance]
     - IR_108
@@ -158,7 +158,7 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: IR_039
       modifiers: [nir_reflectance]
     - IR_108
@@ -176,11 +176,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: IR_016
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: VIS006
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
 
   natural_color_nocorr:
@@ -336,11 +336,11 @@ composites:
     standard_name: realistic_colors
     prerequisites:
       - name: VIS006
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: VIS008
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   ir_overview:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
@@ -362,9 +362,9 @@ composites:
     compositor: !!python/name:satpy.composites.core.RGBCompositor
     prerequisites:
     - name: VIS006
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - IR_108
     standard_name: overview
 
@@ -387,7 +387,7 @@ composites:
     standard_name: vis_sharpened_ir
     prerequisites:
       - name: 'HRV'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: colorized_ir_clouds
 
   ir_sandwich:
@@ -395,7 +395,7 @@ composites:
     standard_name: ir_sandwich
     prerequisites:
       - name: 'HRV'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: colorized_ir_clouds
 
   natural_enh:
@@ -406,20 +406,20 @@ composites:
     ch06_w: 2.2
     prerequisites:
     - name: IR_016
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: VIS008
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: VIS006
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
 
   hrv_clouds:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     standard_name: hrv_clouds
     prerequisites:
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - IR_108
 
   hrv_fog:
@@ -427,19 +427,19 @@ composites:
     standard_name: hrv_fog
     prerequisites:
       - name: IR_016
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   hrv_severe_storms:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: HRV
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: HRV
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
       prerequisites:
       - wavelength: 10.8
@@ -463,7 +463,7 @@ composites:
     - name: hrv_severe_storms
     # Data used in masking
     - name: HRV
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: hrv_severe_storms_masked
 
   natural_with_night_fog:
@@ -538,14 +538,14 @@ composites:
     standard_name: vis06
     prerequisites:
       - name: VIS006
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   _hrv:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     standard_name: hrv
     prerequisites:
       - name: HRV
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
 
   _vis06_filled_hrv:
     compositor: !!python/name:satpy.composites.fill.Filler

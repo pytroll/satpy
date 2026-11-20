@@ -17,7 +17,7 @@ modifiers:
     aerosol_type: rayleigh_only
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - satellite_azimuth_angle
     - satellite_zenith_angle
     - solar_azimuth_angle
@@ -28,59 +28,59 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: '4'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: '3'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
 
   true_color:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '4'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '3'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_thin:
     compositor: !!python/name:satpy.composites.fill.FillingCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '12'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '10'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
 
   true_color_crefl:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
     - name: '4'
-      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
     - name: '3'
-      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_crefl]
     standard_name: true_color
 
   overview:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - compositor: !!python/name:satpy.composites.fill.Filler
       prerequisites:
       - name: '2'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '1'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     - name: '31'
     standard_name: overview
 
@@ -90,11 +90,11 @@ composites:
     - compositor: !!python/name:satpy.composites.fill.Filler
       prerequisites:
       - name: '2'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '1'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     - name: '6'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - name: '20'
       modifiers: [nir_reflectance]
     standard_name: snow
@@ -103,15 +103,15 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '6'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     - compositor: !!python/name:satpy.composites.fill.Filler
       prerequisites:
       - name: '2'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '1'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     - name: '1'
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
 
   day_microphysics:
@@ -120,9 +120,9 @@ composites:
     - compositor: !!python/name:satpy.composites.fill.Filler
       prerequisites:
       - name: '2'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
       - name: '1'
-        modifiers: [sunz_corrected]
+        modifiers: [effective_solar_pathlength_corrected]
     - name: '20'
       modifiers: [nir_reflectance]
     - name: '31'
@@ -146,11 +146,11 @@ composites:
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '4'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: '3'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: ocean_color
 
   night_fog:
