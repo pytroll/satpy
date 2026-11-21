@@ -172,3 +172,19 @@ datasets:
     file_type: nucaps
     file_key: Pressure
     index: 0
+  CAPE:
+    name: CAPE
+    units: "J/kg"
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    file_key: Stability
+    column_index: 0
+    extra_fill_values: [-999.0]
+  Lifted_Index:
+    name: Lifted_Index
+    units: "K"
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    file_key: Stability
+    column_index: 9
+    extra_fill_values: [-999.0]
