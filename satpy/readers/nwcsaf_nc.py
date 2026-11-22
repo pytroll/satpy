@@ -224,6 +224,8 @@ class NcNWCSAF(BaseFileHandler):
 
         if "palette_meanings" in variable.attrs:
             variable = self._prepare_variable_for_palette(variable, info)
+        elif "fill_value_color" in variable.attrs:
+            variable = self._prepare_geo_palette(variable)
 
         if "standard_name" in info:
             variable.attrs.setdefault("standard_name", info["standard_name"])
@@ -272,6 +274,32 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs["palette_meanings"] = val * scale + offset
         variable = variable[idx]
         return variable
+
+    def _prepare_geo_palette(self, variable):
+        """Add explicit values and the separately stored GEO palette fill colour."""
+        data = next((data for data in self.nc.data_vars.values()
+                     if variable.name in data.attrs.get("ancillary_variables", "").split()), None)
+        if data is None:
+            raise ValueError(f"No dataset references palette {variable.name!r} in ancillary_variables")
+
+        scale = data.attrs.get("scale_factor", np.array(1, dtype=data.dtype))
+        offset = data.attrs.get("add_offset", np.array(0, dtype=data.dtype))
+        if np.result_type(data.dtype, scale, offset) == np.dtype("uint8"):
+            meanings = np.arange(variable.shape[0])
+        else:
+            # Calibrate the endpoints first, using the same precision as the data.
+            valid_range = data.attrs["valid_range"] * scale + offset
+            meanings = np.linspace(*valid_range, variable.shape[0])
+
+        fill_value = data.attrs["_FillValue"] * scale + offset
+        attrs = variable.attrs.copy()
+        attrs["palette_meanings"] = np.append(meanings, fill_value)
+        fill_color = np.asarray(attrs["fill_value_color"], dtype=variable.dtype)
+        # The palette-row dimension grows; retain only independent coordinates.
+        coords = {name: coord for name, coord in variable.coords.items()
+                  if variable.dims[0] not in coord.dims}
+        return xr.DataArray(da.vstack((variable.data, fill_color)), dims=variable.dims,
+                            coords=coords, attrs=attrs, name=variable.name)
 
     def _adjust_variable_for_legacy_software(self, variable):
         if self.sw_version == "NWC/PPS version v2014" and variable.attrs.get("standard_name") == "cloud_top_altitude":
