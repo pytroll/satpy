@@ -215,6 +215,9 @@ class GACLACFile(BaseFileHandler):
             "gcp_y_corrected",
             "gcp_x_displacement",
             "gcp_y_displacement",
+            # what the navigation fit left of each control point's miss
+            "gcp_x_residual",
+            "gcp_y_residual",
         ]:
             res = self.cal_ds[ds_name]
             self._update_attrs(res)

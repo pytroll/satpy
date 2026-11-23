@@ -224,6 +224,16 @@ datasets:
         name: gcp_y_displacement
         file_type: gac_lac_l1b
         standard_name: gcp_y_displacement
+    gcp_x_residual:
+        name: gcp_x_residual
+        file_type: gac_lac_l1b
+        long_name: control point miss left after the navigation fit, in samples
+        units: swath pixels
+    gcp_y_residual:
+        name: gcp_y_residual
+        file_type: gac_lac_l1b
+        long_name: control point miss left after the navigation fit, in lines
+        units: swath pixels
 
     random_uncertainty:
         name: random_uncertainty

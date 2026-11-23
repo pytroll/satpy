@@ -558,6 +558,39 @@ class TestNavigationRecordForwarding:
 
         assert res.attrs["navigation"] == record
 
+    @pytest.mark.parametrize("name", ["gcp_x_residual", "gcp_y_residual"])
+    @mock.patch("satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__", return_value=None)
+    def test_what_the_fit_left_of_each_control_point_is_delivered(self, init, name):
+        """A median says what a typical control point does; how each was matched needs each one.
+
+        pygac keeps what the navigation fit left of every control point's miss, in swath
+        lines and samples. It is only worth keeping if it reaches the product.
+        """
+        from satpy.tests.utils import make_dataid
+        fh = self._file_handler_carrying({})
+        leftovers = xr.DataArray(np.array([0.25, -0.5, np.nan]), dims=["points"],
+                                 attrs={"units": "swath pixels"})
+        fh.cal_ds[name] = leftovers
+
+        res = fh.get_dataset(make_dataid(name=name), {"name": name})
+
+        np.testing.assert_array_equal(res.values, leftovers.values)
+        assert res.dims == ("points",)
+        assert res.attrs["units"] == "swath pixels"
+
+    @pytest.mark.parametrize("name", ["gcp_x_residual", "gcp_y_residual"])
+    def test_the_reader_offers_what_the_fit_left(self, name):
+        """A dataset the reader does not declare cannot be asked for by name."""
+        import yaml
+
+        from satpy._config import config_search_paths
+        declared = {}
+        for path in config_search_paths("readers/avhrr_l1b_gaclac.yaml"):
+            with open(path) as config:
+                declared.update(yaml.load(config, Loader=yaml.UnsafeLoader)["datasets"])
+
+        assert declared[name]["name"] == name
+
     @staticmethod
     def _file_handler_carrying(record):
         """Return a file handler whose calibrated dataset holds *record*."""
