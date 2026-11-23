@@ -78,179 +78,7 @@ file_types:
         - nir_22_hr
         - ir_38_hr
         - ir_105_hr
-  # Note: In The current file the 'MTI1-FCI-1C' which is a part of the file will be replaced by MTI1+FCI-1C, patterns have been added
-  # to maanage this
-  fci_l1c_af_vis_06_3km:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS06-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-VIS06-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_06
-  fci_l1c_af_vis_06_1km:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-1KM-{coverage}-VIS06-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-1KM-{coverage}-VIS06-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_06
-  fci_l1c_af_vis_04:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS04-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-VIS04-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_04
-  fci_l1c_af_vis_05:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS05-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-VIS05-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_05
-  fci_l1c_af_vis_08:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS08-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-VIS08-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_08
-  fci_l1c_af_vis_09:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-VIS09-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-VIS09-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - vis_09
-  fci_l1c_af_nir_13:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR13-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-NIR13-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - nir_13
-  fci_l1c_af_nir_16:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR16-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-NIR16-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - nir_16
-  fci_l1c_af_nir_22:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-NIR22-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-NIR22-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - nir_22
-  fci_l1c_af_ir_38:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR38-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR38-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_38
-  fci_l1c_af_wv_63:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR63-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR63-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - wv_63
-  fci_l1c_af_wv_73:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR73-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR73-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - wv_73
-  fci_l1c_af_ir_87:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR87-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR87-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_87
-  fci_l1c_af_ir_97:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR97-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR97-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_97
-  fci_l1c_af_ir_105:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR105-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR105-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
 
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_105
-  fci_l1c_af_ir_123:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR123-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR123-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_123
-  fci_l1c_af_ir_133:
-    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns:
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-IR133-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-      - "{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-3KM-{coverage}-IR133-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc"
-    expected_segments: 1
-    required_netcdf_variables: *required-variables
-    variable_name_replacements:
-      channel_name:
-        - ir_133
 datasets:
   vis_04:
     name: vis_04
@@ -258,7 +86,6 @@ datasets:
     wavelength: [0.384, 0.444, 0.504]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
     calibration:
       counts:
         standard_name: counts
@@ -281,7 +108,6 @@ datasets:
     wavelength: [0.470, 0.510, 0.550]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
     calibration:
       counts:
         standard_name: counts
@@ -304,8 +130,7 @@ datasets:
     wavelength: [0.590, 0.640, 0.690]
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
     calibration:
       counts:
         standard_name: counts
@@ -328,7 +153,6 @@ datasets:
     wavelength: [0.815, 0.865, 0.915]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
     calibration:
       counts:
         standard_name: counts
@@ -351,7 +175,6 @@ datasets:
     wavelength: [0.894, 0.914, 0.934]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
     calibration:
       counts:
         standard_name: counts
@@ -374,7 +197,6 @@ datasets:
     wavelength: [1.350, 1.380, 1.410]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
     calibration:
       counts:
         standard_name: counts
@@ -397,7 +219,6 @@ datasets:
     wavelength: [1.560, 1.610, 1.660]
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
     calibration:
       counts:
         standard_name: counts
@@ -421,7 +242,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
     calibration:
       counts:
         standard_name: counts
@@ -445,7 +265,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
     calibration:
       counts:
         standard_name: counts
@@ -463,7 +282,6 @@ datasets:
     wavelength: [5.300, 6.300, 7.300]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
     calibration:
       counts:
         standard_name: counts
@@ -481,7 +299,6 @@ datasets:
     wavelength: [6.850, 7.350, 7.850]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
     calibration:
       counts:
         standard_name: counts
@@ -499,7 +316,6 @@ datasets:
     wavelength: [8.300, 8.700, 9.100]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
     calibration:
       counts:
         standard_name: counts
@@ -517,7 +333,6 @@ datasets:
     wavelength: [9.360, 9.660, 9.960]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
     calibration:
       counts:
         standard_name: counts
@@ -536,7 +351,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
     calibration:
       counts:
         standard_name: counts
@@ -554,7 +368,6 @@ datasets:
     wavelength: [11.800, 12.300, 12.800]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
     calibration:
       counts:
         standard_name: counts
@@ -572,7 +385,6 @@ datasets:
     wavelength: [12.700, 13.300, 13.900]
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
     calibration:
       counts:
         standard_name: counts
@@ -589,50 +401,43 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_pixel_quality:
     name: vis_05_pixel_quality
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_pixel_quality:
     name: vis_06_pixel_quality
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_pixel_quality:
     name: vis_08_pixel_quality
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_pixel_quality:
     name: vis_09_pixel_quality
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_pixel_quality:
     name: nir_13_pixel_quality
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_pixel_quality:
     name: nir_16_pixel_quality
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_pixel_quality:
     name: nir_22_pixel_quality
@@ -640,7 +445,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_pixel_quality:
     name: ir_38_pixel_quality
@@ -648,35 +452,30 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_pixel_quality:
     name: wv_63_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_pixel_quality:
     name: wv_73_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_pixel_quality:
     name: ir_87_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_pixel_quality:
     name: ir_97_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_pixel_quality:
     name: ir_105_pixel_quality
@@ -684,71 +483,61 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_pixel_quality:
     name: ir_123_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_pixel_quality:
     name: ir_133_pixel_quality
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_index_map:
     name: vis_04_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_index_map:
     name: vis_05_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_index_map:
     name: vis_06_index_map
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_index_map:
     name: vis_08_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_index_map:
     name: vis_09_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_index_map:
     name: nir_13_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_index_map:
     name: nir_16_index_map
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_index_map:
     name: nir_22_index_map
@@ -756,7 +545,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_index_map:
     name: ir_38_index_map
@@ -764,35 +552,30 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_index_map:
     name: wv_63_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_index_map:
     name: wv_73_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_index_map:
     name: ir_87_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_index_map:
     name: ir_97_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_index_map:
     name: ir_105_index_map
@@ -800,21 +583,18 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_index_map:
     name: ir_123_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_index_map:
     name: ir_133_index_map
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_time:
     name: vis_04_time
@@ -822,7 +602,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_time:
     name: vis_05_time
@@ -830,7 +609,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_time:
     name: vis_06_time
@@ -838,8 +616,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_time:
     name: vis_08_time
@@ -847,7 +624,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_time:
     name: vis_09_time
@@ -855,7 +631,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_time:
     name: nir_13_time
@@ -863,7 +638,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_time:
     name: nir_16_time
@@ -871,7 +645,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_time:
     name: nir_22_time
@@ -880,7 +653,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_time:
     name: ir_38_time
@@ -889,7 +661,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_time:
     name: wv_63_time
@@ -897,7 +668,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_time:
     name: wv_73_time
@@ -905,7 +675,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_time:
     name: ir_87_time
@@ -913,7 +682,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_time:
     name: ir_97_time
@@ -921,7 +689,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_time:
     name: ir_105_time
@@ -930,7 +697,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_time:
     name: ir_123_time
@@ -938,7 +704,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_time:
     name: ir_133_time
@@ -946,57 +711,49 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_swath_direction:
     name: vis_04_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_swath_direction:
     name: vis_05_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_swath_direction:
     name: vis_06_swath_direction
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_swath_direction:
     name: vis_08_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_swath_direction:
     name: vis_09_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_swath_direction:
     name: nir_13_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_swath_direction:
     name: nir_16_swath_direction
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_swath_direction:
     name: nir_22_swath_direction
@@ -1004,7 +761,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_swath_direction:
     name: ir_38_swath_direction
@@ -1012,35 +768,30 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_swath_direction:
     name: wv_63_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_swath_direction:
     name: wv_73_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_swath_direction:
     name: ir_87_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_swath_direction:
     name: ir_97_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_swath_direction:
     name: ir_105_swath_direction
@@ -1048,71 +799,61 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_swath_direction:
     name: ir_123_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_swath_direction:
     name: ir_133_swath_direction
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_swath_number:
     name: vis_04_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_swath_number:
     name: vis_05_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_swath_number:
     name: vis_06_swath_number
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_swath_number:
     name: vis_08_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_swath_number:
     name: vis_09_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_swath_number:
     name: nir_13_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_swath_number:
     name: nir_16_swath_number
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_swath_number:
     name: nir_22_swath_number
@@ -1120,7 +861,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_swath_number:
     name: ir_38_swath_number
@@ -1128,35 +868,30 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_swath_number:
     name: wv_63_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_swath_number:
     name: wv_73_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_swath_number:
     name: ir_87_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_swath_number:
     name: ir_97_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_swath_number:
     name: ir_105_swath_number
@@ -1164,21 +899,18 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_swath_number:
     name: ir_123_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_swath_number:
     name: ir_133_swath_number
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_subsatellite_latitude:
     name: vis_04_subsatellite_latitude
@@ -1186,7 +918,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_subsatellite_latitude:
     name: vis_05_subsatellite_latitude
@@ -1194,7 +925,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_subsatellite_latitude:
     name: vis_06_subsatellite_latitude
@@ -1202,8 +932,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_subsatellite_latitude:
     name: vis_08_subsatellite_latitude
@@ -1211,7 +940,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_subsatellite_latitude:
     name: vis_09_subsatellite_latitude
@@ -1219,7 +947,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_subsatellite_latitude:
     name: nir_13_subsatellite_latitude
@@ -1227,7 +954,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_subsatellite_latitude:
     name: nir_16_subsatellite_latitude
@@ -1235,7 +961,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_subsatellite_latitude:
     name: nir_22_subsatellite_latitude
@@ -1244,7 +969,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_subsatellite_latitude:
     name: ir_38_subsatellite_latitude
@@ -1253,7 +977,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_subsatellite_latitude:
     name: wv_63_subsatellite_latitude
@@ -1261,7 +984,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_subsatellite_latitude:
     name: wv_73_subsatellite_latitude
@@ -1269,7 +991,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_subsatellite_latitude:
     name: ir_87_subsatellite_latitude
@@ -1277,7 +998,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_subsatellite_latitude:
     name: ir_97_subsatellite_latitude
@@ -1285,7 +1005,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_subsatellite_latitude:
     name: ir_105_subsatellite_latitude
@@ -1294,7 +1013,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_subsatellite_latitude:
     name: ir_123_subsatellite_latitude
@@ -1302,7 +1020,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_subsatellite_latitude:
     name: ir_133_subsatellite_latitude
@@ -1310,7 +1027,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_subsatellite_longitude:
     name: vis_04_subsatellite_longitude
@@ -1318,7 +1034,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_subsatellite_longitude:
     name: vis_05_subsatellite_longitude
@@ -1326,7 +1041,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_subsatellite_longitude:
     name: vis_06_subsatellite_longitude
@@ -1334,8 +1048,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_subsatellite_longitude:
     name: vis_08_subsatellite_longitude
@@ -1343,7 +1056,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_subsatellite_longitude:
     name: vis_09_subsatellite_longitude
@@ -1351,7 +1063,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_subsatellite_longitude:
     name: nir_13_subsatellite_longitude
@@ -1359,7 +1070,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_subsatellite_longitude:
     name: nir_16_subsatellite_longitude
@@ -1367,7 +1077,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_subsatellite_longitude:
     name: nir_22_subsatellite_longitude
@@ -1376,7 +1085,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_subsatellite_longitude:
     name: ir_38_subsatellite_longitude
@@ -1385,7 +1093,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_subsatellite_longitude:
     name: wv_63_subsatellite_longitude
@@ -1393,7 +1100,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_subsatellite_longitude:
     name: wv_73_subsatellite_longitude
@@ -1401,7 +1107,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_subsatellite_longitude:
     name: ir_87_subsatellite_longitude
@@ -1409,7 +1114,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_subsatellite_longitude:
     name: ir_97_subsatellite_longitude
@@ -1417,7 +1121,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_subsatellite_longitude:
     name: ir_105_subsatellite_longitude
@@ -1426,7 +1129,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_subsatellite_longitude:
     name: ir_123_subsatellite_longitude
@@ -1434,7 +1136,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_subsatellite_longitude:
     name: ir_133_subsatellite_longitude
@@ -1442,7 +1143,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_subsolar_latitude:
     name: vis_04_subsolar_latitude
@@ -1450,7 +1150,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_subsolar_latitude:
     name: vis_05_subsolar_latitude
@@ -1458,7 +1157,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_subsolar_latitude:
     name: vis_06_subsolar_latitude
@@ -1466,8 +1164,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_subsolar_latitude:
     name: vis_08_subsolar_latitude
@@ -1475,7 +1172,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_subsolar_latitude:
     name: vis_09_subsolar_latitude
@@ -1483,7 +1179,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_subsolar_latitude:
     name: nir_13_subsolar_latitude
@@ -1491,7 +1186,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_subsolar_latitude:
     name: nir_16_subsolar_latitude
@@ -1499,7 +1193,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_subsolar_latitude:
     name: nir_22_subsolar_latitude
@@ -1508,7 +1201,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_subsolar_latitude:
     name: ir_38_subsolar_latitude
@@ -1517,7 +1209,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_subsolar_latitude:
     name: wv_63_subsolar_latitude
@@ -1525,7 +1216,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_subsolar_latitude:
     name: wv_73_subsolar_latitude
@@ -1533,7 +1223,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_subsolar_latitude:
     name: ir_87_subsolar_latitude
@@ -1541,7 +1230,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_subsolar_latitude:
     name: ir_97_subsolar_latitude
@@ -1549,7 +1237,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_subsolar_latitude:
     name: ir_105_subsolar_latitude
@@ -1558,7 +1245,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_subsolar_latitude:
     name: ir_123_subsolar_latitude
@@ -1566,7 +1252,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_subsolar_latitude:
     name: ir_133_subsolar_latitude
@@ -1574,7 +1259,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_subsolar_longitude:
     name: vis_04_subsolar_longitude
@@ -1582,7 +1266,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_subsolar_longitude:
     name: vis_05_subsolar_longitude
@@ -1590,7 +1273,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_subsolar_longitude:
     name: vis_06_subsolar_longitude
@@ -1598,8 +1280,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_subsolar_longitude:
     name: vis_08_subsolar_longitude
@@ -1607,7 +1288,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_subsolar_longitude:
     name: vis_09_subsolar_longitude
@@ -1615,7 +1295,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_subsolar_longitude:
     name: nir_13_subsolar_longitude
@@ -1623,7 +1302,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_subsolar_longitude:
     name: nir_16_subsolar_longitude
@@ -1631,7 +1309,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_subsolar_longitude:
     name: nir_22_subsolar_longitude
@@ -1640,7 +1317,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_subsolar_longitude:
     name: ir_38_subsolar_longitude
@@ -1649,7 +1325,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_subsolar_longitude:
     name: wv_63_subsolar_longitude
@@ -1657,7 +1332,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_subsolar_longitude:
     name: wv_73_subsolar_longitude
@@ -1665,7 +1339,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_subsolar_longitude:
     name: ir_87_subsolar_longitude
@@ -1673,7 +1346,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_subsolar_longitude:
     name: ir_97_subsolar_longitude
@@ -1681,7 +1353,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_subsolar_longitude:
     name: ir_105_subsolar_longitude
@@ -1690,7 +1361,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af }
 
   ir_123_subsolar_longitude:
     name: ir_123_subsolar_longitude
@@ -1698,7 +1368,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_subsolar_longitude:
     name: ir_133_subsolar_longitude
@@ -1706,7 +1375,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_platform_altitude:
     name: vis_04_platform_altitude
@@ -1714,7 +1382,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_platform_altitude:
     name: vis_05_platform_altitude
@@ -1722,7 +1389,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_platform_altitude:
     name: vis_06_platform_altitude
@@ -1730,8 +1396,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_platform_altitude:
     name: vis_08_platform_altitude
@@ -1739,7 +1404,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_platform_altitude:
     name: vis_09_platform_altitude
@@ -1747,7 +1411,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_platform_altitude:
     name: nir_13_platform_altitude
@@ -1755,7 +1418,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_platform_altitude:
     name: nir_16_platform_altitude
@@ -1763,7 +1425,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_platform_altitude:
     name: nir_22_platform_altitude
@@ -1772,7 +1433,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_platform_altitude:
     name: ir_38_platform_altitude
@@ -1781,7 +1441,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_platform_altitude:
     name: wv_63_platform_altitude
@@ -1789,7 +1448,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_platform_altitude:
     name: wv_73_platform_altitude
@@ -1797,7 +1455,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_platform_altitude:
     name: ir_87_platform_altitude
@@ -1805,7 +1462,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_platform_altitude:
     name: ir_97_platform_altitude
@@ -1813,7 +1469,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_platform_altitude:
     name: ir_105_platform_altitude
@@ -1822,7 +1477,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af }
 
   ir_123_platform_altitude:
     name: ir_123_platform_altitude
@@ -1830,7 +1484,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_platform_altitude:
     name: ir_133_platform_altitude
@@ -1838,15 +1491,13 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_earth_sun_distance:
     name: vis_04_earth_sun_distance
     units: km
     sensor: fci
     resolution:
-      1000: { file_type: [fci_l1c_af_vis_04, fci_l1c_fdhsi] }
-      3000: { file_type: fci_l1c_af_vis_04 }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_05_earth_sun_distance:
     name: vis_05_earth_sun_distance
@@ -1854,7 +1505,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_earth_sun_distance:
     name: vis_06_earth_sun_distance
@@ -1862,8 +1512,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_earth_sun_distance:
     name: vis_08_earth_sun_distance
@@ -1871,7 +1520,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_earth_sun_distance:
     name: vis_09_earth_sun_distance
@@ -1879,7 +1527,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_earth_sun_distance:
     name: nir_13_earth_sun_distance
@@ -1887,7 +1534,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_earth_sun_distance:
     name: nir_16_earth_sun_distance
@@ -1895,7 +1541,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_earth_sun_distance:
     name: nir_22_earth_sun_distance
@@ -1904,7 +1549,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_earth_sun_distance:
     name: ir_38_earth_sun_distance
@@ -1913,7 +1557,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_earth_sun_distance:
     name: wv_63_earth_sun_distance
@@ -1921,7 +1564,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_earth_sun_distance:
     name: wv_73_earth_sun_distance
@@ -1929,7 +1571,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_earth_sun_distance:
     name: ir_87_earth_sun_distance
@@ -1937,7 +1578,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_earth_sun_distance:
     name: ir_97_earth_sun_distance
@@ -1945,7 +1585,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_earth_sun_distance:
     name: ir_105_earth_sun_distance
@@ -1954,7 +1593,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_earth_sun_distance:
     name: ir_123_earth_sun_distance
@@ -1962,7 +1600,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_earth_sun_distance:
     name: ir_133_earth_sun_distance
@@ -1970,7 +1607,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }
 
   vis_04_sun_satellite_distance:
     name: vis_04_sun_satellite_distance
@@ -1978,7 +1614,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_04 }
 
   vis_05_sun_satellite_distance:
     name: vis_05_sun_satellite_distance
@@ -1986,7 +1621,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_05 }
 
   vis_06_sun_satellite_distance:
     name: vis_06_sun_satellite_distance
@@ -1994,8 +1628,7 @@ datasets:
     sensor: fci
     resolution:
       500: { file_type: fci_l1c_hrfi }
-      1000: { file_type: [fci_l1c_fdhsi, fci_l1c_af_vis_06_1km] }
-      3000: { file_type: fci_l1c_af_vis_06_3km }
+      1000: { file_type: fci_l1c_fdhsi }
 
   vis_08_sun_satellite_distance:
     name: vis_08_sun_satellite_distance
@@ -2003,7 +1636,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_08 }
 
   vis_09_sun_satellite_distance:
     name: vis_09_sun_satellite_distance
@@ -2011,7 +1643,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_vis_09 }
 
   nir_13_sun_satellite_distance:
     name: nir_13_sun_satellite_distance
@@ -2019,7 +1650,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_13 }
 
   nir_16_sun_satellite_distance:
     name: nir_16_sun_satellite_distance
@@ -2027,7 +1657,6 @@ datasets:
     sensor: fci
     resolution:
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_16 }
 
   nir_22_sun_satellite_distance:
     name: nir_22_sun_satellite_distance
@@ -2036,7 +1665,6 @@ datasets:
     resolution:
       500: { file_type: fci_l1c_hrfi }
       1000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_nir_22 }
 
   ir_38_sun_satellite_distance:
     name: ir_38_sun_satellite_distance
@@ -2045,7 +1673,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_38 }
 
   wv_63_sun_satellite_distance:
     name: wv_63_sun_satellite_distance
@@ -2053,7 +1680,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_63 }
 
   wv_73_sun_satellite_distance:
     name: wv_73_sun_satellite_distance
@@ -2061,7 +1687,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_wv_73 }
 
   ir_87_sun_satellite_distance:
     name: ir_87_sun_satellite_distance
@@ -2069,7 +1694,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_87 }
 
   ir_97_sun_satellite_distance:
     name: ir_97_sun_satellite_distance
@@ -2077,7 +1701,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_97 }
 
   ir_105_sun_satellite_distance:
     name: ir_105_sun_satellite_distance
@@ -2086,7 +1709,6 @@ datasets:
     resolution:
       1000: { file_type: fci_l1c_hrfi }
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_105 }
 
   ir_123_sun_satellite_distance:
     name: ir_123_sun_satellite_distance
@@ -2094,7 +1716,6 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_123 }
 
   ir_133_sun_satellite_distance:
     name: ir_133_sun_satellite_distance
@@ -2102,4 +1723,3 @@ datasets:
     sensor: fci
     resolution:
       2000: { file_type: fci_l1c_fdhsi }
-      3000: { file_type: fci_l1c_af_ir_133 }

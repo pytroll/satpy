@@ -16,8 +16,9 @@ Supported Data Variants
 
 This reader currently supports Full Disk High Spectral Resolution Imagery
 (FDHSI), High Spatial Resolution Fast Imagery (HRFI) data in full-disc ("FD") or in RSS ("Q4") scanning mode.
-In addition, it also supports the L1C format for the African dissemination ("AF"), where each file
-contains the masked full-disc of a single channel see `AF PUG`_.
+In addition, it also supports the L1C format for the African dissemination ("AF"), which is similar to the FD mode
+but only chunks 5 to 32 are produced with masked data around Africa; see `AF PUG`_. The missing chunks are padded
+to the full-disc by default as in the normal format.
 Experimental support for special scans, e.g. with coverage "xx", is also given.
 
 This reader supports data from both IDPF-I and IQT-I processing facilities.
@@ -256,11 +257,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
             # quarter of the disc
             self.filename_info["count_in_repeat_cycle"] += 28
 
-        if self.filename_info["coverage"] == "AF":
-            # change number of chunk from 0 to 1 so that the padding is not activated (chunk 1 is present and only 1
-            # chunk is expected), as the African dissemination products come in one file per full disk.
-            self.filename_info["count_in_repeat_cycle"] = 1
-
         if self.filename_info["coverage"] == "xx":
             # add one to the chunk numbering to activate the padding mechanism for special scans (expected to have less
             # than 40 chunks, but still starting with 1)
@@ -346,7 +342,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         Note: in the FCI terminology, a segment is actually called "chunk". To avoid confusion with the dask concept
         of chunk, and to be consistent with SEVIRI, we opt to use the word segment.
 
-        Note: This function is not used for the African data as it contains only one segment.
         """
         file_type = self.filetype_info["file_type"]
         vis_06_measured_path = self.get_channel_measured_group_path("vis_06")
