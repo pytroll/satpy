@@ -39,9 +39,10 @@ _CONFIG_DEFAULTS = {
     # "scene_iter_keys": True,
     "sensor_angles_position_preference": "actual",
     # 8< v1.1
-    # 8< v1.0, change default to False
+    # 8< v1.0
     "use_legacy_sunz_correction": True,
     # >8 v1.0
+    # "use_legacy_sunz_correction": False,
     # >8 v1.1
     "readers": {
         "clip_negative_radiances": False,

@@ -109,10 +109,12 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def __init__(
         self,
-        # 8< v1.1, change defaults to None and remove Literal["__default__"] as accepted type
+        # 8< v1.1
         correction_limit: int | float | Literal["__default__"] | None = "__default__",
         max_sza: int | float | Literal["__default__"] | None = "__default__",
         # >8 v1.1
+        # correction_limit: int | float | None = None,
+        # max_sza: int | float | None = None,
         **kwargs,
     ):
         """Collect custom configuration values.
@@ -143,10 +145,12 @@ class SunZenithCorrector(SunZenithCorrectorBase):
             self._warn_legacy_sunz_correction_with_defaults()
         # >8 v1.1
 
-        # 8< v1.1, change to foo = self.foo instead
+        # 8< v1.1
         correction_limit = self._get_correction_limit(use_legacy)
         max_sza = self._get_max_sza(use_legacy)
         # >8 v1.1
+        # correction_limit = self.correction_limit
+        # max_sza = self.max_sza
 
         res = proj.copy()
         res.data = sunzen_corr_cos(proj.data, coszen.data, correction_limit=correction_limit, max_sza=max_sza)
