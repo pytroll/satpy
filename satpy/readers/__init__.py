@@ -1,4 +1,3 @@
-
 """Shared objects of the various reader classes."""
 
 from __future__ import annotations
