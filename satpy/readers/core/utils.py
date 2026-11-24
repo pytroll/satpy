@@ -186,37 +186,37 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename: str | FSFile, prefix=None):
+def unzip_file(filename: str | FSFile | os.PathLike[str], prefix=None) -> str | None:
     """Unzip the local/remote file ending with 'bz2'.
 
     Args:
         filename: The local/remote file to unzip.
-        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+        prefix (str, Optional): If the file is one of many segments of data, prefix random filename
                                 for correct sorting. This is normally the segment number.
 
     Returns:
-        (pathlib.Path, None) Temporary filename path for decompressed file if available.
+        (str, None) Temporary filename path for the decompressed file if available.
 
     """
-    if isinstance(filename, str):
-        return _unzip_local_file(filename, prefix=prefix)
-    elif isinstance(filename, FSFile):
+    if isinstance(filename, FSFile):
         return _unzip_FSFile(filename, prefix=prefix)
+    return _unzip_local_file(filename, prefix=prefix)
 
 
-def _unzip_local_file(filename: str, prefix=None):
+def _unzip_local_file(filename: str | os.PathLike[str], prefix=None) -> str | None:
     """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
 
     Args:
         filename: The file to unzip.
-        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+        prefix (str, Optional): If the file is one of many segments of data, prefix random filename
                                 for correct sorting. This is normally the segment number.
 
     Returns:
-        (pathlib.Path, None) Temporary filename path for decompressed file if available.
+        (str, None) Temporary filename path for the decompressed file if available.
 
     """
-    if not os.fspath(filename).endswith("bz2"):
+    filename = os.fspath(filename)
+    if not filename.endswith("bz2"):
         return None
     fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,
                                         dir=config["tmp_dir"])
@@ -230,7 +230,7 @@ def _unzip_local_file(filename: str, prefix=None):
     return _write_uncompressed_file(content, fdn, filename, tmpfilepath)
 
 
-def _unzip_with_pbzip(filename, tmpfilepath, fdn):
+def _unzip_with_pbzip(filename: str, tmpfilepath: str, fdn: int) -> str | None:
     # try pbzip2
     pbzip = which("pbzip2")
     if pbzip is None:
@@ -263,7 +263,7 @@ def _unzip_with_pbzip(filename, tmpfilepath, fdn):
     return tmpfilepath
 
 
-def _unzip_with_bz2(filename, tmpfilepath):
+def _unzip_with_bz2(filename: str, tmpfilepath: str) -> bytes:
     with bz2.BZ2File(filename) as bz2file:
         try:
             content = bz2file.read()
@@ -274,7 +274,7 @@ def _unzip_with_bz2(filename, tmpfilepath):
     return content
 
 
-def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
+def _write_uncompressed_file(content: bytes, fdn: int, filename: str | FSFile, tmpfilepath: str) -> str | None:
     with closing(os.fdopen(fdn, "wb")) as ofpt:
         try:
             ofpt.write(content)
@@ -285,16 +285,16 @@ def _write_uncompressed_file(content, fdn, filename, tmpfilepath):
     return tmpfilepath
 
 
-def _unzip_FSFile(filename: FSFile, prefix=None):
-    """Open and Unzip remote FSFile ending with 'bz2'.
+def _unzip_FSFile(filename: FSFile, prefix=None) -> str | None:
+    """Open and Unzip the remote FSFile ending with 'bz2'.
 
     Args:
         filename: The FSFile to unzip.
-        prefix (str, Optional): If file is one of many segments of data, prefix random filename
+        prefix (str, Optional): If the file is one of many segments of data, prefix random filename
                                 for correct sorting. This is normally the segment number.
 
     Returns:
-        (os.Pathlike, None) Temporary filename path for decompressed file if available.
+        (str, None) Temporary filename path for the decompressed file if available.
 
     """
     fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix,

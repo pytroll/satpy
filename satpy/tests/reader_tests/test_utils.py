@@ -4,6 +4,8 @@
 import bz2
 import datetime as dt
 import os
+import pathlib
+from collections.abc import Iterator
 from unittest import mock
 
 import dask.array as da
@@ -12,10 +14,13 @@ import numpy.testing
 import pyresample.geometry
 import pytest
 import xarray as xr
+from fsspec.implementations.local import LocalFileSystem
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
+import satpy
 from satpy.readers.core import utils as hf
+from satpy.readers.core.remote import FSFile
 
 
 @pytest.fixture
@@ -501,6 +506,67 @@ def test_generic_open_binary(tmp_path, data, filename, mode):
         read_binary_data = f.read()
 
     assert read_binary_data == dummy_data
+
+
+@pytest.fixture
+def unzip_tmp_dir(tmp_path, monkeypatch) -> Iterator[pathlib.Path]:
+    """Use an empty tmp_dir and skip pbzip2."""
+    monkeypatch.setattr(hf, "which", lambda _: None)
+    subdir = tmp_path / "unzip_out"
+    subdir.mkdir()
+    with satpy.config.set(tmp_dir=str(subdir)):
+        yield subdir
+
+
+def _assert_decompressed_temp_file(result: str | None, tmp_dir: pathlib.Path, prefix: str) -> None:
+    assert isinstance(result, str)
+    assert pathlib.Path(result).read_bytes() == b"TEST"
+    assert os.path.basename(result).startswith(prefix)
+    assert pathlib.Path(result).parent == tmp_dir
+
+
+@pytest.mark.parametrize("convert", [str, pathlib.Path])
+def test_unzip_file_decompresses_local_bz2(bzipped_data_file, unzip_tmp_dir, convert):
+    """Test that a str or a Path to a bz2 file gets unzipped."""
+    result = hf.unzip_file(convert(bzipped_data_file), prefix="03")
+
+    _assert_decompressed_temp_file(result, unzip_tmp_dir, "03")
+
+
+def test_unzip_file_decompresses_fsfile_bz2(tmp_path, unzip_tmp_dir):
+    """Test that an FSFile gets unzipped as an FSFile."""
+    compressed_file = tmp_path / "compressed_without_suffix.DAT"
+    compressed_file.write_bytes(bz2.compress(b"TEST"))
+    fsfile = FSFile(str(compressed_file), LocalFileSystem())
+
+    result = hf.unzip_file(fsfile, prefix="03")
+
+    _assert_decompressed_temp_file(result, unzip_tmp_dir, "03")
+
+
+@pytest.mark.parametrize("convert", [str, pathlib.Path])
+def test_unzip_file_returns_none_for_uncompressed_file(data_file, unzip_tmp_dir, convert):
+    """Test that a non-bz2 file returns None and creates no temp file."""
+    assert hf.unzip_file(convert(data_file)) is None
+    assert list(unzip_tmp_dir.iterdir()) == []
+
+
+def test_unzip_file_raises_for_unsupported_type(unzip_tmp_dir):
+    """Test that an unsupported type raises instead of returning None."""
+    with pytest.raises(TypeError):
+        hf.unzip_file(None)
+    assert list(unzip_tmp_dir.iterdir()) == []
+
+
+def test_unzip_context_decompresses_path_input(bzipped_data_file, unzip_tmp_dir):
+    """Test that unzip_context unzips a Path and cleans up after."""
+    with hf.unzip_context(bzipped_data_file) as fn:
+        assert isinstance(fn, str)
+        assert pathlib.Path(fn).parent == unzip_tmp_dir
+        assert pathlib.Path(fn).read_bytes() == b"TEST"
+
+    assert not os.path.exists(fn)
+    assert bzipped_data_file.exists()
 
 
 class TestCalibrationCoefficientPicker:
