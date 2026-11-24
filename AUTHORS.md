@@ -32,6 +32,7 @@ The following people have made contributions to this project:
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Florian Fichtner (fwfichtner)](https://github.com/fwfichtner)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
+- [Vlad Galuska (VladGaluska)](https://github.com/VladGaluska)
 - [Gionata Ghiggi (ghiggi)](https://github.com/ghiggi)
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
