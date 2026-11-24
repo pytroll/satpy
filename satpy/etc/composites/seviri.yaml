@@ -191,7 +191,7 @@ composites:
     - name: VIS006
     standard_name: natural_color
 
-  fog:
+  fog: &24h_microphysics
     compositor: !!python/name:satpy.composites.core.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
@@ -703,3 +703,10 @@ composites:
         - IR_016
         - VIS006
     standard_name: day_severe_storms_tropical
+
+  24h_microphysics_ash:
+    << : *24h_microphysics
+    standard_name: 24h_microphysics_ash
+    description: >
+      Official WMO 24-hour microphysics ash RGB.  Source:
+      https://wmoomm.sharepoint.com/:b:/s/wmocpdb/EexzMK-JLutNlqR77aiIr8UB2uQvHGE8WfFCq23P03obhQ?e=S9nzet
