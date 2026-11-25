@@ -508,9 +508,14 @@ needs to implement a few methods:
    If the reader should be compatible with opening remote files see
    :doc:`remote_file_support`.
 
- - the ``get_area_def`` method, that takes as single argument the
-   :class:`DataID <satpy.dataset.dataid.DataID>` for which we want
-   the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
+ - the ``get_area_def`` method, which takes as arguments
+
+   - the :class:`DataID <satpy.dataset.dataid.DataID>` for which we want the area
+   - optionally, the dataset info, the same as ``get_dataset`` receives but
+     read-only. It is only passed if the method accepts a second argument,
+     for example ``def get_area_def(self, dataset_id, dataset_info=None)``.
+
+   It should return a :class:`~pyresample.geometry.AreaDefinition`
    object. For data that cannot be geolocated with an area
    definition, the pixel coordinates will be loaded using the
    ``get_dataset`` method for the resulting scene to be navigated.

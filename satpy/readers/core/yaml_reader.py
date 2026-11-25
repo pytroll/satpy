@@ -1,6 +1,8 @@
 """Base classes and utilities for all readers configured by YAML files."""
 
+import functools
 import glob
+import inspect
 import itertools
 import logging
 import os
@@ -9,6 +11,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from contextlib import suppress
 from fnmatch import fnmatch
+from types import MappingProxyType
 from weakref import WeakValueDictionary
 
 import numpy as np
@@ -741,7 +744,7 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
 
     def _load_area_def(self, dsid, file_handlers, **kwargs):
         """Load the area definition of *dsid*."""
-        return _load_area_def(dsid, file_handlers)
+        return _load_area_def(dsid, file_handlers, self.all_ids[dsid])
 
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
@@ -967,14 +970,50 @@ class FileYAMLReader(GenericYAMLReader, DataDownloadMixin):
         return cids
 
 
-def _load_area_def(dsid, file_handlers):
+def _load_area_def(dsid, file_handlers, ds_info):
     """Load the area definition of *dsid*."""
-    area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+    area_defs = [_get_file_handler_area_def(fh, dsid, ds_info) for fh in file_handlers]
     area_defs = [area_def for area_def in area_defs
                  if area_def is not None]
 
     final_area = StackedAreaDefinition(*area_defs)
     return final_area.squeeze()
+
+
+def _get_file_handler_area_def(file_handler, dsid, ds_info):
+    """Get the area definition of *dsid* from *file_handler*.
+
+    If the file handler's ``get_area_def`` accepts a second positional
+    argument (or ``*args``), it is called with a read-only view of *ds_info*.
+    Otherwise it is called with *dsid* only.
+    """
+    get_area_def = file_handler.get_area_def
+    if _accepts_ds_info(get_area_def):
+        return get_area_def(dsid, MappingProxyType(ds_info))
+    return get_area_def(dsid)
+
+
+def _accepts_ds_info(get_area_def):
+    """Check if *get_area_def* can be called as ``get_area_def(dsid, ds_info)``."""
+    if inspect.ismethod(get_area_def):
+        # cached per underlying function, so each file handler class is inspected once
+        return _unbound_method_accepts_ds_info(get_area_def.__func__)
+    # other callables (ex. a function or mock set on the instance) are inspected every time
+    return _can_bind(inspect.signature(get_area_def), "dsid", "ds_info")
+
+
+@functools.cache
+def _unbound_method_accepts_ds_info(func):
+    # "self" stands in for the instance (or class) the method is bound to
+    return _can_bind(inspect.signature(func), "self", "dsid", "ds_info")
+
+
+def _can_bind(signature, *args):
+    try:
+        signature.bind(*args)
+    except TypeError:
+        return False
+    return True
 
 
 def _set_orientation(dataset, upper_right_corner):
@@ -1222,24 +1261,25 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
+        ds_info = self.all_ids[dsid]
         if not pad_data:
-            return _load_area_def(dsid, file_handlers)
-        return self._load_area_def_with_padding(dsid, file_handlers)
+            return _load_area_def(dsid, file_handlers, ds_info)
+        return self._load_area_def_with_padding(dsid, file_handlers, ds_info)
 
-    def _load_area_def_with_padding(self, dsid, file_handlers):
+    def _load_area_def_with_padding(self, dsid, file_handlers, ds_info):
         """Load the area definition of *dsid* with padding."""
         # Pad missing segments between the first available and expected
-        area_defs = self._pad_later_segments_area(file_handlers, dsid)
+        area_defs = self._pad_later_segments_area(file_handlers, dsid, ds_info)
 
         # Add missing start segments
-        area_defs = self._pad_earlier_segments_area(file_handlers, dsid, area_defs)
+        area_defs = self._pad_earlier_segments_area(file_handlers, dsid, area_defs, ds_info)
 
         # Stack the area definitions
         area_def = _stack_area_defs(area_defs)
 
         return area_def
 
-    def _pad_later_segments_area(self, file_handlers, dsid):
+    def _pad_later_segments_area(self, file_handlers, dsid, ds_info):
         """Pad area definitions for missing segments that are later in sequence than the first available."""
         expected_segments = file_handlers[0].filetype_info["expected_segments"]
         filetype = file_handlers[0].filetype_info["file_type"]
@@ -1247,19 +1287,19 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                               fh in file_handlers]
 
         area_defs = self._get_segments_areadef_with_later_padded(file_handlers, filetype, dsid, available_segments,
-                                                                 expected_segments)
+                                                                 expected_segments, ds_info)
 
         return area_defs
 
     def _get_segments_areadef_with_later_padded(self, file_handlers, filetype, dsid, available_segments,
-                                                expected_segments):
+                                                expected_segments, ds_info):
         seg_size = None
         area_defs = {}
         for segment in range(available_segments[0], expected_segments + 1):
             try:
                 idx = available_segments.index(segment)
                 fh = file_handlers[idx]
-                area = fh.get_area_def(dsid)
+                area = _get_file_handler_area_def(fh, dsid, ds_info)
             except ValueError:
                 area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type="later")
 
@@ -1267,11 +1307,11 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             seg_size = area.shape
         return area_defs
 
-    def _pad_earlier_segments_area(self, file_handlers, dsid, area_defs):
+    def _pad_earlier_segments_area(self, file_handlers, dsid, area_defs, ds_info):
         """Pad area definitions for missing segments that are earlier in sequence than the first available."""
         available_segments = [int(fh.filename_info.get("segment", 1)) for
                               fh in file_handlers]
-        area = file_handlers[0].get_area_def(dsid)
+        area = _get_file_handler_area_def(file_handlers[0], dsid, ds_info)
         seg_size = area.shape
         filetype = file_handlers[0].filetype_info["file_type"]
 
