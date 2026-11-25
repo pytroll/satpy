@@ -6,6 +6,7 @@ import os
 import random
 import unittest
 from tempfile import mkdtemp
+from types import MappingProxyType
 from unittest.mock import MagicMock, call, patch
 
 import dask.array as da
@@ -467,7 +468,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
     @patch("satpy.readers.core.yaml_reader.StackedAreaDefinition")
     def test_load_area_def(self, sad):
         """Test loading the area def for the reader."""
-        dataid = MagicMock()
+        dataid = make_dataid(name="ch01", wavelength=(0.5, 0.6, 0.7),
+                             calibration="reflectance", modifiers=())
         file_handlers = []
         items = random.randrange(2, 10)
         for _i in range(items):
@@ -1145,6 +1147,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         reader = GEOSegmentYAMLReader()
 
         dataid = MagicMock()
+        ds_info = {"name": "dataid"}
+        reader.all_ids = {dataid: ds_info}
         file_handlers = MagicMock()
         reader._load_area_def(dataid, file_handlers)
         pesa.assert_called_once()
@@ -1153,7 +1157,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         parent_load_area_def.assert_not_called()
         # Disable padding
         reader._load_area_def(dataid, file_handlers, pad_data=False)
-        parent_load_area_def.assert_called_once_with(dataid, file_handlers)
+        parent_load_area_def.assert_called_once_with(dataid, file_handlers, ds_info)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch("satpy.readers.core.yaml_reader.AreaDefinition")
@@ -1169,7 +1173,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, None)
         file_handlers = [fh_1]
         dataid = "dataid"
-        res = reader._pad_later_segments_area(file_handlers, dataid)
+        res = reader._pad_later_segments_area(file_handlers, dataid, {})
         assert len(res) == 2
         seg2_extent = (0, 1500, 200, 1000)
         expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
@@ -1192,7 +1196,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         file_handlers = [fh_2]
         dataid = "dataid"
         area_defs = {2: seg2_area}
-        res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
+        res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs, {})
         assert len(res) == 2
         seg1_extent = (0, 500, 200, 0)
         expected_call = ("fill", "fill", "fill", "some_crs", 500, 200,
@@ -1353,7 +1357,7 @@ class TestGEOVariableSegmentYAMLReader:
         GVSYReader.file_handlers = {"filetype1": [fh_2]}
         dataid = "dataid"
         area_defs = {2: seg2_area}
-        res = GVSYReader._pad_earlier_segments_area([fh_2], dataid, area_defs)
+        res = GVSYReader._pad_earlier_segments_area([fh_2], dataid, area_defs, {})
         assert len(res) == 2
 
         # The later vertical segment (nr. 2) size is 278, which is exactly double the size
@@ -1385,7 +1389,7 @@ class TestGEOVariableSegmentYAMLReader:
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
         GVSYReader.file_handlers = {"filetype1": [fh_1]}
         dataid = "dataid"
-        res = GVSYReader._pad_later_segments_area([fh_1], dataid)
+        res = GVSYReader._pad_later_segments_area([fh_1], dataid, {})
         assert len(res) == 2
 
         # The previous segment size is 556, which is exactly double the size of the gap left
@@ -1449,7 +1453,7 @@ class TestGEOVariableSegmentYAMLReader:
 
         GVSYReader.file_handlers = {"filetype1": [fh_1, fh_4, fh_8]}
         dataid = "dataid"
-        res = GVSYReader._pad_later_segments_area([fh_1, fh_4, fh_8], dataid)
+        res = GVSYReader._pad_later_segments_area([fh_1, fh_4, fh_8], dataid, {})
         assert len(res) == 8
 
         # Regarding the segment sizes:
@@ -1511,3 +1515,124 @@ class TestGEOVariableSegmentYAMLReader:
         new_empty_segment = geswh(empty_segment, new_height, "y")
         assert new_empty_segment.shape == (new_height, 5568)
         assert (new_empty_segment == empty_segment[0,0]).all()
+
+
+class AreaDefRecordingFH(BaseFileHandler):
+    """File handler that records the arguments passed to its ``get_area_def``."""
+
+    def __init__(self, segment=1, expected_segments=1):
+        """Initialize the file handler for one segment."""
+        super().__init__("fake.nc", {"segment": segment},
+                         {"file_type": "ftype1", "expected_segments": expected_segments})
+        self.area_def_args = []
+
+    def _record_and_get_area_def(self, *args):
+        from pyresample.geometry import AreaDefinition
+        self.area_def_args.append(args)
+        return AreaDefinition("seg", "seg", "seg", "EPSG:4326", 4, 2, (0, 0, 4, 2))
+
+
+class DsidOnlyFH(AreaDefRecordingFH):
+    """File handler with the one-argument ``get_area_def``."""
+
+    def get_area_def(self, dsid):
+        """Get the area definition."""
+        return self._record_and_get_area_def(dsid)
+
+
+class DsInfoFH(AreaDefRecordingFH):
+    """File handler whose ``get_area_def`` takes the dataset info."""
+
+    def get_area_def(self, dsid, ds_info):
+        """Get the area definition."""
+        return self._record_and_get_area_def(dsid, ds_info)
+
+
+class VarArgsFH(AreaDefRecordingFH):
+    """File handler whose ``get_area_def`` takes ``*args``."""
+
+    def get_area_def(self, dsid, *args):
+        """Get the area definition."""
+        return self._record_and_get_area_def(dsid, *args)
+
+
+def _get_reader_and_dsid(reader_class):
+    config = {
+        "reader": {"name": "fake", "sensors": ["canon"]},
+        "file_types": {"ftype1": {"file_reader": BaseFileHandler,
+                                  "file_patterns": ["a{something:3s}.bla"]}},
+        "datasets": {"ch1": {"name": "ch01", "file_type": "ftype1", "file_key": "/data/ch01"}},
+    }
+    reader = reader_class(config)
+    return reader, reader.get_dataset_key("ch01")
+
+
+def _assert_area_def_args(file_handlers, dsid, ds_info, gets_ds_info):
+    for fh in file_handlers:
+        assert fh.area_def_args
+        for args in fh.area_def_args:
+            if not gets_ds_info:
+                assert args == (dsid,)
+                continue
+            assert args[0] == dsid
+            assert isinstance(args[1], MappingProxyType)
+            assert args[1] == ds_info
+
+
+AREA_DEF_HANDLER_PARAMS = pytest.mark.parametrize(
+    ("fh_class", "gets_ds_info"),
+    [(DsidOnlyFH, False), (DsInfoFH, True), (VarArgsFH, True)],
+)
+
+
+@AREA_DEF_HANDLER_PARAMS
+def test_file_yaml_reader_passes_ds_info_to_get_area_def(fh_class, gets_ds_info):
+    """Test that ds_info is only passed to file handlers whose get_area_def accepts it."""
+    reader, dsid = _get_reader_and_dsid(yr.FileYAMLReader)
+    file_handlers = [fh_class(), fh_class()]
+
+    reader._load_area_def(dsid, file_handlers)
+
+    assert all(len(fh.area_def_args) == 1 for fh in file_handlers)
+    _assert_area_def_args(file_handlers, dsid, reader.all_ids[dsid], gets_ds_info)
+
+
+@pytest.mark.parametrize(("pad_data", "exp_height"), [(True, 8), (False, 4)])
+@AREA_DEF_HANDLER_PARAMS
+def test_geo_segment_reader_passes_ds_info_to_get_area_def(fh_class, gets_ds_info, pad_data, exp_height):
+    """Test that ds_info reaches get_area_def with and without padding of missing segments."""
+    reader, dsid = _get_reader_and_dsid(yr.GEOSegmentYAMLReader)
+    # segments 1 and 4 are missing
+    file_handlers = [fh_class(segment=2, expected_segments=4), fh_class(segment=3, expected_segments=4)]
+
+    area = reader._load_area_def(dsid, file_handlers, pad_data=pad_data)
+
+    assert area.shape == (exp_height, 4)
+    _assert_area_def_args(file_handlers, dsid, reader.all_ids[dsid], gets_ds_info)
+
+
+def test_ds_info_passed_to_get_area_def_is_read_only_view():
+    """Test that get_area_def gets a read-only view of the reader's ds_info, not a copy."""
+    reader, dsid = _get_reader_and_dsid(yr.FileYAMLReader)
+    fh = DsInfoFH()
+
+    reader._load_area_def(dsid, [fh])
+
+    passed_ds_info = fh.area_def_args[0][1]
+    assert passed_ds_info["file_key"] == "/data/ch01"
+    with pytest.raises(TypeError):
+        passed_ds_info["file_key"] = "/other"
+    reader.all_ids[dsid]["new_key"] = "new_value"
+    assert passed_ds_info["new_key"] == "new_value"
+
+
+def test_mocked_file_handler_get_area_def_gets_ds_info():
+    """Test that a mocked get_area_def, which accepts ``*args``, gets ds_info."""
+    fh = MagicMock()
+    ds_info = {"name": "ch01"}
+
+    area = yr._get_file_handler_area_def(fh, "dsid", ds_info)
+
+    assert area is fh.get_area_def.return_value
+    fh.get_area_def.assert_called_once_with("dsid", ds_info)
+    assert isinstance(fh.get_area_def.call_args.args[1], MappingProxyType)

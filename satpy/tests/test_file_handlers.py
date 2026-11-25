@@ -191,3 +191,11 @@ def test_file_type_match(file_type, ds_file_type, exp_result):
     """Test that file type matching uses exactly equality."""
     fh = FakeFileHandler("some_file.txt", {}, {"file_type": file_type})
     assert fh.file_type_matches(ds_file_type) is exp_result
+
+
+@pytest.mark.parametrize("args", [("dsid",), ("dsid", {"name": "ds"})])
+def test_get_area_def_not_implemented(args):
+    """Test that the base get_area_def accepts an optional ds_info and is not implemented."""
+    fh = BaseFileHandler("filename", {}, {})
+    with pytest.raises(NotImplementedError):
+        fh.get_area_def(*args)
