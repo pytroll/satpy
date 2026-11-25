@@ -51,18 +51,21 @@ class BaseFileHandler:
         """Get dataset."""
         raise NotImplementedError
 
-    def get_area_def(self, dsid, ds_info=None):
+    def get_area_def(self, dsid):
         """Get the area definition of a dataset.
 
-        File handlers for gridded data override this method. The reader passes
-        ``ds_info`` only if the override accepts a second positional argument
-        (or ``*args``). Overrides that only take ``dsid`` are still supported.
+        File handlers for gridded data override this method. An override may
+        take a second argument, ``ds_info``: the reader passes it only if the
+        override accepts a second positional argument (or ``*args``). It is a
+        read-only view (:class:`types.MappingProxyType`) of the dataset's
+        information, the same that :meth:`get_dataset` receives (ex. a
+        ``file_key`` from the reader YAML). Give it a default, as in
+        ``get_area_def(self, dsid, ds_info=None)``, so the override stays
+        compatible with this method. Overrides that only take ``dsid`` are
+        still supported.
 
         Args:
             dsid: ID of the dataset to get the area definition for.
-            ds_info: Read-only view (:class:`types.MappingProxyType`) of the
-                dataset's information, the same that :meth:`get_dataset`
-                receives (ex. a ``file_key`` from the reader YAML).
 
         Returns:
             The :class:`~pyresample.geometry.AreaDefinition` of the dataset.

@@ -513,7 +513,7 @@ needs to implement a few methods:
    - the :class:`DataID <satpy.dataset.dataid.DataID>` for which we want the area
    - optionally, the dataset info, the same as ``get_dataset`` receives but
      read-only. It is only passed if the method accepts a second argument,
-     for example ``def get_area_def(self, dataset_id, dataset_info)``.
+     for example ``def get_area_def(self, dataset_id, dataset_info=None)``.
 
    It should return a :class:`~pyresample.geometry.AreaDefinition`
    object. For data that cannot be geolocated with an area
