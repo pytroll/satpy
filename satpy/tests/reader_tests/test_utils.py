@@ -465,17 +465,22 @@ class TestSunEarthDistanceCorrection:
 
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""
+        orig_attrs = self.raw_refl.attrs.copy()
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
         assert out_refl.attrs["sun_earth_distance_correction_applied"]
         assert isinstance(out_refl.data, da.Array)
+        assert self.raw_refl.attrs == orig_attrs
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
+        self.corr_refl.attrs["sun_earth_distance_correction_applied"] = True
+        orig_attrs = self.corr_refl.attrs.copy()
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
         assert not out_refl.attrs["sun_earth_distance_correction_applied"]
         assert isinstance(out_refl.data, da.Array)
+        assert self.corr_refl.attrs == orig_attrs
 
 
 @pytest.mark.parametrize(("data", "filename", "mode"),
