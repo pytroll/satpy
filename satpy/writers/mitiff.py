@@ -681,7 +681,7 @@ class MITIFFWriter(ImageWriter):
 
     def _save_as_enhanced(self, datasets, tmp_gen_filename, **kwargs):
         """Save datasets as an enhanced RGB image."""
-        img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
+        img = get_enhanced_image(datasets, enhance=self.enhancer)
         tiffinfo = {}
         if "bands" in img.data.sizes and "bands" not in datasets.sizes:
             LOG.debug("Datasets without 'bands' become image with 'bands' due to enhancement.")

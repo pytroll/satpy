@@ -112,3 +112,19 @@ class TestSceneSaving:
         scn["test"] = ds1
         scn.save_dataset("test", base_dir=tmp_path)
         assert os.path.isfile(os.path.join(tmp_path, "test_20180101_000000.tif"))
+
+
+def test_show_preserves_p_mode():
+    """Test that Scene.show preserves P mode and bands coordinate."""
+    ds = xr.DataArray(
+        da.from_array([[[1, 2, 3], [4, 5, 6]]]),
+        dims=("bands", "y", "x"),
+        coords={"bands": ["P"]},
+        attrs={"mode": "P", "name": "test"},
+    )
+    scn = Scene()
+    scn["test"] = ds
+    with mock.patch("satpy.utils.in_ipynb", return_value=True):
+        img = scn.show("test")
+    assert img.mode == "P"
+    assert list(img.data.coords["bands"].values) == ["P"]
