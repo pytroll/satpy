@@ -1374,7 +1374,7 @@ class AWIPSTiledWriter(Writer):
                 # this is an RGB
                 from satpy.enhancements.enhancer import get_enhanced_image
 
-                img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
+                img = get_enhanced_image(ds, enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]
                 new_datasets.extend(self._split_rgbs(res_data))
 

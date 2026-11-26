@@ -1051,7 +1051,7 @@ class Scene:
         """
         from satpy.enhancements.enhancer import get_enhanced_image
         from satpy.utils import in_ipynb
-        img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
+        img = get_enhanced_image(self[dataset_id], overlay=overlay)
         if not in_ipynb():
             img.show()
         return img
