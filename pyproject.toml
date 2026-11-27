@@ -66,6 +66,7 @@ hsaf_grib = ["pygrib"]
 remote_reading = ["fsspec"]
 insat_3d = ["xarray>=2024.10.0"]
 gms5-vissr_l1b = ["numba"]
+goes_pregvar_area = ["pyarea"]
 # Writers:
 cf = ["h5netcdf >= 0.7.3"]
 awips_tiled = ["netCDF4 >= 1.1.8"]

@@ -71,7 +71,7 @@ for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()  # type: ignore
 
 autodoc_mock_imports = ["cf", "glymur", "h5netcdf", "holoviews", "imageio", "mipp", "netCDF4",
-                        "pygac", "pygrib", "pyhdf", "pyninjotiff",
+                        "pyarea", "pygac", "pygrib", "pyhdf", "pyninjotiff",
                         "pyorbital", "pyspectral", "rasterio", "trollimage", "rioxarray",
                         "zarr"]
 autodoc_type_aliases = {
