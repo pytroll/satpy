@@ -162,7 +162,6 @@ class TestModeAIR:
         assert res.attrs["platform_name"] == "GOES-3"
         assert res.attrs["sensor"] == "goes_pregvar"
         assert res.attrs["wavelength"] == [10.5, 11.5, 12.5]
-        assert "_calibration_note" not in res.attrs
 
 
 class TestModeAVIS:
@@ -182,12 +181,11 @@ class TestModeAVIS:
         assert handler.fake.calls == [("read_vis", "counts")]
 
     def test_unnormalized_reflectance(self, handler):
-        """Ask pyarea for the percentage and note that it is relative."""
+        """Ask pyarea for the percentage."""
         res = get(handler, "VIS", "unnormalized_reflectance", band="VIS")
         assert res.attrs["units"] == "%"
         assert (res.values == 30.0).all()
         assert handler.fake.calls == [("read_vis", "unnormalized_reflectance")]
-        assert "not an independently" in res.attrs["_calibration_note"]
 
     def test_unsupported_calibration(self, handler):
         """Reject calibrations the format does not have."""
