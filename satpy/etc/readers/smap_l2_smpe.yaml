@@ -1,0 +1,70 @@
+reader:
+  name: smap_l2_smpe
+  short_name: SMAP l2 H5
+  long name: SMAP l2 HDF5 Soil Moisture
+  description: >
+    HDF5 reader for SMAP soil moisture files
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [smap]
+
+file_types:
+  smap_l2:
+    file_reader: !!python/name:satpy.readers.smap_l2_smpe.SMAPFileHandler
+    file_patterns: ['SMAP_L2_SM_P_E_{orbit:5s}_{orbitdesignator:1s}_{start_time:%Y%m%dT%H%M%S}_{releaseID:6s}_{processingcount:3s}.h5']
+
+datasets:
+  soil_moisture:
+    name: soil_moisture
+    resolution: 9000
+    unit: m3/m3
+    file_type: smap_l2
+    coordinates: [longitude, latitude]
+    file_key: Soil_Moisture_Retrieval_Data/soil_moisture
+
+  soil_moisture_error:
+    name: soil_moisture_error
+    resolution: 9000
+    unit: m3/m3
+    file_type: smap_l2
+    coordinates: [longitude, latitude]
+    file_key: Soil_Moisture_Retrieval_Data
+
+  retrieval_qual_flag:
+    name: retrieval_qual_flag
+    resolution: 9000
+    unit: None
+    file_type: smap_l2
+    coordinates: [longitude, latitude]
+    file_key: Soil_Moisture_Retrieval_Data
+
+  vegetation_opacity:
+    name: vegetation_opacity
+    resolution: 9000
+    unit: None
+    file_type: smap_l2
+    coordinates: [longitude, latitude]
+    file_key: Soil_Moisture_Retrieval_Data
+
+  vegetation_water_content:
+    name: vegetation_water_content
+    resolution: 9000
+    unit: kg/m2
+    file_type: smap_l2
+    coordinates: [longitude, latitude]
+    file_key: Soil_Moisture_Retrieval_Data
+
+  longitude:
+    file_type: smap_l2
+    name: longitude
+    resolution: 9000
+    standard_name: longitude
+    units: degrees_east
+    file_key: Soil_Moisture_Retrieval_Data/longitude
+
+  latitude:
+    file_type: smap_l2
+    name: latitude
+    resolution: 9000
+    standard_name: latitude
+    units: degrees_north
+    file_key: Soil_Moisture_Retrieval_Data/latitude
