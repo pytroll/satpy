@@ -67,3 +67,4 @@ dependencies:
       - pyorbital
       - pyPublicDecompWT
       - pygac
+      - pyarea
