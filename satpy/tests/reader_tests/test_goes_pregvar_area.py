@@ -3,6 +3,7 @@
 import base64
 import datetime as dt
 import gzip
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 
 import numpy as np
@@ -15,7 +16,7 @@ from satpy import Scene
 from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
-    from satpy import goes_pregvar_area as handler_module
+    from satpy.readers import goes_pregvar_area as handler_module
     from satpy.readers.goes_pregvar_area import GOESPreGVARAreaFileHandler
 except ImportError as err:
     if skip_numba_unstable_if_missing():
@@ -34,22 +35,35 @@ REAL_MODE_A_IR = (
 )
 
 
+@dataclass
 class FakeAreaFile:
-    """The part of ``pyarea.AreaFile`` the handler uses, with a different value from every reader."""
+    """The part of ``pyarea.AreaFile`` the handler uses, with a different value from every reader.
+
+    The first ``nan_rows`` rows of the navigation are in space; ``has_band_list`` tells whether the file has a per-line
+    band list.
+    """
+
+    band: str = "IR"
+    source_type: str = "VISR"
+    satellite: str = "GOES-3"
+    nan_rows: int = 0
+    has_band_list: bool = True
+    aaa_cal: dict | None = None
+    mode_aa_cal: dict | None = None
+    calls: list = field(default_factory=list)
 
     source = "fake.AREA"
     nominal_datetime = dt.datetime(1992, 8, 23, 13, 1)
 
-    def __init__(self, band="IR", source_type="VISR", satellite="GOES-3", nan_rows=0, band_list=True,
-                 aaa_cal=None, mode_aa_cal=None):
-        """Describe the file; the first ``nan_rows`` rows are in space."""
-        self.directory = SimpleNamespace(band=band, satellite=satellite)
-        self.source_type = source_type
-        self.band_list = np.zeros(SHAPE[0]) if band_list else None
-        self.aaa_cal = aaa_cal
-        self.mode_aa_cal = mode_aa_cal
-        self.nan_rows = nan_rows
-        self.calls = []
+    @property
+    def directory(self):
+        """The directory fields the handler reads."""
+        return SimpleNamespace(band=self.band, satellite=self.satellite)
+
+    @property
+    def band_list(self):
+        """The per-line band list, if the file has one."""
+        return np.zeros(SHAPE[0]) if self.has_band_list else None
 
     def _result(self, call, value, dtype=np.float32):
         self.calls.append(call)
@@ -329,7 +343,7 @@ class TestModeAAA:
 
     def test_band_list_is_required(self, make_handler):
         """Without a band list the channels of an AAA file cannot be told apart."""
-        handler = make_handler(FakeAreaFile(source_type="AAA", band_list=False))
+        handler = make_handler(FakeAreaFile(source_type="AAA", has_band_list=False))
         with pytest.raises(ValueError, match="band list"):
             get(handler, "VAS_CH8", "brightness_temperature", band="IR", vas_channel=8)
         assert handler.fake.calls == []

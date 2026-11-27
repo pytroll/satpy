@@ -11,11 +11,11 @@ reader:
 
 file_types:
   area_ir:
-    file_reader: !!python/name:satpy.readers.goes_pregvar.goes_pregvar_area.GOESPreGVARAreaFileHandler
+    file_reader: !!python/name:satpy.readers.goes_pregvar_area.GOESPreGVARAreaFileHandler
     file_patterns:
       - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}{extra}.AREA_IR'
   area_vis:
-    file_reader: !!python/name:satpy.readers.goes_pregvar.goes_pregvar_area.GOESPreGVARAreaFileHandler
+    file_reader: !!python/name:satpy.readers.goes_pregvar_area.GOESPreGVARAreaFileHandler
     file_patterns:
       - '{platform}{sat_num:2d}.{year:4d}.{doy:3d}.{hhmm:4d}{extra}.AREA_VIS'
 
