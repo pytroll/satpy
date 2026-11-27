@@ -421,6 +421,20 @@ class TestScene:
         assert isinstance(ir.attrs["area_def_uniform_sampling"], AreaDefinition)
         assert ir.attrs["start_time"] == vis.attrs["start_time"]
 
+    @pytest.mark.parametrize("name", [
+        "goes03.1979.234.1515.AREA_IR",
+        "goes05.1983.229.2231-2.AREA_IR",
+        "goes07.1996.011.0031.AAA-MSI.AREA_IR",
+    ])
+    def test_file_name_variants(self, tmp_path, monkeypatch, name):
+        """Match the plain, numbered and suffixed names CLASS has used."""
+        path = tmp_path / name
+        path.touch()
+        self._fakes(monkeypatch, FakeAreaFile())
+        scn = Scene(filenames=[str(path)], reader="goes_pregvar_area")
+        scn.load(["IR"])
+        assert scn["IR"].shape == SHAPE
+
     def test_available_dataset_names(self, files, monkeypatch):
         """List the sounder channels, but not the generic IR dataset, for a multiband file."""
         cal = {"iab": {8: (1, 2, 3)}}
