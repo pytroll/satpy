@@ -1,0 +1,144 @@
+sensor_name: visir/sen2_msi
+
+composites:
+  true_color:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+    - name: 'B04'
+    - name: 'B03'
+    - name: 'B02'
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+    - name: 'B11'
+    - name: 'B08'
+    - name: 'B04'
+    standard_name: natural_color
+
+  urban_color:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: 'B12'
+      - name: 'B11'
+      - name: 'B04'
+    standard_name: natural_color
+
+  false_color:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: 'B08'
+      - name: 'B04'
+      - name: 'B03'
+    standard_name: natural_color
+
+  ndvi:
+    # Normalized Difference Vegetation Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndvi/
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: B08
+          - name: B04
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
+        prerequisites:
+          - name: B08
+          - name: B04
+    standard_name: ndvi_msi
+
+  ndmi:
+    # Normalized Difference Moisture Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndmi/
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: B08
+          - name: B11
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
+        prerequisites:
+          - name: B08
+          - name: B11
+    standard_name: ndmi_msi
+
+  ndwi:
+    # Normalized Difference Water Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndwi/
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: B03
+          - name: B08
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
+        prerequisites:
+          - name: B03
+          - name: B08
+    standard_name: ndwi_msi
+
+  ndsi:
+    # Normalized Difference Snow Index
+    # For more information please review https://custom-scripts.sentinel-hub.com/sentinel-2/ndsi/
+    compositor: !!python/name:satpy.composites.mask.MaskingCompositor
+    prerequisites:
+    - name: B11
+    - compositor: !!python/name:satpy.composites.arithmetic.RatioCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.arithmetic.DifferenceCompositor
+        prerequisites:
+          - name: B03
+          - name: B11
+      - compositor: !!python/name:satpy.composites.arithmetic.SumCompositor
+        prerequisites:
+          - name: B03
+          - name: B11
+    conditions:
+    - method: less_equal
+      value: 0.42
+      transparency: 100
+    - method: isnan
+      transparency: 100
+    standard_name: ndsi_msi
+
+  dataspace_swir:
+    compositor: !!python/name:satpy.composites.core.GenericCompositor
+    prerequisites:
+      - name: 'B12'
+      - name: 'B8A'
+      - name: 'B04'
+    standard_name: natural_color
+
+  ndsi_with_true_color:
+    compositor: !!python/name:satpy.composites.fill.BackgroundCompositor
+    prerequisites:
+      - name: ndsi
+      - name: true_color
+    standard_name: no_enhancement
+
+  aerosol_optical_thickness:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+      - name: AOT
+        calibration: aerosol_thickness
+    standard_name: aot_msi
+
+  water_vapor_map:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+      - name: WVP
+        calibration: water_vapor
+    standard_name: wvp_msi
+
+  scene_class:
+    compositor: !!python/name:satpy.composites.core.SingleBandCompositor
+    prerequisites:
+      - name: SCL
+    standard_name: scl_msi
