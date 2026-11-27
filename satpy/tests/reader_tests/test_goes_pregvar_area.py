@@ -15,8 +15,8 @@ from satpy import Scene
 from satpy.tests.utils import skip_numba_unstable_if_missing
 
 try:
-    from satpy.readers.goes_pregvar import goes_pregvar_area as handler_module
-    from satpy.readers.goes_pregvar.goes_pregvar_area import GOESPreGVARAreaFileHandler
+    from satpy import goes_pregvar_area as handler_module
+    from satpy.readers.goes_pregvar_area import GOESPreGVARAreaFileHandler
 except ImportError as err:
     if skip_numba_unstable_if_missing():
         pytest.skip(f"Numba is not compatible with unstable NumPy: {err!s}", allow_module_level=True)
