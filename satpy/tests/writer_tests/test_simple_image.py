@@ -29,6 +29,7 @@ class TestPillowWriter(unittest.TestCase):
             da.arange(100 * 200).reshape((100, 200)).rechunk(50),
             dims=("y", "x"),
             attrs={"name": "test",
+                   "standard_name": "image_ready",
                    "start_time": dt.datetime.now(dt.timezone.utc)}
         )
         return [ds1]
