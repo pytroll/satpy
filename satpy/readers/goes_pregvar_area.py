@@ -38,7 +38,7 @@ Mode A (single band, ``VISR``)
     IR: ``counts`` and ``brightness_temperature``. The raw counts are
     already on the documented VISSR brightness scale, so
     T = 418 - B for B >= 176 and T = 330 - B / 2 below that (kelvin).
-    
+
     VIS: ``counts`` and ``unnormalized_reflectance``. The counts are
     6-bit values stored in a byte (multiples of 4, at most 252). They are
     proportional to the square root of the radiance (Kidder and Vonder Haar,
@@ -103,22 +103,13 @@ _GEOS_B = 6356752.314245
 
 
 class GOESPreGVARAreaFileHandler(BaseFileHandler):
-    """File handler for SMS and GOES 1-7 VISSR/VAS data in AREA format.
+    """File handler for SMS and GOES 1-7 VISSR/VAS data in AREA format."""
 
-        Args:
-            filename: Path of the AREA file.
-            filename_info: Information parsed from the file name.
-            filetype_info: File type information from the YAML file.
-            mask_space: Mask pixels whose line of sight misses the earth ellipsoid
-                (deep space / limb pixels) to NaN. The mask is derived from the same
-                per-pixel navigation (get_lonlats()) already used for the
-                longitude/latitude datasets -- a pixel is "space" here if its own
-                earth-location computation returned NaN. This also means turning off
-                navigation isn't possible while masking is on: computing the mask
-                requires running get_lonlats() regardless of whether you've actually
-                requested the longitude/latitude datasets.
-    """
     def __init__(self, filename, filename_info, filetype_info, mask_space=True):
+        """Open the file and parse its directory, navigation and calibration blocks.
+
+        Reading, calibration and navigation are done by :mod:`pyarea`.
+        """
         super().__init__(filename, filename_info, filetype_info)
         self._mask_space = mask_space
         self.area_file = AreaFile(self.filename)

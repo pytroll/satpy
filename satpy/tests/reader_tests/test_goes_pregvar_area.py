@@ -10,6 +10,7 @@ import pytest
 import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition, SwathDefinition
+
 from satpy import Scene
 from satpy.tests.utils import skip_numba_unstable_if_missing
 
